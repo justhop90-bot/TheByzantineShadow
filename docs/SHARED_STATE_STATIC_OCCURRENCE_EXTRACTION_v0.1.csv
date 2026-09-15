@@ -1,0 +1,41 @@
+occurrence_id,stable_id,symbol_name,file,rule_id,source_line_start,source_line_end,access_type,operation_or_context,related_symbols,resource_or_executor,evidence_level,evidence_status
+SOE-001,SSAR-S02-007,gl-build-progress,SourceShaRef,R1851,21481,21487,WRITE,(set-goal gl-build-progress LC4Number),gl-strategy;building-type-count-total,none,DIRECT,CONFIRMED
+SOE-002,SSAR-S02-007,gl-build-progress,SourceShaRef,R1852,21489,21497,READ,(up-compare-goal gl-build-progress == LC4Number),gl-current-build-item,none,DIRECT,CONFIRMED
+SOE-003,SSAR-S02-007,gl-build-progress,SourceShaRef,R1853,21499,21505,WRITE,(up-modify-goal gl-build-progress c:+ 1),gl-current-build-item;building-type-count-total,none,DIRECT,CONFIRMED
+SOE-004,SSAR-S02-007,gl-build-progress,SourceShaRef,R1893,21989,21995,WRITE,(set-goal gl-build-progress GoldMC2Number),gl-strategy;building-type-count-total,none,DIRECT,CONFIRMED
+SOE-005,SSAR-S02-007,gl-build-progress,SourceShaRef,R1894,21997,22005,READ,(up-compare-goal gl-build-progress == GoldMC2Number),gl-current-build-item,none,DIRECT,CONFIRMED
+SOE-006,SSAR-S02-007,gl-build-progress,SourceShaRef,R1895,22007,22013,WRITE,(up-modify-goal gl-build-progress c:+ 1),gl-current-build-item;building-type-count-total,none,DIRECT,CONFIRMED
+SOE-007,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1852,21489,21497,WRITE,(set-goal gl-current-build-item LC4),gl-build-progress;gl-strategy,none,DIRECT,CONFIRMED
+SOE-008,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1852,21489,21497,READ,(up-compare-goal gl-current-build-item != LC4),gl-build-progress,none,DIRECT,CONFIRMED
+SOE-009,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1853,21499,21505,READ,(goal gl-current-build-item LC4),building-type-count-total,none,DIRECT,CONFIRMED
+SOE-010,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1894,21997,22005,WRITE,(set-goal gl-current-build-item GOLDMC2),gl-build-progress;gl-strategy,none,DIRECT,CONFIRMED
+SOE-011,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1894,21997,22005,READ,(up-compare-goal gl-current-build-item != GOLDMC2),gl-build-progress,none,DIRECT,CONFIRMED
+SOE-012,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1895,22007,22013,READ,(goal gl-current-build-item GOLDMC2),building-type-count-total,none,DIRECT,CONFIRMED
+SOE-013,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1705,19938,19945,READ,(goal gl-current-build-item PAA),research-completed;players-unit-type-count,up-jump-rule,DIRECT,CONFIRMED
+SOE-014,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1706,19947,19953,READ,(goal gl-current-build-item FLTCH),building-type-count,up-jump-rule,DIRECT,CONFIRMED
+SOE-015,SSAR-S02-008,gl-current-build-item,SourceShaRef,R1794,20851,20857,READ,(goal gl-current-build-item MARKET1),gl-strategy;up-pending-placement,up-jump-rule,DIRECT,CONFIRMED
+SOE-016,SSAR-S02-009,gl-progression-pause,SourceShaRef,R1374,16400,16406,WRITE,(set-goal gl-progression-pause MARKET),SPLIT,none,DIRECT,CONFIRMED
+SOE-017,SSAR-S02-009,gl-progression-pause,SourceShaRef,R1375,16408,16422,WRITE,(set-goal gl-progression-pause MARKET),gl-strategy;current-age;resource amounts,none,DIRECT,CONFIRMED
+SOE-018,SSAR-S02-009,gl-progression-pause,SourceShaRef,R1376,16424,16438,WRITE,(set-goal gl-progression-pause MARKET),gl-tenth-turn;gl-build-progress,none,DIRECT,CONFIRMED
+SOE-019,SSAR-S02-009,gl-progression-pause,SourceShaRef,R1381,16464,16476,READ_WRITE,(goal gl-progression-pause MARKET; set-goal gl-progression-pause -1),gl-escrow-state;market,up-build;up-modify-escrow,DIRECT,CONFIRMED
+SOE-020,SSAR-S02-010,gl-escrow-state,SourceShaRef,R0273/R0283/R0285,4690,4717,READ,(up-can-build-line gl-escrow-state ...),gl-lclerp;point-x,construction-line feasibility,DIRECT,CONFIRMED
+SOE-021,SSAR-S02-010,gl-escrow-state,SourceShaRef,R0287/R0288,4732,4747,READ,(up-can-build-line gl-escrow-state ...),gl-lclerp;point-x,construction-line feasibility,DIRECT,CONFIRMED
+SOE-022,SSAR-S02-010,gl-escrow-state,SourceShaRef,R0290/R0292,4749,4780,READ,(up-can-build-line gl-escrow-state ...),gl-lclerp;point-x,construction-line feasibility,DIRECT,CONFIRMED
+SOE-023,SSAR-S02-010,gl-escrow-state,SourceShaRef,R1381,16464,16476,READ,(up-build place-control gl-escrow-state c: market),gl-progression-pause;market,up-build,DIRECT,CONFIRMED
+SOE-024,SSAR-S02-010,gl-escrow-state,SourceShaRef,R1704-R1708,19927,19980,READ_AS_EXECUTOR_PARAMETER,(up-train gl-escrow-state),gl-current-build-item;resource conditions,training,DIRECT,CONFIRMED
+SOE-025,SSAR-S02-010,gl-escrow-state,SourceShaRef,R1794-R1796,20851,20882,READ_AS_EXECUTOR_PARAMETER,(up-build gl-escrow-state / build path),gl-current-build-item;gl-strategy,construction,DIRECT,CONFIRMED
+SOE-026,SSAR-S02-010,gl-escrow-state,SourceShaRef,R1849-R1854,21464,21522,READ_AS_EXECUTOR_PARAMETER,(build / escrow-aware construction path),gl-build-progress;gl-current-build-item,construction,DIRECT,CONFIRMED
+SOE-027,SSAR-S09-008,LOW-ESCROW,SourceShaRef,CONST,361,361,DEFINE,(defconst LOW-ESCROW 25),none,policy constant,DIRECT,CONFIRMED
+SOE-028,SSAR-S09-009,MID-ESCROW,SourceShaRef,CONST,362,362,DEFINE,(defconst MID-ESCROW 35),none,policy constant,DIRECT,CONFIRMED
+SOE-029,SSAR-S09-010,MID-HIGH-ESCROW,SourceShaRef,CONST,363,363,DEFINE,(defconst MID-HIGH-ESCROW 40),none,policy constant,DIRECT,CONFIRMED
+SOE-030,SSAR-S09-011,HIGH-ESCROW,SourceShaRef,CONST,364,364,DEFINE,(defconst HIGH-ESCROW 60),none,policy constant,DIRECT,CONFIRMED
+SOE-031,SSAR-S09-012,CA-WOOD-TRADING-THRESHOLD,SourceShaRef,CONST,378,378,DEFINE,(defconst CA-WOOD-TRADING-THRESHOLD 300),none,market policy constant,DIRECT,CONFIRMED
+SOE-032,SSAR-S09-013,CA-EXCESS-WOOD-THRESHOLD,SourceShaRef,CONST,379,379,DEFINE,(defconst CA-EXCESS-WOOD-THRESHOLD 450),none,market policy constant,DIRECT,CONFIRMED
+SOE-033,SSAR-S09-014,CA-NEED-WOOD-THRESHOLD,SourceShaRef,CONST,380,380,DEFINE,(defconst CA-NEED-WOOD-THRESHOLD 250),none,market policy constant,DIRECT,CONFIRMED
+SOE-034,SSAR-S09-015,CA-NEED-STONE-THRESHOLD,SourceShaRef,CONST,383,383,DEFINE,(defconst CA-NEED-STONE-THRESHOLD 200),none,market policy constant,DIRECT,CONFIRMED
+SOE-035,SSAR-S03-001,target-identity,SourceShaRef,NO-LITERAL-DONOR-SYMBOL,0,0,NOT_APPLICABLE,AEGIS semantic state; donor target variables remain separately classified,none,target subsystem,AEGIS-GENERALIZATION,ARCHITECTURAL
+SOE-036,SSAR-S03-002,target-kind,SourceShaRef,NO-LITERAL-DONOR-SYMBOL,0,0,NOT_APPLICABLE,AEGIS semantic state; donor target-type variables require separate mapping,gl-target-type is a donor constant but not itself the complete AEGIS state,AEGIS-GENERALIZATION,ARCHITECTURAL
+SOE-037,SSAR-S03-003,target-position,SourceShaRef,NO-LITERAL-DONOR-SYMBOL,0,0,NOT_APPLICABLE,AEGIS semantic state; donor coordinate goals require occurrence-level classification,raid-target-x;raid-target-y;nearest-* coordinates,AEGIS-GENERALIZATION,ARCHITECTURAL
+SOE-038,SSAR-S04-003,observation-position,SourceShaRef,NO-LITERAL-DONOR-SYMBOL,0,0,NOT_APPLICABLE,AEGIS semantic state; donor spatial goals are not a single observation-position object,saved-scout-x;tree-x;enemy-attack-x;etc.,AEGIS-GENERALIZATION,ARCHITECTURAL
+SOE-039,SSAR-S06-003,worker-allocation,SourceShaRef,NO-LITERAL-DONOR-SYMBOL,0,0,NOT_APPLICABLE,AEGIS semantic state; donor labor state requires occurrence-level mapping before ownership claims,worker/resource rules,AEGIS-GENERALIZATION,ARCHITECTURAL
+SOE-040,SSAR-S09-005,market-threshold-policy,SourceShaRef,CONST,378,383,DEFINE,CA wood/stone threshold declarations,CA-WOOD-TRADING-THRESHOLD;CA-EXCESS-WOOD-THRESHOLD;CA-NEED-WOOD-THRESHOLD;CA-NEED-STONE-THRESHOLD,market policy constants,DIRECT,CONFIRMED
