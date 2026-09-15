@@ -1,223 +1,188 @@
-# The Byzantine Shadow — Shared State / Writer-Reader Authority Registry v0.3
+# The Byzantine Shadow — Shared State / Writer-Reader Authority Registry v0.4
 
-**Status:** AUTHORITATIVE SUPERSESSION FOR THE `gl-escrow-state` ROW IN v0.2
+**Status:** AUTHORITATIVE SUPERSESSION OF v0.3 FOR `gl-escrow-state` PRECEDENCE/LIFETIME
 
-**Scope:** Systems 01–09; this revision specifically closes the `gl-escrow-state` writer gap.
-
-**Parent registry:** `docs/SHARED_STATE_WRITER_READER_AUTHORITY_REGISTRY_v0.2.md`
-
-**Forensic trace:** `docs/GL_ESCROW_STATE_FORENSIC_TRACE_v0.1.md`
-
+**Parent:** `docs/SHARED_STATE_WRITER_READER_AUTHORITY_REGISTRY_v0.3.md`  
+**Precedence forensic artifact:** `docs/GL_ESCROW_STATE_PRECEDENCE_AND_LIFETIME_FORENSICS_v0.1.md`  
+**Static occurrence trace:** `docs/GL_ESCROW_STATE_FORENSIC_TRACE_v0.1.md`  
 **Source of truth:** `SourceShaRef`, blob `70a18a3b69e8ea46bd5132673fe9fcf8a36595ee`.
 
 ---
 
-## 1. Superseding row
+## 1. Authoritative `gl-escrow-state` row
 
-| stable_id | system | state_class | symbol_name | physical_channel | owner | writers | readers / consumers | mutation path | verification source | conflict status | qualification gates | evidence | status |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| SSAR-S02-010 | S02 | MODE | `gl-escrow-state` | goal **205** | Shadow transaction/executor interface | **R15477 [15477] `set-goal ... without-escrow`**; **R15538 [15538] `set-goal ... with-escrow`**; **R15545 [15545] `set-goal ... with-escrow`**; **R17855 [17855] `set-goal ... with-escrow`**; **R20301 [20301] `set-goal ... with-escrow`**; **R20897 [20897] `set-goal ... with-escrow`** | Construction feasibility: [4698], [4744], [4751], [4760]. Research: [14319], [14353], [14370], [14418], [14467], [14517], [14567], [14617], [14668], [14720], [15030], [15127], [19558], [19608], [19742], [19877], [20297], [20299], [22152]. Training: [15248], [15267], [15441], [15460], [15468], [15513], [15537], [15587], [15592], [15646], [15653], [19957], [19963], [19975], [19977], [19985], [19991]. Construction executors: [15798], [15860], [15946], [16000], [16075], [16127], [16191], [16262], [16333], [16473], [20369], [20536], [20846], [20890], [20935], [20941], [21096], [21108], [21515], [21518], [21778], [21869], [22087], [22094], [22106] | `MODE SET → escrow-aware preflight → executor command → engine interprets EscrowState → resource/transaction consequence → reassessment` | Goal mutation statically proven; executor/resource postconditions runtime-qualified | **MULTIPLE_WRITERS_SAME_SEMANTIC_STATE**; all recovered writers are direct `set-goal` operations | Q1,Q2,Q4,Q5,Q7,Q9,Q11,Q14 | DIRECT / CONFIRMED for definition, writers, and consumers; runtime semantics QUALIFY | STATIC-QUALIFIED; RUNTIME-QUALIFICATION-REQUIRED |
-
----
-
-## 2. Exact writer evidence
-
-### W1 — explicit switch to `without-escrow`
-
-**Source line 15477:**
-
-```text
-(set-goal gl-escrow-state without-escrow)
-```
-
-This is a direct mode mutation. The surrounding rule is in the general/skirmisher section and is gated by Castle Age.
-
-### W2 — post-training mode restoration
-
-**Source line 15538:**
-
-```text
-(set-goal gl-escrow-state with-escrow)
-```
-
-The rule first issues `up-train gl-escrow-state c: skirmisher-line` and then writes `with-escrow`.
-
-### W3 — unconditional mode initialization/restoration
-
-**Source line 15545:**
-
-```text
-(set-goal gl-escrow-state with-escrow)
-```
-
-This is an unconditional rule and therefore has potentially broad precedence implications.
-
-### W4 — one-shot military initialization
-
-**Source line 17855:**
-
-```text
-(set-goal gl-escrow-state with-escrow)
-```
-
-The same rule enables patrol attack and disables itself, making this a distinct one-shot initialization context.
-
-### W5 — post-research restoration
-
-**Source line 20301:**
-
-```text
-(set-goal gl-escrow-state with-escrow)
-```
-
-The write follows `up-research gl-escrow-state c: ri-elite-skirmisher`, demonstrating an explicit post-transaction mode restoration.
-
-### W6 — farm-section initialization/restoration
-
-**Source line 20897:**
-
-```text
-(set-goal gl-escrow-state with-escrow)
-```
-
-This follows the general farm executor path and is another unconditional write.
+| Field | Value |
+|---|---|
+| stable_id | `SSAR-S02-010` |
+| system | S02 / Shadow transaction-executor interface |
+| semantic type | MODE |
+| physical channel | goal 205 |
+| definition | line 1571: `(defconst gl-escrow-state 205)` |
+| writers | W1=15477, W2=15538, W3=15545, W4=17855, W5=20301, W6=20897 |
+| `without-escrow` writer | W1 only |
+| `with-escrow` writers | W2, W3, W4, W5, W6 |
+| owner | Single semantic Shadow transaction/executor mode state |
+| conflict status | `MULTIPLE_WRITERS_SAME_SEMANTIC_STATE` |
+| source-order status | STATIC-QUALIFIED |
+| effective same-pass winner | RUNTIME-OPEN |
+| lifetime model | Writer-defined; no explicit TTL/epoch recovered |
+| clear/reset | No undefined/neutral clear recovered; W1 is alternate-mode write; W2-W6 restore `with-escrow` |
+| latest unconditional writer | W6 at 20897 |
+| one-shot writer | W4 at 17855 (`disable-self`) |
+| qualification | Q7 lifetime/precedence OPEN; Q11 verification OPEN; Q14 runtime ABI OPEN |
 
 ---
 
-## 3. Definition evidence
+## 2. Precedence reconstruction
 
-**Source line 1571:**
+Static source order is:
 
 ```text
-(defconst gl-escrow-state 205)
+1571  definition
+15477 W1  current-age >= castle-age → WITHOUT
+15538 W2  SPLIT == 2 → TRAIN → WITH
+15545 W3  true → WITH
+17855 W4  true → WITH → disable-self
+20301 W5  ESKIRMS + research-feasibility → RESEARCH → WITH
+20897 W6  true → WITH
 ```
 
-Therefore the physical channel is **goal 205**. The symbol is declared in the donor's `QECONOMY` namespace.
+Value-level asymmetry:
+
+```text
+WITHOUT-ESCROW: W1 only
+WITH-ESCROW:    W2/W3/W4/W5/W6
+```
+
+Static overwrite candidates therefore form:
+
+```text
+W1 → W2/W3/W4/W5/W6
+W2 → W3
+W3 → W4/W5/W6
+W4 → W5/W6
+W5 → W6
+```
+
+These are **potential overwrite edges**, not runtime-proven same-pass execution edges.
 
 ---
 
-## 4. Reader / consumer authority
+## 3. Writer semantics
 
-The complete static trace identifies the following consumer families.
-
-### Construction
-
-Representative forms:
+### W1 — line 15477
 
 ```text
-(up-can-build-line gl-escrow-state ...)
-(up-can-build gl-escrow-state ...)
-(up-build place-control gl-escrow-state ...)
-(up-build place-normal gl-escrow-state ...)
+(current-age >= castle-age)
+→ set-goal gl-escrow-state without-escrow
 ```
 
-Recovered consumer lines include **4698, 4744, 4751, 4760, 15798, 15860, 15946, 16000, 16075, 16127, 16191, 16262, 16333, 16473, 20369, 20536, 20846, 20890, 20935, 20941, 21096, 21108, 21515, 21518, 21778, 21869, 22087, 22094, 22106**.
+Classification: contextual mode exception.  
+Potential lifetime: until a later writer changes goal 205.
 
-### Research
+### W2 — line 15538
 
-Recovered `up-can-research` / `up-research` consumers include **14319, 14353, 14370, 14418, 14467, 14517, 14567, 14617, 14668, 14720, 15030, 15127, 19558, 19608, 19742, 19877, 20297, 20299, 22152**.
+```text
+goal SPLIT == 2
+→ up-train gl-escrow-state c: skirmisher-line
+→ set-goal gl-escrow-state with-escrow
+→ set-goal SPLIT 0
+```
 
-### Training
+Classification: post-training restoration.
 
-Recovered `up-can-train` / `up-train` consumers include **15248, 15267, 15441, 15460, 15468, 15513, 15537, 15587, 15592, 15646, 15653, 19957, 19963, 19975, 19977, 19985, 19991**.
+### W3 — line 15545
 
-The full literal occurrence inventory is preserved in `GL_ESCROW_STATE_FORENSIC_TRACE_v0.1.md`.
+```text
+true
+→ set-goal gl-escrow-state with-escrow
+→ set-goal SPLIT 0
+```
+
+Classification: unconditional baseline/reset candidate.  
+Precedence significance: immediate later writer after W2.
+
+### W4 — line 17855
+
+```text
+true
+→ set-strategic-number sn-enable-patrol-attack 1
+→ set-goal gl-escrow-state with-escrow
+→ disable-self
+```
+
+Classification: one-shot military initialization/restoration.  
+`disable-self` qualifies the writer rule's lifetime, not necessarily the goal value's lifetime.
+
+### W5 — line 20301
+
+Requires `gl-current-build-item == ESKIRMS` and at least one of ordinary, escrow-aware, or `up-can-research` feasibility predicates for elite skirmisher research; then:
+
+```text
+up-research gl-escrow-state c: ri-elite-skirmisher
+→ set-goal gl-escrow-state with-escrow
+```
+
+Classification: post-research restoration.
+
+### W6 — line 20897
+
+```text
+true
+→ set-goal gl-escrow-state with-escrow
+→ set-goal SPLIT 0
+```
+
+Classification: later unconditional baseline/reset candidate. It is the latest recovered unconditional writer.
 
 ---
 
-## 5. Mutation semantics
+## 4. Lifetime / reset semantics
 
-`gl-escrow-state` is a **mode carrier**, not an escrow amount register.
+No explicit goal-205 clear, undefined state, TTL, or epoch expiry was recovered.
 
-The donor directly assigns two semantic modes:
-
-```text
-without-escrow
-with-escrow
-```
-
-The executor commands then consume the current goal value as their `EscrowState` parameter.
-
-This must remain distinct from:
+The reconstructed state behavior is therefore:
 
 ```text
-set-escrow-percentage
-up-modify-escrow
-release-escrow
+WITH
+  ↓ W1 when Castle Age predicate becomes true
+WITHOUT
+  ↓ W2/W3/W4/W5/W6 when their rules execute
+WITH
 ```
 
-Those commands mutate escrow resource accounting/policy; they do not mutate goal 205.
+W4 is the only writer whose rule explicitly self-terminates. W2 and W3/W6 manipulate `SPLIT` as local control state; they do not clear goal 205.
+
+The exact persistence interval of `WITHOUT` remains runtime-open.
 
 ---
 
-## 6. Authority interpretation
+## 5. Authority decision
 
-The v0.2 classification `WRITER STILL UNRECOVERED` is **obsolete**.
+**Single semantic owner, multiple authorized physical writers** remains the authoritative ownership model.
 
-The donor has a genuine multi-writer physical representation of one semantic state:
+The six donor writers must not become six independent AEGIS authorities. Their physical multiplicity must be represented as registered mutation sites with explicit reason, precedence class, and lifetime.
+
+Recommended implementation rule:
 
 ```text
-                  gl-escrow-state / goal 205
-                           │
-             ┌─────────────┴─────────────┐
-             │                           │
-      without-escrow                with-escrow
-      W1 / line 15477          W2-W6 / 15538,15545,
-                               17855,20301,20897
-             │                           │
-             └─────────────┬─────────────┘
-                           ▼
-                  escrow-aware executor
+A physical write to goal 205 is legal only when its mutation reason,
+context, precedence, and expected lifetime are registered.
 ```
-
-The correct AEGIS authority rule is:
-
-> **Single semantic owner, multiple authorized physical writes.**
-
-The presence of six physical writers does not by itself establish competing semantic owners.
 
 ---
 
-## 7. Reset / initialization classification
+## 6. Remaining qualification gates
 
-| writer | role classification | evidence |
+| Gate | Status | Required proof |
 |---|---|---|
-| W1 line 15477 | explicit switch to `without-escrow` | DIRECT; surrounding Castle-Age context |
-| W2 line 15538 | post-training mode restoration | DIRECT; command ordering establishes relationship |
-| W3 line 15545 | unconditional default/initialization | DIRECT; exact precedence requires rule-order analysis |
-| W4 line 17855 | one-shot initialization | DIRECT; `disable-self` establishes local lifetime |
-| W5 line 20301 | post-research restoration | DIRECT; immediately follows research executor |
-| W6 line 20897 | farm-section initialization/restoration | DIRECT; exact global lifetime requires rule-order analysis |
+| Q1 Symbol identity | PASS | goal 205 / line 1571 |
+| Q2 Writer inventory | PASS | six direct writes recovered |
+| Q4 Ownership | PASS | single semantic owner |
+| Q5 Mutation path | PASS | direct goal mutation + executor consumption |
+| Q7 Lifetime / precedence | **OPEN** | rule scheduling, overwrite window, jump effects |
+| Q9 Resource attribution | PASS statically | goal mode distinct from escrow amount accounting |
+| Q11 Verification | **OPEN** | prove downstream executor interprets intended mode |
+| Q14 Runtime ABI | **OPEN** | target-engine `EscrowState` semantics and timing |
 
-There is **no separate clear-to-undefined operation recovered**. `without-escrow` is a semantic mode, not an absent/uninitialized state.
-
-Do not collapse W3/W4/W6 into one global initializer until full rule-order and disable-self interactions are audited.
-
----
-
-## 8. Qualification gates
-
-- **Q1 Symbol identity:** PASS — goal 205.
-- **Q2 Writer inventory:** PASS — six direct symbolic writers recovered.
-- **Q4 Ownership:** PASS at semantic level; AEGIS owner remains Shadow transaction/executor interface.
-- **Q5 Mutation path:** PASS statically — `set-goal` writes mode values; executor commands consume them.
-- **Q7 Lifetime / generation:** OPEN — precedence among unconditional/contextual writers remains to be reconstructed.
-- **Q9 Resource attribution:** PASS for separation of goal mode from escrow amount channels; economic consequence remains runtime-qualified.
-- **Q11 Verification:** OPEN — command result remains separate from mode mutation.
-- **Q14 Runtime ABI:** OPEN — exact `with-escrow` / `without-escrow` value semantics must be qualified against the target engine.
-
-## 9. Canonical registry disposition
-
-```text
-symbol: gl-escrow-state
-goal: 205
-writers: 6 direct symbolic writers
-resets: explicit mode switch to without-escrow; no undefined-clear recovered
-readers: construction + research + training executor families
-owner: Shadow transaction/executor interface
-conflict: multiple physical writers / single semantic state
-static status: CONFIRMED
-runtime status: OPEN
-```
-
-This closes the previous P0 **writer-discovery** gap. Remaining work is **writer precedence, lifetime, and runtime ABI qualification**, not writer discovery.
+**No claim of runtime-qualified effective winner is authorized until Q7/Q11/Q14 close.**
