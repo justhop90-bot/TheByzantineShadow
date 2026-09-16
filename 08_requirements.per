@@ -1,109 +1,182 @@
-```lisp
-; ============================================
-; AEGIS
-; 08_requirements.per
-; ============================================
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 08 -- REQUIREMENTS
+; ============================================================
 ;
-; REQUIREMENT MODEL
+; Authority: engine-derived construction cost/requirement data.
 ;
-; Responsibility:
+; This module translates the active construction request into an
+; engine-defined four-resource requirement vector. It does not choose
+; strategy, allocate escrow, grant authority, execute construction,
+; verify completion, or recover a failed transaction.
 ;
-;   Translate an AEGIS requirement into the
-;   engine-defined economic demand required
-;   to satisfy that requirement.
-;
-; REQUIREMENT
-;     ↓
-; ENGINE COST DATA
-;     ↓
-; FOOD / WOOD / STONE / GOLD DEMAND
-;
-; This module does NOT:
-;
-;   - choose the strategic objective
-;   - determine capital feasibility
-;   - modify engine escrow
-;   - release escrow
-;   - grant authority
-;   - execute the transaction
-;   - verify completion
-;
-; The engine supplies the actual object and
-; technology costs.
-;
-; ============================================
+; Numeric strategic thresholds remain outside this module.
+; ============================================================
 
-
-; ============================================
-; NO ACTIVE REQUIREMENT
-; ============================================
-;
-; Clear the current demand when no transaction
-; is active.
-;
-; ============================================
-
-```lisp
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
 (defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+    (goal BYZ-CONSTRUCTION-REQUIREMENTS -1)
 =>
-    (up-reset-cost-data AEGIS-DEMAND-FOOD)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-NOT-READY)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 0)
 )
 
-; ============================================
-; FEUDAL AGE REQUIREMENT
-; ============================================
-;
-; UserPatch cost data:
-;
-;     AEGIS-DEMAND-FOOD
-;     AEGIS-DEMAND-WOOD
-;     AEGIS-DEMAND-STONE
-;     AEGIS-DEMAND-GOLD
-;
-; are one consecutive four-goal cost-data set.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; IDLE / NO REQUEST
+; ------------------------------------------------------------
 (defrule
-    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-FEUDAL)
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-INACTIVE)
 =>
-    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
-    (up-add-research-cost c: feudal-age c: 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-NOT-READY)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 0)
 )
-```
 
-
-
-; ============================================
-; BARRACKS REQUIREMENT
-; ============================================
+; ------------------------------------------------------------
+; REQUESTED OBJECT COSTS
+; ------------------------------------------------------------
+; The engine cost-data interface is initialized against a dedicated
+; consecutive four-goal vector. The exact object is dispatched below
+; because .per cannot treat an arbitrary goal value as a dynamic object
+; constant in an engine cost command.
 
 (defrule
-    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-BARRACKS)
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM house)
 =>
-    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: house c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM barracks)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
     (up-add-object-cost c: barracks c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
 )
-
-
-; ============================================
-; SPEARMAN REQUIREMENT
-; ============================================
-;
-; The cost is taken from the engine's root
-; Spearman object definition rather than from
-; a manually maintained AEGIS price.
-;
-; ============================================
 
 (defrule
-    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM lumber-camp)
 =>
-    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
-    (up-add-object-cost c: spearman c: 1)
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: lumber-camp c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
 )
-```
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM mill)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: mill c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM farm)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: farm c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM mining-camp)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: mining-camp c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM archery-range)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: archery-range c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM stable)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: stable c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM blacksmith)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: blacksmith c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM market)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: market c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM monastery)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: monastery c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM university)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: university c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
+    (goal BYZ-CURRENT-BUILD-ITEM castle)
+=>
+    (up-setup-cost-data 1 BYZ-REQUIREMENT-FOOD)
+    (up-add-object-cost c: castle c: 1)
+    (set-goal BYZ-REQUIREMENT-ACTIVE 1)
+    (set-goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+)
+
+; ------------------------------------------------------------
+; INVARIANTS
+; ------------------------------------------------------------
+; Requirement data is engine-derived.
+; Requirement readiness does not imply capital feasibility.
+; Capital feasibility does not imply authority.
+; No construction command is issued here.
+; No numeric strategic threshold is introduced here.
+; ============================================================
