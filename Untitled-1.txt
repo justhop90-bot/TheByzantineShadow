@@ -1,0 +1,118 @@
+; ============================================
+; AEGIS
+; 12_execution.per
+; ============================================
+;
+; EXECUTION
+;
+; Responsibility:
+;
+;   Convert granted authority into exactly one
+;   engine execution request.
+;
+; POC operation:
+;
+;   Train Spearman.
+;
+; Control boundary:
+;
+;   AUTHORITY
+;       ->
+;   ESCROW-INCLUDED
+;       ->
+;   ENGINE FEASIBILITY
+;       ->
+;   EXECUTION REQUEST
+;       ->
+;   OBSERVATION
+;       ->
+;   VERIFICATION
+;
+; This module does NOT:
+;
+;   - select the objective
+;   - calculate requirements
+;   - calculate capital
+;   - create escrow
+;   - release escrow
+;   - grant authority
+;   - verify completion
+;
+; ============================================
+
+
+; ============================================
+; INITIALIZE EXECUTION STATE
+; ============================================
+;
+; An authorized READY transaction begins with
+; no execution request issued.
+;
+; ============================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+    (goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+=>
+    (set-goal AEGIS-ESCROW-STATE escrow-included)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+)
+
+
+; ============================================
+; ISSUE SPEARMAN TRAINING REQUEST
+; ============================================
+;
+; UserPatch-defined escrow-aware feasibility:
+;
+;   up-can-train
+;
+; UserPatch-defined escrow-aware execution:
+;
+;   up-train
+;
+; The same escrow-state goal is supplied to
+; both operations.
+;
+; The execution latch changes immediately
+; after issuing the command.
+;
+; This does NOT claim that the Spearman
+; exists in the world.
+;
+; ============================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+    (goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal AEGIS-ESCROW-STATE escrow-included)
+    (goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+    (up-can-train AEGIS-ESCROW-STATE c:< spearman-line)
+=>
+    (up-train AEGIS-ESCROW-STATE c:< spearman-line)
+    (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+)
+
+
+; ============================================
+; AUTHORITY LOST BEFORE EXECUTION
+; ============================================
+;
+; No execution request has been issued.
+;
+; Return escrow command interpretation to
+; escrow-deducted.
+;
+; ============================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+    (goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+    (goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+=>
+    (set-goal AEGIS-ESCROW-STATE escrow-deducted)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+)

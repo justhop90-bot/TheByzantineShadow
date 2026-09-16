@@ -1,0 +1,147 @@
+; ============================================
+; AEGIS
+; 13_verification.per
+; ============================================
+;
+; VERIFICATION
+;
+; POC TRANSACTION:
+;
+;   Train one Spearman.
+;
+; Verification model:
+;
+;   PRE-EXECUTION TRAINED COUNT
+;          ↓
+;   EXECUTION REQUEST
+;          ↓
+;   POST-EXECUTION TRAINED COUNT
+;          ↓
+;   COUNT DELTA > 0
+;
+; IMPORTANT:
+;
+;   unit-type-count measures trained units.
+;
+;   unit-type-count-total includes trained
+;   and queued units and is therefore suitable
+;   for production-demand logic, but is not
+;   sufficient to establish that a unit has
+;   actually completed training.
+;
+;   Verification therefore uses unit-type-count.
+;
+; ============================================
+
+; ============================================
+; CAPTURE PRE-EXECUTION BASELINE
+; ============================================
+;
+; Capture the number of already-trained
+; Spearman-line units before execution.
+;
+; The fact parameter identifies the unit type
+; being counted.
+;
+; The baseline is stored in the dedicated
+; execution-baseline goal.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+=>
+(up-get-fact unit-type-count spearman-line AEGIS-EXECUTION-BASELINE)
+(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
+)
+
+; ============================================
+; EXECUTION REQUEST UNVERIFIED
+; ============================================
+;
+; An issued execution command is not proof
+; of successful completion.
+;
+; Verification therefore remains explicitly
+; UNVERIFIED until the trained-unit count
+; changes.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+=>
+(set-goal AEGIS-VERIFICATION AEGIS-UNVERIFIED)
+)
+
+; ============================================
+; VERIFY TRAINED SPEARMAN
+; ============================================
+;
+; The current trained Spearman count must
+; exceed the pre-execution trained count.
+;
+; Because unit-type-count excludes queued
+; units, a positive delta establishes that
+; an additional Spearman has actually entered
+; the trained-unit population.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+(unit-type-count spearman-line g:> AEGIS-EXECUTION-BASELINE)
+=>
+(set-goal AEGIS-VERIFICATION AEGIS-VERIFIED)
+(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-VERIFIED)
+(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+)
+
+; ============================================
+; REQUEST ESCROW RELEASE AFTER SUCCESS
+; ============================================
+;
+; Verification establishes that the
+; transaction's defined world-state criterion
+; has been satisfied.
+;
+; Release is requested separately.
+;
+; Module 10 remains the sole executor of
+; actual engine escrow release.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+(goal AEGIS-VERIFICATION AEGIS-VERIFIED)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+=>
+(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+)
+
+; ============================================
+; AUTHORITY LOST BEFORE VERIFICATION
+; ============================================
+;
+; If authority disappears while execution
+; remains unverified, the transaction cannot
+; continue as an authorized execution.
+;
+; It is therefore passed to recovery.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+=>
+(set-goal AEGIS-VERIFICATION AEGIS-FAILED)
+(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-FAILED)
+(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+)

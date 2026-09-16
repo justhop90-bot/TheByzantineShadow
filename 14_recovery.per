@@ -1,0 +1,115 @@
+; ============================================
+; AEGIS
+; 14_recovery.per
+; ============================================
+;
+; RECOVERY
+;
+; Responsibility:
+;
+;   Convert a FAILED transaction into a
+;   controlled recovery state.
+;
+; Recovery is downstream of:
+;
+;   VERIFICATION
+;       ->
+;   FAILURE
+;       ->
+;   RECOVERY
+;       ->
+;   ESCROW RELEASE REQUEST
+;       ->
+;   REASSESSMENT
+;
+; This module does NOT:
+;
+;   - choose a new objective
+;   - modify escrow directly
+;   - release escrow directly
+;   - grant execution authority
+;   - execute production commands
+;   - declare world-state success
+;
+; Module 10 remains the sole owner of the
+; actual engine escrow-release operation.
+;
+; ============================================
+
+; ============================================
+; ENTER RECOVERY
+; ============================================
+;
+; A failed transaction is explicitly marked
+; for recovery.
+;
+; No engine command is issued here.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+=>
+(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-REQUIRED)
+)
+
+; ============================================
+; REQUEST ESCROW RELEASE
+; ============================================
+;
+; Recovery does not execute up-release-escrow.
+;
+; It requests release through the existing
+; escrow authority boundary.
+;
+; Module 10 observes the request and performs
+; the actual engine operation.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-REQUIRED)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+=>
+(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASING)
+)
+
+; ============================================
+; RECOVERY RELEASE OBSERVED
+; ============================================
+;
+; Recovery is not considered complete merely
+; because release was requested.
+;
+; Module 10 owns the observation of actual
+; escrow state and transitions the escrow
+; lifecycle to RELEASED.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASING)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+=>
+(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASED)
+)
+
+; ============================================
+; RECOVERY COMPLETE
+; ============================================
+;
+; Once engine escrow release has actually
+; been observed, recovery is complete.
+;
+; Reassessment owns what happens next.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASED)
+=>
+(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+)

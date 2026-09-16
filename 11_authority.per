@@ -1,0 +1,122 @@
+; ============================================
+; AEGIS
+; 11_authority.per
+; ============================================
+;
+; AUTHORITY
+;
+; Responsibility:
+;
+;   Determine whether the current transaction
+;   is authorized to cross from preparation
+;   into execution.
+;
+; Authority is a gate between:
+;
+;   TRANSACTION + ESCROW
+;          ↓
+;      AUTHORITY
+;          ↓
+;      EXECUTION
+;
+; This module does NOT:
+;
+;   - choose the objective
+;   - create the requirement
+;   - calculate capital
+;   - create escrow
+;   - release escrow
+;   - issue an engine command
+;   - verify execution
+;   - perform recovery
+;
+; Authority is therefore an authorization state,
+; not an execution mechanism.
+;
+; ============================================
+
+; ============================================
+; IDLE -> DENIED
+; ============================================
+;
+; No active transaction exists.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+=>
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+)
+
+; ============================================
+; RESERVING -> DENIED
+; ============================================
+;
+; Capital is still being prepared.
+;
+; A transaction cannot execute merely because
+; it exists. It must first reach READY with
+; its required escrow commitment established.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+=>
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+)
+
+; ============================================
+; READY + COMMITTED -> GRANTED
+; ============================================
+;
+; READY means the transaction has completed
+; its preparation phase.
+;
+; COMMITTED means the escrow subsystem has
+; established the required economic commitment.
+;
+; Authority therefore opens only when both
+; conditions are true.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+=>
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+)
+
+; ============================================
+; COMPLETE -> DENIED
+; ============================================
+;
+; A completed transaction no longer possesses
+; execution authority.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+=>
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+)
+
+; ============================================
+; FAILED -> DENIED
+; ============================================
+;
+; A failed transaction no longer possesses
+; execution authority.
+;
+; Recovery owns the subsequent failure path.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+=>
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+)

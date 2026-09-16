@@ -1,0 +1,7 @@
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count barracks < 1) 
+    (can-build-barracks)
+    (up-pending-object C: barracks < 1) 
+=>
+    (build barracks)

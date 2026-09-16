@@ -1,0 +1,14 @@
+;==============================================
+;BASIC BYZANTINE STATE
+;============================================
+(defrule
+    (building-type-count-total barracks > 0) 
+=>
+    (set-goal BASIC-BARRACKS-READY 1)
+)
+
+(defrule
+    (building-type-count-total barracks < 1)
+=>
+    (set-goal BASIC-ATTACK-READY 0)
+)

@@ -1,0 +1,121 @@
+; ============================================
+; AEGIS
+; 12_execution.per
+; ============================================
+;
+; EXECUTION
+;
+; Responsibility:
+;
+;   Convert an already-authorized and baselined
+;   transaction into one engine execution request.
+;
+; Execution authority chain:
+;
+;   READY
+;      +
+;   AUTHORITY-GRANTED
+;      +
+;   ESCROW-COMMITTED
+;      +
+;   EXECUTION-BASELINED
+;      +
+;   ESCROW-INCLUDED
+;      +
+;   UP-CAN-TRAIN
+;          ↓
+;      UP-TRAIN
+;          ↓
+;   EXECUTING / ISSUED
+;
+; This module does NOT:
+;
+;   - choose the objective
+;   - calculate capital
+;   - create escrow
+;   - grant authority
+;   - verify completion
+;   - declare transaction success
+;   - perform recovery
+;
+; ============================================
+
+; ============================================
+; PREPARE ESCROW-AWARE EXECUTION
+; ============================================
+;
+; The transaction must already be READY,
+; authorized, and economically committed.
+;
+; This establishes the UserPatch escrow mode
+; used by the subsequent up-can-train/up-train
+; pair.
+;
+; No execution command is issued here.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+=>
+(set-goal AEGIS-ESCROW-STATE escrow-included)
+)
+
+; ============================================
+; ISSUE SPEARMAN TRAINING
+; ============================================
+;
+; Execution requires:
+;
+;   - READY transaction
+;   - granted authority
+;   - committed escrow
+;   - captured pre-execution baseline
+;   - escrow-inclusive execution state
+;   - documented up-can-train feasibility
+;
+; The can condition directly guards the
+; corresponding up-train action.
+;
+; The transaction becomes EXECUTING and the
+; execution state becomes ISSUED only when the
+; training command is actually issued.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
+(goal AEGIS-ESCROW-STATE escrow-included)
+(up-can-train AEGIS-ESCROW-STATE c:< spearman-line)
+=>
+(up-train AEGIS-ESCROW-STATE c:< spearman-line)
+(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+)
+
+; ============================================
+; AUTHORITY LOST BEFORE EXECUTION
+; ============================================
+;
+; No execution command is issued when authority
+; is denied.
+;
+; A transaction that loses authority before
+; execution is classified as failed and passed
+; downstream to recovery.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
+=>
+(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-FAILED)
+(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+)

@@ -1,0 +1,121 @@
+; ============================================
+; AEGIS
+; 10_escrow.per
+; ============================================
+;
+; ESCROW
+;
+; Responsibility:
+;
+;   Own the lifecycle of actual engine escrow.
+;
+; This module:
+;
+;   - observes escrow
+;   - executes escrow release
+;   - verifies escrow release
+;   - maintains escrow lifecycle state
+;
+; This module does NOT:
+;
+;   - choose the objective
+;   - determine transaction success
+;   - determine transaction failure
+;   - request strategic release
+;   - perform recovery
+;
+; Release authority chain:
+;
+;   TERMINAL TRANSACTION
+;          ↓
+;   RELEASE REQUEST
+;          ↓
+;   COMMITTED
+;          ↓
+;   RELEASING
+;          ↓
+;   up-release-escrow
+;          ↓
+;   OBSERVE FOUR ESCROW FACTS = 0
+;          ↓
+;   RELEASED
+;
+; IMPORTANT:
+;
+;   Issuing up-release-escrow is NOT proof
+;   that release completed.
+;
+;   RELEASED requires observed engine state.
+;
+; ============================================
+
+; ============================================
+; COMMITTED -> RELEASING
+; ============================================
+;
+; Explicit release request is mandatory.
+;
+; Terminal transaction state alone cannot
+; authorize engine escrow release.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+(goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+(or
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+)
+=>
+(up-release-escrow)
+(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+)
+
+; ============================================
+; RELEASING -> RELEASED
+; ============================================
+;
+; Verify actual engine escrow state.
+;
+; Escrow amounts are non-negative. Therefore
+; a documented relational test of < 1 establishes
+; that each escrow balance has reached zero,
+; without relying on an undocumented '='
+; compareOp for escrow-amount.
+;
+; All four resource escrow balances must
+; independently report zero.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+(escrow-amount food < 1)
+(escrow-amount wood < 1)
+(escrow-amount gold < 1)
+(escrow-amount stone < 1)
+=>
+(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+)
+
+; ============================================
+; RELEASED -> UNCOMMITTED
+; ============================================
+;
+; RELEASED is intentionally preserved until
+; the transaction lifecycle has returned to IDLE.
+;
+; This prevents Module 10 from erasing the
+; verified release state before recovery or
+; downstream lifecycle logic can observe it.
+;
+; ============================================
+
+(defrule
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+=>
+(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-UNCOMMITTED)
+(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
+)
