@@ -1,109 +1,292 @@
-```lisp
-; ============================================
-; AEGIS
-; 08_requirements.per
-; ============================================
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 08 -- REQUIREMENTS
+; ============================================================
 ;
-; REQUIREMENT MODEL
+; PURPOSE
+; -------
+; Translate Shadow's active production deficits into an engine-defined
+; four-resource requirement vector.
 ;
-; Responsibility:
-;
-;   Translate an AEGIS requirement into the
-;   engine-defined economic demand required
-;   to satisfy that requirement.
-;
-; REQUIREMENT
-;     ↓
+; ARCHITECTURE
+; ------------
+; COMPOSITION TARGET
+;        |
+;        v
+; ENGINE OBSERVED TOTAL
+;        |
+;        v
+; TRUE PRODUCTION DEFICIT
+;        |
+;        v
 ; ENGINE COST DATA
-;     ↓
-; FOOD / WOOD / STONE / GOLD DEMAND
+;        |
+;        v
+; FOOD / WOOD / STONE / GOLD REQUIREMENT
+;
+; The production count source is Module 05's unit-type-count-total
+; mirror. That fact includes trained + queued units, so this module
+; does NOT subtract queued units a second time.
 ;
 ; This module does NOT:
-;
-;   - choose the strategic objective
+;   - choose the composition target
+;   - build production infrastructure
+;   - train units
+;   - modify escrow
+;   - determine reserve floors
 ;   - determine capital feasibility
-;   - modify engine escrow
-;   - release escrow
-;   - grant authority
-;   - execute the transaction
+;   - authorize execution
 ;   - verify completion
 ;
-; The engine supplies the actual object and
-; technology costs.
+; Infrastructure pressure is deliberately separate from this resource
+; requirement vector. Module 05 remains the production-site authority.
 ;
-; ============================================
-
-
-; ============================================
-; NO ACTIVE REQUIREMENT
-; ============================================
-;
-; Clear the current demand when no transaction
-; is active.
-;
-; ============================================
-
-```lisp
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
-=>
-    (up-reset-cost-data AEGIS-DEMAND-FOOD)
-)
-
-; ============================================
-; FEUDAL AGE REQUIREMENT
-; ============================================
-;
-; UserPatch cost data:
-;
-;     AEGIS-DEMAND-FOOD
-;     AEGIS-DEMAND-WOOD
-;     AEGIS-DEMAND-STONE
-;     AEGIS-DEMAND-GOLD
-;
-; are one consecutive four-goal cost-data set.
-;
-; ============================================
+; ============================================================
+; INITIALIZATION
+; ============================================================
 
 (defrule
-    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-FEUDAL)
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal SHADOW-REQ-INITIALIZED -1)
 =>
-    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
-    (up-add-research-cost c: feudal-age c: 1)
+    (set-goal SHADOW-REQ-INITIALIZED 1)
+    (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-INACTIVE)
+    (set-goal SHADOW-REQ-DEFICIT-INFANTRY 0)
+    (set-goal SHADOW-REQ-DEFICIT-ANTI-CAVALRY 0)
+    (set-goal SHADOW-REQ-DEFICIT-RANGED 0)
+    (set-goal SHADOW-REQ-DEFICIT-ANTI-RANGED 0)
+    (set-goal SHADOW-REQ-DEFICIT-LIGHT-CAVALRY 0)
+    (set-goal SHADOW-REQ-DEFICIT-HEAVY-CAVALRY 0)
+    (set-goal SHADOW-REQ-DEFICIT-CAMEL 0)
+    (set-goal SHADOW-REQ-DEFICIT-MOBILE-RANGED 0)
+    (set-goal SHADOW-REQ-DEFICIT-UNIQUE-CAVALRY 0)
+    (set-goal SHADOW-REQ-DEFICIT-RAM-SIEGE 0)
+    (set-goal SHADOW-REQ-DEFICIT-AREA-SIEGE 0)
+    (set-goal SHADOW-REQ-DEFICIT-ANTI-MASS-SIEGE 0)
+    (set-goal SHADOW-REQ-DEFICIT-SIEGE-TOWER 0)
+    (set-goal SHADOW-REQ-DEFICIT-GUNPOWDER-SIEGE 0)
+    (set-goal SHADOW-REQ-DEFICIT-CASTLE-SIEGE 0)
+    (set-goal SHADOW-REQ-DEFICIT-MONK 0)
+    (set-goal SHADOW-REQ-DEFICIT-HAND-CANNONEER 0)
+    (set-goal SHADOW-REQ-DEFICIT-GALLEY-NAVY 0)
+    (set-goal SHADOW-REQ-DEFICIT-FIRE-NAVY 0)
+    (set-goal SHADOW-REQ-DEFICIT-DEMO-NAVY 0)
+    (set-goal SHADOW-REQ-DEFICIT-IMPERIAL-NAVY 0)
+    (set-goal SHADOW-REQ-DEFICIT-PETARD 0)
 )
-```
 
+; ============================================================
+; DEFICIT MATERIALIZATION
+; ============================================================
+;
+; Deficit = max(Target - ObservedTotal, 0).
+;
+; ObservedTotal already includes queued units because Module 05 reads
+; unit-type-count-total. This is therefore the committed production
+; quantity visible to the engine, not merely completed units.
 
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-INFANTRY g:= SHADOW-PROD-INFANTRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-INFANTRY c:- SHADOW-PROD-COUNT-INFANTRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-INFANTRY c:max 0)
+)
 
-; ============================================
-; BARRACKS REQUIREMENT
-; ============================================
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-CAVALRY g:= SHADOW-PROD-ANTI-CAVALRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-CAVALRY c:- SHADOW-PROD-COUNT-ANTI-CAVALRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-CAVALRY c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-RANGED g:= SHADOW-PROD-RANGED)
+    (up-modify-goal SHADOW-REQ-DEFICIT-RANGED c:- SHADOW-PROD-COUNT-RANGED)
+    (up-modify-goal SHADOW-REQ-DEFICIT-RANGED c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-RANGED g:= SHADOW-PROD-ANTI-RANGED)
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-RANGED c:- SHADOW-PROD-COUNT-ANTI-RANGED)
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-RANGED c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-LIGHT-CAVALRY g:= SHADOW-PROD-LIGHT-CAVALRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-LIGHT-CAVALRY c:- SHADOW-PROD-COUNT-LIGHT-CAVALRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-LIGHT-CAVALRY c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-HEAVY-CAVALRY g:= SHADOW-PROD-HEAVY-CAVALRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-HEAVY-CAVALRY c:- SHADOW-PROD-COUNT-HEAVY-CAVALRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-HEAVY-CAVALRY c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-CAMEL g:= SHADOW-PROD-CAMEL)
+    (up-modify-goal SHADOW-REQ-DEFICIT-CAMEL c:- SHADOW-PROD-COUNT-CAMEL)
+    (up-modify-goal SHADOW-REQ-DEFICIT-CAMEL c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-MOBILE-RANGED g:= SHADOW-PROD-MOBILE-RANGED)
+    (up-modify-goal SHADOW-REQ-DEFICIT-MOBILE-RANGED c:- SHADOW-PROD-COUNT-MOBILE-RANGED)
+    (up-modify-goal SHADOW-REQ-DEFICIT-MOBILE-RANGED c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-UNIQUE-CAVALRY g:= SHADOW-PROD-UNIQUE-CAVALRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-UNIQUE-CAVALRY c:- SHADOW-PROD-COUNT-UNIQUE-CAVALRY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-UNIQUE-CAVALRY c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-RAM-SIEGE g:= SHADOW-PROD-RAM-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-RAM-SIEGE c:- SHADOW-PROD-COUNT-RAM-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-RAM-SIEGE c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-AREA-SIEGE g:= SHADOW-PROD-AREA-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-AREA-SIEGE c:- SHADOW-PROD-COUNT-AREA-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-AREA-SIEGE c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-MASS-SIEGE g:= SHADOW-PROD-ANTI-MASS-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-MASS-SIEGE c:- SHADOW-PROD-COUNT-ANTI-MASS-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-ANTI-MASS-SIEGE c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-SIEGE-TOWER g:= SHADOW-PROD-SIEGE-TOWER)
+    (up-modify-goal SHADOW-REQ-DEFICIT-SIEGE-TOWER c:- SHADOW-PROD-COUNT-SIEGE-TOWER)
+    (up-modify-goal SHADOW-REQ-DEFICIT-SIEGE-TOWER c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-GUNPOWDER-SIEGE g:= SHADOW-PROD-GUNPOWDER-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-GUNPOWDER-SIEGE c:- SHADOW-PROD-COUNT-GUNPOWDER-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-GUNPOWDER-SIEGE c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-CASTLE-SIEGE g:= SHADOW-PROD-CASTLE-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-CASTLE-SIEGE c:- SHADOW-PROD-COUNT-CASTLE-SIEGE)
+    (up-modify-goal SHADOW-REQ-DEFICIT-CASTLE-SIEGE c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-MONK g:= SHADOW-PROD-MONK)
+    (up-modify-goal SHADOW-REQ-DEFICIT-MONK c:- SHADOW-PROD-COUNT-MONK)
+    (up-modify-goal SHADOW-REQ-DEFICIT-MONK c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-HAND-CANNONEER g:= SHADOW-PROD-HAND-CANNONEER)
+    (up-modify-goal SHADOW-REQ-DEFICIT-HAND-CANNONEER c:- SHADOW-PROD-COUNT-HAND-CANNONEER)
+    (up-modify-goal SHADOW-REQ-DEFICIT-HAND-CANNONEER c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-GALLEY-NAVY g:= SHADOW-PROD-GALLEY-NAVY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-GALLEY-NAVY c:- SHADOW-PROD-COUNT-GALLEY-NAVY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-GALLEY-NAVY c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-FIRE-NAVY g:= SHADOW-PROD-FIRE-NAVY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-FIRE-NAVY c:- SHADOW-PROD-COUNT-FIRE-NAVY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-FIRE-NAVY c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-DEMO-NAVY g:= SHADOW-PROD-DEMO-NAVY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-DEMO-NAVY c:- SHADOW-PROD-COUNT-DEMO-NAVY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-DEMO-NAVY c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-IMPERIAL-NAVY g:= SHADOW-PROD-IMPERIAL-NAVY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-IMPERIAL-NAVY c:- SHADOW-PROD-COUNT-IMPERIAL-NAVY)
+    (up-modify-goal SHADOW-REQ-DEFICIT-IMPERIAL-NAVY c:max 0)
+)
+
+(defrule (true) =>
+    (up-modify-goal SHADOW-REQ-DEFICIT-PETARD g:= SHADOW-PROD-PETARD)
+    (up-modify-goal SHADOW-REQ-DEFICIT-PETARD c:- SHADOW-PROD-COUNT-PETARD)
+    (up-modify-goal SHADOW-REQ-DEFICIT-PETARD c:max 0)
+)
+
+; ============================================================
+; REQUIREMENT PRESENCE
+; ============================================================
 
 (defrule
-    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-BARRACKS)
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (true)
 =>
-    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
-    (up-add-object-cost c: barracks c: 1)
+    (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-INACTIVE)
 )
 
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-INFANTRY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-ANTI-CAVALRY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-RANGED > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-ANTI-RANGED > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-LIGHT-CAVALRY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-HEAVY-CAVALRY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-CAMEL > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-MOBILE-RANGED > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-UNIQUE-CAVALRY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-RAM-SIEGE > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-AREA-SIEGE > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-ANTI-MASS-SIEGE > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-SIEGE-TOWER > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-GUNPOWDER-SIEGE > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-CASTLE-SIEGE > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-MONK > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-HAND-CANNONEER > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-GALLEY-NAVY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-FIRE-NAVY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-DEMO-NAVY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-IMPERIAL-NAVY > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
+(defrule (up-compare-goal SHADOW-REQ-DEFICIT-PETARD > 0) => (set-goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE))
 
-; ============================================
-; SPEARMAN REQUIREMENT
-; ============================================
+; ============================================================
+; ENGINE COST AGGREGATION
+; ============================================================
 ;
-; The cost is taken from the engine's root
-; Spearman object definition rather than from
-; a manually maintained AEGIS price.
+; One four-goal cost vector is materialized from all current deficits.
+; The object costs are read from the engine, not hard-coded here.
 ;
-; ============================================
-
+; Cost vector: 500 food / 501 wood / 502 stone / 503 gold.
+; This vector is consumed by later capital-feasibility logic.
+;
 (defrule
-    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (true)
 =>
-    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
-    (up-add-object-cost c: spearman c: 1)
+    (up-setup-cost-data 1 SHADOW-PROD-COST-FOOD)
+    (up-add-object-cost c: militia-line g: SHADOW-REQ-DEFICIT-INFANTRY)
+    (up-add-object-cost c: spearman-line g: SHADOW-REQ-DEFICIT-ANTI-CAVALRY)
+    (up-add-object-cost c: archer-line g: SHADOW-REQ-DEFICIT-RANGED)
+    (up-add-object-cost c: skirmisher-line g: SHADOW-REQ-DEFICIT-ANTI-RANGED)
+    (up-add-object-cost c: scout-cavalry-line g: SHADOW-REQ-DEFICIT-LIGHT-CAVALRY)
+    (up-add-object-cost c: knight-line g: SHADOW-REQ-DEFICIT-HEAVY-CAVALRY)
+    (up-add-object-cost c: camel-line g: SHADOW-REQ-DEFICIT-CAMEL)
+    (up-add-object-cost c: cavalry-archer-line g: SHADOW-REQ-DEFICIT-MOBILE-RANGED)
+    (up-add-object-cost c: cataphract-line g: SHADOW-REQ-DEFICIT-UNIQUE-CAVALRY)
+    (up-add-object-cost c: battering-ram-line g: SHADOW-REQ-DEFICIT-RAM-SIEGE)
+    (up-add-object-cost c: mangonel-line g: SHADOW-REQ-DEFICIT-AREA-SIEGE)
+    (up-add-object-cost c: scorpion-line g: SHADOW-REQ-DEFICIT-ANTI-MASS-SIEGE)
+    (up-add-object-cost c: siege-tower g: SHADOW-REQ-DEFICIT-SIEGE-TOWER)
+    (up-add-object-cost c: bombard-cannon g: SHADOW-REQ-DEFICIT-GUNPOWDER-SIEGE)
+    (up-add-object-cost c: trebuchet-set g: SHADOW-REQ-DEFICIT-CASTLE-SIEGE)
+    (up-add-object-cost c: monk-set g: SHADOW-REQ-DEFICIT-MONK)
+    (up-add-object-cost c: hand-cannoneer g: SHADOW-REQ-DEFICIT-HAND-CANNONEER)
+    (up-add-object-cost c: galley-line g: SHADOW-REQ-DEFICIT-GALLEY-NAVY)
+    (up-add-object-cost c: fire-ship-line g: SHADOW-REQ-DEFICIT-FIRE-NAVY)
+    (up-add-object-cost c: demolition-ship-line g: SHADOW-REQ-DEFICIT-DEMO-NAVY)
+    (up-add-object-cost c: dromon g: SHADOW-REQ-DEFICIT-IMPERIAL-NAVY)
+    (up-add-object-cost c: petard g: SHADOW-REQ-DEFICIT-PETARD)
 )
-```
+
+; ============================================================
+; END MODULE 08
+; ============================================================
