@@ -64,9 +64,6 @@ jobs:
 
           atlas.extract_rules = lossless_extract
 
-          # Current-tree classification is deliberately conservative: exact
-          # normalized donor text is the only basis for PRESERVED/MOVED. A
-          # non-exact candidate is UNKNOWN rather than a guessed transplant.
           def conservative_classify(donor, candidates):
               exact = [c for c in candidates if c['normalized'] == donor['normalized']]
               if exact:
@@ -78,34 +75,39 @@ jobs:
           atlas.classify = conservative_classify
           atlas.main()
 
-          # Add the four pre-rule declaration regions explicitly. They have no
-          # defrule ordinals; their source ranges are derived from the actual
-          # heading positions and the next declaration/rule boundary.
+          # Add exact declaration blocks. These are state-carrier namespaces,
+          # not defrule ordinals. Each block ends immediately before the next
+          # Q-heading, preserving the source's interleaved declaration layout.
           donor = pathlib.Path('ShadowSource.per').read_text(encoding='utf-8').splitlines()
-          targets = ["QID'S", 'QGENERAL', 'QPOSITION', 'QECONOMY']
-          headings = []
+          target_names = {"QID'S", 'QGENERAL', 'QPOSITION', 'QECONOMY'}
+          all_headings = []
           for i, line in enumerate(donor, 1):
-              m = re.match(r'^\s*;[^\n]*?\b(QID\'S|QGENERAL|QPOSITION|QECONOMY)\b', line)
+              m = re.match(r'^\s*;[^\n]*?\b(Q[A-Z0-9][A-Z0-9_ \'()/-]*)\b', line)
               if m:
-                  headings.append((i, m.group(1)))
-          first_rule = next(i for i, line in enumerate(donor, 1) if re.match(r'^\s*\(defrule\b', line))
+                  all_headings.append((i, m.group(1).strip()))
+          targets = [(i, n) for i, n in all_headings if n in target_names]
           rows = []
-          for idx, (line, name) in enumerate(headings):
-              end = headings[idx + 1][0] - 1 if idx + 1 < len(headings) else first_rule - 1
+          for line, name in targets:
+              nxt = next((hline for hline, _ in all_headings if hline > line), None)
+              end = (nxt - 1) if nxt is not None else len(donor)
               rows.append(f'| {name} | — (declaration) | L{line}–L{end} | no `defrule` ordinal; declaration/state-carrier namespace |')
           mp = pathlib.Path('docs/forensics/SHADOW_RULE_TRANSPLANTATION_MAP_v0.1.md')
           text = mp.read_text(encoding='utf-8')
           marker = '### A.0. Donor declaration regions (non-rule state namespace)'
           if marker in text:
-              text = text.split(marker, 1)[0].rstrip() + '\n'
+              pre = text.split(marker, 1)[0].rstrip()
+              post = text.split(marker, 1)[1]
+              # Remove only the prior declaration table up to the generated marker.
+              gen = post.split('<!-- BEGIN GENERATED RULE-LEVEL ATLAS -->', 1)
+              post = ('<!-- BEGIN GENERATED RULE-LEVEL ATLAS -->' + gen[1]) if len(gen) == 2 else post
+              text = pre + '\n\n' + post.lstrip()
           insertion = '\n'.join([
               marker, '',
               '| Declaration region | Ordinal | Source offsets | Evidence role |',
               '|---|---:|---|---|',
               *rows, ''
           ])
-          atlas_marker = '<!-- BEGIN GENERATED RULE-LEVEL ATLAS -->'
-          text = text.replace(atlas_marker, insertion + '\n' + atlas_marker, 1)
+          text = text.replace('<!-- BEGIN GENERATED RULE-LEVEL ATLAS -->', insertion + '\n<!-- BEGIN GENERATED RULE-LEVEL ATLAS -->', 1)
           mp.write_text(text, encoding='utf-8')
           PY
 
@@ -123,5 +125,5 @@ jobs:
             echo 'Forensic artifacts unchanged.'
             exit 0
           fi
-          git commit -m 'forensics: regenerate lossless transplantation atlas'
+          git commit -m 'forensics: close declaration and rule atlas boundaries'
           git push
