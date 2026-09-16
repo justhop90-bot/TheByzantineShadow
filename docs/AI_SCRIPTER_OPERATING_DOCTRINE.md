@@ -228,6 +228,99 @@ If questions 1–3 cannot be answered, the component is **PROJECT-ARCHITECTURE /
 
 If questions 4–7 produce a topology-changing answer, stop and perform a donor/control-flow re-audit before implementation.
 
+### Mandatory pre-commit architecture veto
+
+**No proposed orchestrator, dispatcher, controller, manager, centralized recovery layer, transaction coordinator, control plane, or equivalent intermediary may be committed until it passes an explicit donor-topology veto.**
+
+The veto is mandatory whenever a proposed component would coordinate, centralize, redirect, arbitrate, own, or abstract control that could otherwise be represented by ordered `.per` rules.
+
+Before commit, the contributor must establish all of the following:
+
+```text
+PROPOSED COMPONENT
+        ↓
+DIRECT SHADOW DONOR ANALOGUE
+        ↓
+STATE-WRITER CHECK
+        ↓
+JUMP-TOPOLOGY CHECK
+        ↓
+ESCROW-TOPOLOGY CHECK
+        ↓
+SEARCH-TOPOLOGY CHECK
+        ↓
+PROGRESSION-TOPOLOGY CHECK
+        ↓
+ENGINE-SEMANTICS CHECK
+        ↓
+DONOR-TOPOLOGY DIFF
+        ↓
+ACCEPT / REJECT / DEFER
+```
+
+#### Required pre-commit checks
+
+**1. Direct Shadow donor analogue** — identify the exact `ShadowSource.per` control region, rule range, state mechanism, or equivalent donor evidence supporting the proposed component. “Shadow has similar behavior” is insufficient.
+
+**2. State-writer check** — enumerate every affected goal, timer, strategic number, progression cursor, escrow state, search state, and tactical state; identify donor writers/readers/mutations/lifetime/authority. No competing writer or centralized ownership may be introduced without evidence.
+
+**3. Jump-topology check** — trace every affected `up-jump-rule`, forward skip, negative-jump loop, bypass, fall-through path, entry point, and cross-region control-flow edge. The donor topology must be preserved or explicitly justified by direct evidence.
+
+**4. Escrow-topology check** — trace requirement → progression → escrow mutation → escrow mode → escrow-aware feasibility → command → completion observer → progression reconciliation → release/restoration → re-entry. Do not relocate objective-local escrow merely to create a cleaner abstraction.
+
+**5. Search-topology check** — where search is involved, preserve reset → reference/target establishment → filtering → candidate discovery → inspection → cleanup/removal → target selection → point extraction → dispatch → re-entry.
+
+**6. Progression-topology check** — trace current objective/item, progression cursor, arbitration, preemption, interruption, completion observer, progress mutation, rollback/failsafe, release, and re-entry. Do not convert distributed Shadow progression into a centralized task manager.
+
+**7. Engine-semantics check** — every primitive and lifecycle assumption must be supported by appropriate AoE2DE evidence. Parser acceptance is not semantic proof; command issuance is not completion; static reachability is not runtime firing; runtime firing is not world-state completion.
+
+**8. Donor-topology preservation check** — compare the proposed architecture directly against the donor and explain every changed edge. Every unexplained topology change is a veto condition.
+
+#### Hard veto condition
+
+```text
+NO DIRECT SHADOW ANALOGUE
+        OR
+STATE TOPOLOGY CHANGED
+        OR
+JUMP TOPOLOGY CHANGED
+        OR
+ESCROW TOPOLOGY CHANGED
+        OR
+SEARCH TOPOLOGY CHANGED
+        OR
+PROGRESSION TOPOLOGY CHANGED
+        OR
+ENGINE SEMANTICS UNPROVEN
+        OR
+DONOR-TOPOLOGY DIFF UNEXPLAINED
+        ↓
+             REJECT COMMIT
+```
+
+The contributor must not argue that the architecture is cleaner, more maintainable, more modular, more conventional, or easier to reason about as grounds for overriding the veto. **The burden of proof belongs to the new abstraction, not to the donor topology.**
+
+#### Mandatory pre-commit record
+
+For every proposed component subject to this veto, record before commit:
+
+```text
+PROPOSED COMPONENT:
+DIRECT SHADOW DONOR ANALOGUE:
+DONOR RULE / REGION:
+STATE-WRITER CHECK: PASS / FAIL / UNKNOWN
+JUMP CHECK: PASS / FAIL / UNKNOWN
+ESCROW CHECK: PASS / FAIL / UNKNOWN
+SEARCH CHECK: PASS / FAIL / UNKNOWN
+PROGRESSION CHECK: PASS / FAIL / UNKNOWN
+ENGINE-SEMANTICS CHECK: PASS / FAIL / UNKNOWN
+DONOR-TOPOLOGY PRESERVED: YES / NO / UNKNOWN
+EVIDENCE CLASS:
+DECISION: ACCEPT / REJECT / DEFER
+```
+
+An existing authoritative architecture, readiness, or forensic artifact must be updated rather than creating a new document solely to store this record. **Do not create paperwork to satisfy the veto when an existing authority can be updated.**
+
 ### Anti-orchestrator hard stop
 
 The following pattern is an automatic **DRIFT ALARM**:
