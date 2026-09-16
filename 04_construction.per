@@ -6,25 +6,20 @@
 ; Authority:
 ;   Construction state and progression only.
 ;
-; This module is deliberately an ABI implementation layer. It does
-; not select a building, assign strategic thresholds, allocate escrow,
-; resolve placement, execute engine construction, or declare success.
+; Contract:
+;   request -> qualify -> reserve -> authorize -> placement ->
+;   execution -> pending -> verification -> completion/recovery.
 ;
-; Required load order:
-;   01_constants.per
-;   01b_byz_constants.per
-;   upstream demand/arbitration
-;   04_construction.per
-;   downstream escrow/authority/placement/execution/verification
+; This module deliberately does NOT select strategy, allocate escrow,
+; resolve geometry, issue build commands, or declare completion without
+; a verifier observation.
 ;
+; Namespace source: 01b_byz_constants.per
 ; ============================================================
 
 ; ------------------------------------------------------------
-; INITIALIZE CONTROLLER
+; INITIALIZATION
 ; ------------------------------------------------------------
-;
-; The controller starts idle and has no active request.
-;
 (defrule
     (goal BYZ-CONSTRUCTION-STATE -1)
 =>
@@ -35,11 +30,6 @@
 ; ------------------------------------------------------------
 ; REQUESTED
 ; ------------------------------------------------------------
-;
-; An upstream policy/arbitration module owns the request. This module
-; only recognizes that an active request exists and enters the
-; construction lifecycle.
-;
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
     (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
@@ -48,32 +38,23 @@
 )
 
 ; ------------------------------------------------------------
-; QUALIFICATION HANDOFF
+; QUALIFIED
 ; ------------------------------------------------------------
-;
-; Qualification is a downstream contract boundary. Requirements,
-; capital, placement, and strategic validity must be established by
-; their owning modules. This rule only advances once the construction
-; request is still active and the external qualification marker is set.
-;
-; BYZ-CONSTRUCTION-REQUIREMENTS is an interface register; its concrete
-; values are intentionally not defined by this module.
-;
+; Requirements owns the qualification predicate. Construction only
+; observes the boundary.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-REQUESTED)
     (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
-    (goal BYZ-CONSTRUCTION-REQUIREMENTS 1)
+    (goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
 =>
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
 )
 
 ; ------------------------------------------------------------
-; RESERVATION HANDOFF
+; RESERVED
 ; ------------------------------------------------------------
-;
-; Escrow owns actual capital reservation. Construction merely records
-; the boundary crossing after escrow reports commitment.
-;
+; Escrow owns capital reservation. A committed escrow state is evidence
+; that the capital boundary has been crossed; it is not completion.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
@@ -82,12 +63,8 @@
 )
 
 ; ------------------------------------------------------------
-; AUTHORIZATION HANDOFF
+; AUTHORIZED
 ; ------------------------------------------------------------
-;
-; Authority owns the decision to cross into execution. Construction
-; cannot grant itself authority.
-;
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RESERVED)
     (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-GRANTED)
@@ -96,12 +73,8 @@
 )
 
 ; ------------------------------------------------------------
-; PLACEMENT HANDOFF
+; PLACEMENT
 ; ------------------------------------------------------------
-;
-; Placement owns target resolution. The construction controller enters
-; placement only after authority exists.
-;
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
 =>
@@ -109,40 +82,31 @@
 )
 
 ; ------------------------------------------------------------
-; EXECUTION HANDOFF
+; EXECUTION-READY
 ; ------------------------------------------------------------
-;
-; The placement module owns readiness of the target. Execution owns
-; all engine construction commands.
-;
+; Placement owns target validity. Execution remains a separate authority.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PLACEMENT)
-    (goal BYZ-TARGET-VALID 1)
+    (goal BYZ-TARGET-VALID BYZ-TARGET-VALID)
 =>
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
 )
 
 ; ------------------------------------------------------------
-; PENDING HANDOFF
+; PENDING
 ; ------------------------------------------------------------
-;
-; Execution reports that a construction transaction has entered an
-; engine-visible pending state. Pending is not completion.
-;
+; Execution reports an engine-visible pending state. This is explicitly
+; not promoted to completion.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-PENDING 1)
+    (goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 =>
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
 )
 
 ; ------------------------------------------------------------
-; VERIFICATION HANDOFF
+; VERIFYING
 ; ------------------------------------------------------------
-;
-; Verification owns the distinction between pending and confirmed
-; world state.
-;
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
@@ -153,9 +117,6 @@
 ; ------------------------------------------------------------
 ; VERIFIED COMPLETION
 ; ------------------------------------------------------------
-;
-; Only the verification result may establish construction completion.
-;
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-VERIFYING)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
@@ -166,10 +127,8 @@
 ; ------------------------------------------------------------
 ; PROGRESSION ADVANCE
 ; ------------------------------------------------------------
-;
-; Completion may advance the progression cursor only after verification.
-; The actual next milestone value remains an upstream policy decision.
-;
+; The increment is a progression operation, not a strategic threshold.
+; The next construction item remains owned by upstream policy/arbitration.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
@@ -180,12 +139,8 @@
 )
 
 ; ------------------------------------------------------------
-; FAILURE / RECOVERY HANDOFF
+; FAILURE / RECOVERY
 ; ------------------------------------------------------------
-;
-; Verification or execution failure does not silently return to idle.
-; Recovery owns diagnosis and rollback.
-;
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-FAILED)
@@ -207,18 +162,9 @@
 )
 
 ; ------------------------------------------------------------
-; NON-NEGOTIABLE INVARIANTS
+; INVARIANTS
 ; ------------------------------------------------------------
-;
-; 1. Command issuance is not completion.
-; 2. Pending state is not completion.
-; 3. Construction does not grant authority.
-; 4. Construction does not release escrow.
-; 5. Construction does not resolve strategic demand.
-; 6. Construction completion requires verification evidence.
-; 7. Failed construction enters recovery rather than disappearing.
-;
-; Numeric strategic thresholds, timers, escrow percentages/caps,
-; placement geometry, builder counts, and construction milestone
-; assignments remain outside this module.
+; ENGINE-COMMAND != PENDING != COMPLETE
+; Construction does not grant authority, release escrow, choose strategy,
+; resolve placement, or independently declare world-state completion.
 ; ============================================================
