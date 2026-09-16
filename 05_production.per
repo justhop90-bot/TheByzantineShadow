@@ -15,6 +15,8 @@
 ;   - release is followed immediately by execution
 ;   - engine feasibility remains the final admission gate
 ;   - satisfied demand releases only resources owned here
+;   - prerequisite execution is allowed only while this module's
+;     commitment is active
 ;
 ; Cost profile: goals 500-503 (food, wood, stone, gold).
 ; Production state: goal 507.
@@ -45,7 +47,7 @@
     (goal SHADOW-PROD-STATE -1)
 =>
     (up-setup-cost-data 1 SHADOW-PROD-COST-FOOD)
-    (up-add-object-cost c: spearman-line c: SHADOW-PROD-SPEAR-TARGET)
+    (up-add-object-cost c: spearman c: SHADOW-PROD-SPEAR-TARGET)
     (set-goal SHADOW-PROD-ESCROW-STATE escrow-included)
     (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
 )
@@ -69,13 +71,18 @@
     (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
 )
 
-; Release the reserved wood only when the barracks can actually start.
+; Release the reserved wood only when this production commitment is
+; active and the engine says the barracks is executable.
+;
+; The explicit state gate prevents an unrelated pre-existing escrow
+; balance from becoming an implicit production authorization.
 ;
 (defrule
     (current-age >= feudal-age)
     (building-type-count-total barracks < 1)
     (unit-type-count-total spearman-line < SHADOW-PROD-SPEAR-TARGET)
     (up-pending-objects c: barracks < 1)
+    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
     (can-build-with-escrow barracks)
 =>
     (release-escrow wood)
@@ -105,6 +112,10 @@
 ; TRAINING ADMISSION / EXECUTION
 ;=============================================================
 ;
+; up-train-site-ready is deliberately checked with the root Spearman
+; object, as required by UserPatch. It answers a different question
+; from affordability: whether an appropriate training site is ready.
+;
 ; The explicit escrow state tells the UP training commands to include
 ; the committed production reserve in their feasibility calculation.
 ; Release occurs immediately before execution, then the reserve
@@ -115,13 +126,14 @@
     (building-type-count-total barracks > 0)
     (unit-type-count-total spearman-line < SHADOW-PROD-SPEAR-TARGET)
     (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
-    (up-can-train SHADOW-PROD-ESCROW-STATE c: spearman-line)
+    (up-train-site-ready spearman)
+    (up-can-train SHADOW-PROD-ESCROW-STATE c: spearman)
 =>
     (release-escrow food)
     (release-escrow wood)
     (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
     (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
-    (up-train SHADOW-PROD-ESCROW-STATE c: spearman-line)
+    (up-train SHADOW-PROD-ESCROW-STATE c: spearman)
 )
 
 ;=============================================================
