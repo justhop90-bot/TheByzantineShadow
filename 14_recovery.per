@@ -1,115 +1,114 @@
-; ============================================
-; AEGIS
-; 14_recovery.per
-; ============================================
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 14 -- RECOVERY
+; ============================================================
 ;
-; RECOVERY
+; Authority: recovery of divergent construction transactions.
 ;
-; Responsibility:
-;
-;   Convert a FAILED transaction into a
-;   controlled recovery state.
-;
-; Recovery is downstream of:
-;
-;   VERIFICATION
-;       ->
-;   FAILURE
-;       ->
-;   RECOVERY
-;       ->
-;   ESCROW RELEASE REQUEST
-;       ->
-;   REASSESSMENT
-;
-; This module does NOT:
-;
-;   - choose a new objective
-;   - modify escrow directly
-;   - release escrow directly
-;   - grant execution authority
-;   - execute production commands
-;   - declare world-state success
-;
-; Module 10 remains the sole owner of the
-; actual engine escrow-release operation.
-;
-; ============================================
+; Recovery diagnoses and routes failure. It does not invent strategy,
+; execute construction, or directly mutate engine escrow.
+; ============================================================
 
-; ============================================
-; ENTER RECOVERY
-; ============================================
-;
-; A failed transaction is explicitly marked
-; for recovery.
-;
-; No engine command is issued here.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
 (defrule
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
-(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+    (goal BYZ-RECOVERY-STATE -1)
 =>
-(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-REQUIRED)
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-NONE)
+    (set-goal BYZ-RECOVERY-CAUSE BYZ-RECOVERY-NONE)
 )
 
-; ============================================
-; REQUEST ESCROW RELEASE
-; ============================================
-;
-; Recovery does not execute up-release-escrow.
-;
-; It requests release through the existing
-; escrow authority boundary.
-;
-; Module 10 observes the request and performs
-; the actual engine operation.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; DETECT FAILURE
+; ------------------------------------------------------------
 (defrule
-(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-REQUIRED)
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-FAILED)
+    (goal BYZ-RECOVERY-STATE BYZ-RECOVERY-NONE)
 =>
-(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
-(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASING)
+    (set-goal BYZ-RECOVERY-CAUSE BYZ-RECOVERY-CONSTRUCTION-FAILED)
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-DETECTED)
 )
 
-; ============================================
-; RECOVERY RELEASE OBSERVED
-; ============================================
-;
-; Recovery is not considered complete merely
-; because release was requested.
-;
-; Module 10 owns the observation of actual
-; escrow state and transitions the escrow
-; lifecycle to RELEASED.
-;
-; ============================================
-
 (defrule
-(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASING)
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+    (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONTRADICTED)
+    (goal BYZ-RECOVERY-STATE BYZ-RECOVERY-NONE)
 =>
-(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASED)
+    (set-goal BYZ-RECOVERY-CAUSE BYZ-RECOVERY-VERIFICATION-CONTRADICTION)
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-DETECTED)
 )
 
-; ============================================
-; RECOVERY COMPLETE
-; ============================================
-;
-; Once engine escrow release has actually
-; been observed, recovery is complete.
-;
-; Reassessment owns what happens next.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; DIAGNOSIS
+; ------------------------------------------------------------
 (defrule
-(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASED)
+    (goal BYZ-RECOVERY-STATE BYZ-RECOVERY-DETECTED)
 =>
-(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
-(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-DIAGNOSING)
 )
+
+; ------------------------------------------------------------
+; ESCROW HANDOFF
+; ------------------------------------------------------------
+; Recovery requests release through Module 10. It never calls the
+; engine release operation itself.
+(defrule
+    (goal BYZ-RECOVERY-STATE BYZ-RECOVERY-DIAGNOSING)
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
+=>
+    (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-YES)
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-ESCROW-RELEASE)
+)
+
+; If no escrow is committed, recovery can proceed to requeue/cancel
+; without fabricating a release operation.
+(defrule
+    (goal BYZ-RECOVERY-STATE BYZ-RECOVERY-DIAGNOSING)
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
+=>
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-REQUEUE)
+)
+
+; ------------------------------------------------------------
+; RELEASE CONFIRMATION
+; ------------------------------------------------------------
+(defrule
+    (goal BYZ-RECOVERY-STATE BYZ-RECOVERY-ESCROW-RELEASE)
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
+=>
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-REQUEUE)
+)
+
+; ------------------------------------------------------------
+; REQUEUE ONLY AFTER RECONCILIATION
+; ------------------------------------------------------------
+; Re-entry is handed back to construction policy. Recovery does not
+; select the next building or assign a retry count.
+(defrule
+    (goal BYZ-RECOVERY-STATE BYZ-RECOVERY-REQUEUE)
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
+=>
+    (set-goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-INACTIVE)
+    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-COMPLETE)
+)
+
+; ------------------------------------------------------------
+; IDEMPOTENCE
+; ------------------------------------------------------------
+; Once recovery is complete, no further recovery action is issued until
+; another transaction establishes a new failure state.
+(defrule
+    (goal BYZ-RECOVERY-STATE BYZ-RECOVERY-COMPLETE)
+=>
+    (set-goal BYZ-RECOVERY-STATE BYZ-RECOVERY-NONE)
+    (set-goal BYZ-RECOVERY-CAUSE BYZ-RECOVERY-NONE)
+)
+
+; INVARIANTS:
+; recovery does not choose strategy
+; recovery does not execute construction
+; recovery does not directly release escrow
+; recovery re-enters only after state reconciliation
+; repeated evaluation must not double-release or double-advance
+; ============================================================
