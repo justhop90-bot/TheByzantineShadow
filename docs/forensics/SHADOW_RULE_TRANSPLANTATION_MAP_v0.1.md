@@ -218,10 +218,6 @@ The next code gate is to transplant these exact executable paths into the recove
 
 | Declaration region | Ordinal | Source offsets | Evidence role |
 |---|---:|---|---|
-| QID'S | — (declaration) | L60–L60 | no `defrule` ordinal; declaration/state-carrier namespace |
-| QGENERAL | — (declaration) | L61–L61 | no `defrule` ordinal; declaration/state-carrier namespace |
-| QPOSITION | — (declaration) | L62–L62 | no `defrule` ordinal; declaration/state-carrier namespace |
-| QECONOMY | — (declaration) | L65–L65 | no `defrule` ordinal; declaration/state-carrier namespace |
 | QID'S | — (declaration) | L1347–L1357 | no `defrule` ordinal; declaration/state-carrier namespace |
 | QGENERAL | — (declaration) | L1358–L1400 | no `defrule` ordinal; declaration/state-carrier namespace |
 | QPOSITION | — (declaration) | L1401–L1457 | no `defrule` ordinal; declaration/state-carrier namespace |
