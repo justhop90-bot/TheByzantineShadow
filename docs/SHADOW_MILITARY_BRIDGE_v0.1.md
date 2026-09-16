@@ -10,41 +10,80 @@ This module formalizes the boundary between Shadow's military observations and l
 
 ## 1. Donor-derived architecture
 
-The Shadow military audit identifies a mature chain:
+The Shadow military architecture is treated as:
 
-`observation -> enemy classification -> target/threat state -> military policy -> tactical execution`
+`observation -> enemy classification -> threat state -> strategic policy -> tactical execution`
 
-The donor contains target acquisition, threat detection, tactical groups, attack evaluation, defense, and emergency behavior. The reusable architectural improvement is to expose those observations as explicit state before execution is authorized.
+The reusable improvement is to make the strategic state explicit before any execution authority is invoked.
 
-The implementation therefore emits three strategic classes of state:
+The module emits:
 
 1. **Military posture** — buildup, defensive, attack-ready, or emergency.
 2. **Capability requirement** — none, anti-cavalry, anti-ranged, anti-siege, anti-infantry, or anti-naval.
-3. **Military superiority** — local military population greater than the aggregate enemy military population, otherwise inferior.
+3. **Military superiority** — local `military-population` greater than aggregate enemy `military-population`, otherwise inferior.
+4. **Threat telemetry** — elapsed time, enemy player, source class, and target class from the most recent threat.
 
 ## 2. Encyclopedia / UserPatch cross-reference
 
-The implementation uses only documented mechanisms:
+The implementation was corrected against the documented command signatures rather than the earlier experimental code.
 
-- `military-population` is a documented AI fact.
-- `up-get-fact` reads the local military population into a goal.
-- `up-get-fact-sum every-enemy military-population 0 <goal>` aggregates enemy military population.
-- `up-compare-goal` compares cached numeric goals.
-- `up-get-threat-data` stores elapsed time, enemy player, source class, and target class for the last threat.
-- `town-under-attack` identifies an active town-under-attack state.
-- `up-attacker-class` identifies the class of the last town attacker and is used only under `town-under-attack`.
-- `up-enemy-units-in-town` provides an explicit emergency trigger.
-- AIRef defines the relevant military classes, including infantry, archery, cavalry, siege-weapon, and warship classes.
+### Local facts
 
-`unit-type-count-total` remains the production authority's mechanism for local composition verification; this military module intentionally does not duplicate production counts.
+`up-get-fact` is used in the local-player form. For `military-population`, the documented parameter is `0`:
 
-## 3. Why `attack-now` is not called here
+```lisp
+(up-get-fact military-population 0 SHADOW-MIL-POPULATION)
+```
 
-`attack-now` is an execution primitive, not an observation primitive. The UserPatch/AI reference material documents that it creates attack groups and can impose substantial continuing execution cost. Shadow's own architecture also separates attack evaluation from tactical group execution.
+For `unit-type-count-total`, the requested unit type itself is the fact parameter, so the form is:
 
-Consequently, this module establishes **attack-ready state** but does not equate that state with an unconditional attack command. A later authority layer must combine strategic readiness, target validity, tactical group state, and execution feasibility before issuing a mission.
+```lisp
+(up-get-fact unit-type-count-total militia-line SHADOW-PROD-COUNT-INFANTRY)
+```
 
-## 4. Goal registry
+There is **no additional literal `0`** between `militia-line` and the output goal. This distinction is important because the fact parameter is semantically occupied by the unit type.
+
+### Enemy aggregation
+
+`up-get-fact-sum every-enemy military-population 0 SHADOW-MIL-ENEMY-POPULATION` uses the documented wildcard aggregation form.
+
+### Threat data
+
+`up-get-threat-data` returns four outputs: elapsed time, enemy player, source class, and target class. The UserPatch documentation explicitly distinguishes this from `up-attacker-class`: threat data describes the last threat regardless of where it occurred, whereas `up-attacker-class` is associated with the `town-under-attack` event.
+
+The implementation therefore consumes `up-attacker-class` only while `town-under-attack` is true, preventing the retained last attacker class from being misinterpreted as a new current attack.
+
+### Direct town facts
+
+`up-enemy-units-in-town` and `up-defender-count` are documented facts. They are consumed directly rather than being incorrectly routed through `up-get-fact` with invented parameters.
+
+### Military classes
+
+AIRef/UserPatch defines the relevant class constants used here, including:
+
+- `archery-class` = 900
+- `infantry-class` = 906
+- `cavalry-class` = 912
+- `siege-weapon-class` = 913
+- `warship-class` = 922
+
+## 3. Important semantic limitation
+
+`military-population` is an engine-level military-population fact, not a pure combat-power metric. UserPatch history explicitly notes that monks and transport ships are included in military population. Therefore:
+
+**MILITARY-SUPERIOR is not equivalent to COMBAT-POWER-SUPERIOR.**
+
+Likewise, `SHADOW-MIL-ATTACK-READY-MIN-POP` is a policy threshold over the engine's military-population fact, not a claim that ten combat units constitute an adequate Byzantine attack force in every game state.
+
+The later military-composition layer should replace this coarse readiness test with composition-aware capability once the production-demand interface is available.
+
+## 4. Why `attack-now` is not called here
+
+`attack-now` is an execution primitive, not an observation primitive. UserPatch documents that it creates attack groups and that attack-group processing carries continuing execution cost. Shadow's donor architecture also separates military evaluation from tactical execution.
+
+Consequently, this module establishes **attack-ready state** but does not equate that state with an unconditional attack command. A later authority layer must combine strategic readiness, target validity, composition, tactical group state, and execution feasibility before issuing a mission.
+
+## 5. Goal registry
 
 | Goal | Purpose |
 |---|---|
@@ -61,15 +100,15 @@ Consequently, this module establishes **attack-ready state** but does not equate
 
 These IDs are outside the production target/state registry and outside the historical AEGIS 450–496 range.
 
-## 5. Precedence
+## 6. Precedence
 
-Military posture is intentionally deterministic:
+Military posture is deterministic:
 
 `EMERGENCY > ATTACK-READY > DEFENSIVE > BUILDUP`
 
 Capability is reset to `NONE` each pass and replaced only when an active town attack identifies a relevant attacker class.
 
-## 6. Ownership boundary
+## 7. Ownership boundary
 
 This module **owns** military observation normalization and strategic military state.
 
@@ -84,10 +123,10 @@ It **does not own**:
 - retreat execution;
 - final tactical mission selection.
 
-That separation preserves the donor's reusable tactical substrate while preventing the military bridge from becoming a second production executor.
+That separation prevents military cognition from becoming a second production executor.
 
-## 7. Qualification boundary
+## 8. Qualification boundary
 
-Static implementation is complete for this module. Runtime qualification has **not** been claimed because the live aggregate loader and installed runtime path have not yet been independently qualified on the current machine.
+Static implementation is complete for this module. Runtime qualification has **not** been claimed because the live installed runtime path has not yet been independently qualified on the current machine.
 
-Before promotion to runtime-qualified status, the loader must establish that `01_constants.per` precedes `06_military.per`, and the runtime must demonstrate that the cached goals change coherently under military population, enemy population, town-under-attack, and attacker-class conditions.
+The aggregate loader now places `01_constants.per` before `06_military.per`; the live machine still needs runtime confirmation. Runtime promotion must demonstrate coherent changes in military population, enemy population, town threat, attacker classification, and strategic posture under actual engine conditions.
