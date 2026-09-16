@@ -10,16 +10,16 @@
 ;   Production Authority -> reservation / admission / execution /
 ;                           completion / release
 ;
-; Production Authority MUST NOT write the demand target.
+; Production Authority MUST NOT declare or write the demand target.
+; SHADOW-PROD-DEMAND-SPEAR is declared by 05_composition_policy.per,
+; which must load before this module.
 ;
-; The composition-facing target is SHADOW-PROD-DEMAND-SPEAR.
 ; A target of 0 means no Spearman demand.
 ;
 ; Cost profile: goals 500-503 (food, wood, stone, gold).
 ; Production state: goal 507.
 ; Training escrow state: goal 508.
 ;
-(defconst SHADOW-PROD-DEMAND-SPEAR 497)
 (defconst SHADOW-PROD-COST-FOOD 500)
 (defconst SHADOW-PROD-COST-WOOD 501)
 (defconst SHADOW-PROD-COST-STONE 502)
