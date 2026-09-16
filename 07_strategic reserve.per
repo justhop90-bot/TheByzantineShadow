@@ -1,165 +1,153 @@
-; ============================================
-; AEGIS PROOF OF CONCEPT
-; MODULE 07 — STRATEGIC RESERVE
-; ============================================
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 07 -- STRATEGIC RESERVE
+; ============================================================
 ;
 ; PURPOSE
 ; -------
-; Derive resource-specific strategic reserves
-; from current engine state and explicit AEGIS
-; reserve policy.
+; Establish the capital floor that downstream economic and
+; authority modules must protect before discretionary allocation.
 ;
 ; ARCHITECTURE
 ; ------------
-; ENGINE STATE
-;     |
-;     +-- current-age
-;     |
-;     +-- military-population
-;     |
-;     v
-; RESERVE POLICY
-;     |
-;     v
-; RESOURCE-SPECIFIC RESERVE
-;     |
-;     v
-; MODULE 09
-; LIQUID - RESERVE = DISCRETIONARY
+; ENGINE AGE + MILITARY POSTURE
+;            |
+;            v
+;     RESERVE POLICY STATE
+;            |
+;            v
+; RESOURCE-SPECIFIC RESERVE FLOORS
 ;
-; IMPORTANT
-; ---------
 ; Strategic reserve is NOT engine escrow.
-;
-; Engine escrow = committed capital.
-; Strategic reserve = capital AEGIS deliberately
-; protects from discretionary allocation.
-;
-; Constants are declared centrally in
-; 01_constants.per.
+; Escrow represents capital already committed by the engine.
+; These goals represent capital Shadow deliberately protects
+; from discretionary allocation.
 ;
 ; This module does NOT:
 ;   - modify engine escrow
 ;   - build
 ;   - train
 ;   - research
+;   - execute production
 ;   - authorize a transaction
-;   - execute a transaction
+;   - release escrow
 ;
-; ============================================
+; ============================================================
 
-
-; ============================================
-; INITIALIZE POLICY
-; ============================================
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
 
 (defrule
-    (true)
+    (goal SHADOW-RESERVE-INITIALIZED -1)
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-EARLY)
+    (set-goal SHADOW-RESERVE-INITIALIZED 1)
+    (set-goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-TRANSITION)
+    (set-goal SHADOW-RESERVE-FOOD SHADOW-RESERVE-TRANSITION-FOOD)
+    (set-goal SHADOW-RESERVE-WOOD SHADOW-RESERVE-TRANSITION-WOOD)
+    (set-goal SHADOW-RESERVE-GOLD SHADOW-RESERVE-TRANSITION-GOLD)
+    (set-goal SHADOW-RESERVE-STONE SHADOW-RESERVE-TRANSITION-STONE)
 )
 
-
-; ============================================
-; DARK AGE
-; ============================================
+; ------------------------------------------------------------
+; POLICY SELECTION
+; ------------------------------------------------------------
 ;
-; Protect basic transition capital.
+; Precedence is encoded by mutually exclusive state predicates:
 ;
-; ============================================
+;   IMPERIAL/LATE
+;       > MILITARY POSTURE
+;       > DEVELOPMENT
+;       > TRANSITION
+;
+; Military posture is consumed only after Module 06 has classified it.
+; No resource side effect occurs here.
 
 (defrule
     (current-age == dark-age)
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-EARLY)
+    (set-goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-TRANSITION)
 )
 
 (defrule
     (current-age == feudal-age)
-    (military-population < 6)
+    (goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-BUILDUP)
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-DEVELOPMENT)
+    (set-goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-DEVELOPMENT)
 )
 
 (defrule
     (current-age == feudal-age)
-    (military-population >= 6)
+    (or
+        (goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-DEFENSIVE)
+        (goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-ATTACK-READY)
+        (goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-EMERGENCY))
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-MILITARY)
+    (set-goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-MILITARY)
 )
 
 (defrule
     (current-age == castle-age)
-    (military-population < 12)
+    (goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-BUILDUP)
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-DEVELOPMENT)
+    (set-goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-DEVELOPMENT)
 )
 
 (defrule
     (current-age == castle-age)
-    (military-population >= 12)
+    (or
+        (goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-DEFENSIVE)
+        (goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-ATTACK-READY)
+        (goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-EMERGENCY))
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-MILITARY)
+    (set-goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-MILITARY)
 )
 
 (defrule
     (current-age == imperial-age)
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-LATE)
+    (set-goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-LATE)
 )
 
-
-; ============================================
-; APPLY EARLY RESERVE
-; ============================================
+; ------------------------------------------------------------
+; RESERVE MATERIALIZATION
+; ------------------------------------------------------------
+;
+; Each policy writes all four resource floors. No partial policy
+; is permitted to survive from a previous rule pass.
 
 (defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-EARLY)
+    (goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-TRANSITION)
 =>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-EARLY-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-EARLY-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-EARLY-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-EARLY-STONE-RESERVE)
+    (set-goal SHADOW-RESERVE-FOOD SHADOW-RESERVE-TRANSITION-FOOD)
+    (set-goal SHADOW-RESERVE-WOOD SHADOW-RESERVE-TRANSITION-WOOD)
+    (set-goal SHADOW-RESERVE-GOLD SHADOW-RESERVE-TRANSITION-GOLD)
+    (set-goal SHADOW-RESERVE-STONE SHADOW-RESERVE-TRANSITION-STONE)
 )
 
-
-; ============================================
-; APPLY DEVELOPMENT RESERVE
-; ============================================
-
 (defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-DEVELOPMENT)
+    (goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-DEVELOPMENT)
 =>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-DEVELOPMENT-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-DEVELOPMENT-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-DEVELOPMENT-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-DEVELOPMENT-STONE-RESERVE)
+    (set-goal SHADOW-RESERVE-FOOD SHADOW-RESERVE-DEVELOPMENT-FOOD)
+    (set-goal SHADOW-RESERVE-WOOD SHADOW-RESERVE-DEVELOPMENT-WOOD)
+    (set-goal SHADOW-RESERVE-GOLD SHADOW-RESERVE-DEVELOPMENT-GOLD)
+    (set-goal SHADOW-RESERVE-STONE SHADOW-RESERVE-DEVELOPMENT-STONE)
 )
 
-
-; ============================================
-; APPLY MILITARY RESERVE
-; ============================================
-
 (defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-MILITARY)
+    (goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-MILITARY)
 =>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-MILITARY-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-MILITARY-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-MILITARY-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-MILITARY-STONE-RESERVE)
+    (set-goal SHADOW-RESERVE-FOOD SHADOW-RESERVE-MILITARY-FOOD)
+    (set-goal SHADOW-RESERVE-WOOD SHADOW-RESERVE-MILITARY-WOOD)
+    (set-goal SHADOW-RESERVE-GOLD SHADOW-RESERVE-MILITARY-GOLD)
+    (set-goal SHADOW-RESERVE-STONE SHADOW-RESERVE-MILITARY-STONE)
 )
 
-
-; ============================================
-; APPLY LATE RESERVE
-; ============================================
-
 (defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-LATE)
+    (goal SHADOW-RESERVE-POLICY SHADOW-RESERVE-POLICY-LATE)
 =>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-LATE-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-LATE-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-LATE-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-LATE-STONE-RESERVE)
+    (set-goal SHADOW-RESERVE-FOOD SHADOW-RESERVE-LATE-FOOD)
+    (set-goal SHADOW-RESERVE-WOOD SHADOW-RESERVE-LATE-WOOD)
+    (set-goal SHADOW-RESERVE-GOLD SHADOW-RESERVE-LATE-GOLD)
+    (set-goal SHADOW-RESERVE-STONE SHADOW-RESERVE-LATE-STONE)
 )
