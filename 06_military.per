@@ -1,10 +1,184 @@
-;=============================================
-; BASIC BYZANTINE AI
-; MODULE 06 - MILITARY 
-;============================================
-
-(defule 
-    (military-population >= 3) 
+;=============================================================
+; THE BYZANTINE SHADOW
+; MODULE 06 -- MILITARY STRATEGIC BRIDGE
+;=============================================================
+;
+; PURPOSE
+; -------
+; Convert proven military observations into a stable strategic state
+; interface for later composition/tactical modules.
+;
+; This module does NOT call attack-now, create attack groups, train units,
+; build buildings, alter escrow, or directly execute a countermeasure.
+; Shadow's donor military system already contains tactical execution;
+; this layer preserves that separation while formalizing its strategic
+; input/output boundary.
+;
+; Evidence basis:
+;   - Shadow Military Audit v0.1: observation -> threat -> policy ->
+;     tactical execution; preserve target/scouting/tactical knowledge.
+;   - UserPatch: military-population is readable through up-get-fact;
+;     up-get-fact-sum can aggregate enemy military-population.
+;   - UserPatch: up-get-threat-data records last threat time/player/
+;     source-class/target-class.
+;   - UserPatch: up-attacker-class identifies the last town attacker;
+;     it is meaningful only in conjunction with town-under-attack.
+;   - AIRef: up-compare-goal compares goal values; unit lines and classes
+;     are valid abstraction levels for military reasoning.
+;
+; The ATTACK-READY threshold is a policy parameter, not an engine fact.
+;
+;------------------------- initialization --------------------------
+(defrule
+    (goal SHADOW-MIL-INITIALIZED -1)
 =>
-    (attack-now) 
-) 
+    (set-goal SHADOW-MIL-INITIALIZED 1)
+    (set-goal SHADOW-MIL-POPULATION 0)
+    (set-goal SHADOW-MIL-ENEMY-POPULATION 0)
+    (set-goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-BUILDUP)
+    (set-goal SHADOW-MIL-CAPABILITY SHADOW-MIL-CAPABILITY-NONE)
+    (set-goal SHADOW-MIL-THREAT-TIME -1)
+    (set-goal SHADOW-MIL-THREAT-PLAYER -1)
+    (set-goal SHADOW-MIL-THREAT-SOURCE -1)
+    (set-goal SHADOW-MIL-THREAT-TARGET -1)
+    (set-goal SHADOW-MIL-SUPERIORITY SHADOW-MIL-INFERIOR)
+)
+
+;------------------------- observation ----------------------------
+; These are direct engine facts cached once per pass.
+(defrule
+    (true)
+=>
+    (up-get-fact military-population 0 SHADOW-MIL-POPULATION)
+    (up-get-fact-sum every-enemy military-population 0 SHADOW-MIL-ENEMY-POPULATION)
+    (up-get-threat-data
+        SHADOW-MIL-THREAT-TIME
+        SHADOW-MIL-THREAT-PLAYER
+        SHADOW-MIL-THREAT-SOURCE
+        SHADOW-MIL-THREAT-TARGET)
+)
+
+;------------------------- superiority -----------------------------
+(defrule
+    (up-compare-goal
+        SHADOW-MIL-POPULATION
+        >
+        SHADOW-MIL-ENEMY-POPULATION)
+=>
+    (set-goal SHADOW-MIL-SUPERIORITY SHADOW-MIL-SUPERIOR)
+)
+
+(defrule
+    (up-compare-goal
+        SHADOW-MIL-POPULATION
+        <=
+        SHADOW-MIL-ENEMY-POPULATION)
+=>
+    (set-goal SHADOW-MIL-SUPERIORITY SHADOW-MIL-INFERIOR)
+)
+
+;------------------------- posture --------------------------------
+; Default posture is BUILDUP. More specific states follow so the
+; rule ordering produces deterministic precedence: emergency >
+; attack-ready > defensive > buildup.
+(defrule
+    (true)
+=>
+    (set-goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-BUILDUP)
+)
+
+(defrule
+    (up-compare-goal
+        SHADOW-MIL-POPULATION
+        >=
+        SHADOW-MIL-ATTACK-READY-MIN-POP)
+    (up-compare-goal
+        SHADOW-MIL-POPULATION
+        <=
+        SHADOW-MIL-ENEMY-POPULATION)
+=>
+    (set-goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-DEFENSIVE)
+)
+
+(defrule
+    (up-compare-goal
+        SHADOW-MIL-POPULATION
+        >=
+        SHADOW-MIL-ATTACK-READY-MIN-POP)
+    (up-compare-goal
+        SHADOW-MIL-POPULATION
+        >
+        SHADOW-MIL-ENEMY-POPULATION)
+    (not (town-under-attack))
+=>
+    (set-goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-ATTACK-READY)
+)
+
+(defrule
+    (or
+        (town-under-attack)
+        (up-enemy-units-in-town > 0))
+=>
+    (set-goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-EMERGENCY)
+)
+
+;------------------------- capability bridge ----------------------
+; Capability is reset before threat-specific rules. No production
+; goal is written here: composition policy remains the owner of WHAT
+; should be produced, while this module reports WHY a capability is
+; required.
+(defrule
+    (true)
+=>
+    (set-goal SHADOW-MIL-CAPABILITY SHADOW-MIL-CAPABILITY-NONE)
+)
+
+(defrule
+    (town-under-attack)
+    (up-attacker-class == cavalry-class)
+=>
+    (set-goal SHADOW-MIL-CAPABILITY SHADOW-MIL-CAPABILITY-ANTI-CAVALRY)
+)
+
+(defrule
+    (town-under-attack)
+    (up-attacker-class == archery-class)
+=>
+    (set-goal SHADOW-MIL-CAPABILITY SHADOW-MIL-CAPABILITY-ANTI-RANGED)
+)
+
+(defrule
+    (town-under-attack)
+    (up-attacker-class == siege-weapon-class)
+=>
+    (set-goal SHADOW-MIL-CAPABILITY SHADOW-MIL-CAPABILITY-ANTI-SIEGE)
+)
+
+(defrule
+    (town-under-attack)
+    (up-attacker-class == infantry-class)
+=>
+    (set-goal SHADOW-MIL-CAPABILITY SHADOW-MIL-CAPABILITY-ANTI-INFANTRY)
+)
+
+(defrule
+    (town-under-attack)
+    (up-attacker-class == warship-class)
+=>
+    (set-goal SHADOW-MIL-CAPABILITY SHADOW-MIL-CAPABILITY-ANTI-NAVAL)
+)
+
+;------------------------- execution boundary ---------------------
+; Intentionally empty. The next military layer may consume:
+;   SHADOW-MIL-POSTURE
+;   SHADOW-MIL-CAPABILITY
+;   SHADOW-MIL-SUPERIORITY
+;   SHADOW-MIL-THREAT-PLAYER
+;   SHADOW-MIL-THREAT-SOURCE
+;   SHADOW-MIL-THREAT-TARGET
+; and translate them into strategic composition or tactical missions.
+;
+; No attack-now call is permitted here. AIRef/UserPatch documentation
+; explicitly notes that attack-now creates attack groups and can impose
+; substantial ongoing execution cost. Tactical execution must therefore
+; be a later, explicit authority decision.
