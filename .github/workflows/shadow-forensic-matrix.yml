@@ -35,7 +35,79 @@ jobs:
       - name: Generate rule-level transplantation atlas
         run: |
           sed -i 's/strip_comments/strip_comment/g' tools/forensics_shadow_transplantation_atlas.py
-          python3 tools/forensics_shadow_transplantation_atlas.py
+          python3 - <<'PY'
+          import importlib.util
+          import pathlib
+          import re
+
+          p = pathlib.Path('tools/forensics_shadow_transplantation_atlas.py')
+          spec = importlib.util.spec_from_file_location('atlas', p)
+          atlas = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(atlas)
+
+          original_extract = atlas.extract_rules
+
+          def lossless_extract(text):
+              rules, headings = original_extract(text)
+              if not rules:
+                  return rules, headings
+              first_rule = rules[0]['start']
+              valid = [(line, name) for line, name in headings if line >= first_rule]
+              for r in rules:
+                  prior = [h for h in valid if h[0] <= r['start']]
+                  if prior:
+                      line, name = prior[-1]
+                      r['region'] = f'{name} @ L{line}'
+                  else:
+                      r['region'] = f'UNHEADED @ L{r["start"]}'
+              return rules, headings
+
+          atlas.extract_rules = lossless_extract
+
+          # Current-tree classification is deliberately conservative: exact
+          # normalized donor text is the only basis for PRESERVED/MOVED. A
+          # non-exact candidate is UNKNOWN rather than a guessed transplant.
+          def conservative_classify(donor, candidates):
+              exact = [c for c in candidates if c['normalized'] == donor['normalized']]
+              if exact:
+                  return ('MOVED' if any(c['file'] != 'ShadowByzantine/ShadowByzantine.per' for c in exact) else 'PRESERVED'), exact[:3]
+              ranked = sorted(((atlas.score(donor, c), c) for c in candidates), reverse=True, key=lambda x: x[0])
+              strong = [c for s, c in ranked[:3] if s >= 8]
+              return ('UNKNOWN', strong) if strong else ('LOST', [])
+
+          atlas.classify = conservative_classify
+          atlas.main()
+
+          # Add the four pre-rule declaration regions explicitly. They have no
+          # defrule ordinals; their source ranges are derived from the actual
+          # heading positions and the next declaration/rule boundary.
+          donor = pathlib.Path('ShadowSource.per').read_text(encoding='utf-8').splitlines()
+          targets = ["QID'S", 'QGENERAL', 'QPOSITION', 'QECONOMY']
+          headings = []
+          for i, line in enumerate(donor, 1):
+              m = re.match(r'^\s*;[^\n]*?\b(QID\'S|QGENERAL|QPOSITION|QECONOMY)\b', line)
+              if m:
+                  headings.append((i, m.group(1)))
+          first_rule = next(i for i, line in enumerate(donor, 1) if re.match(r'^\s*\(defrule\b', line))
+          rows = []
+          for idx, (line, name) in enumerate(headings):
+              end = headings[idx + 1][0] - 1 if idx + 1 < len(headings) else first_rule - 1
+              rows.append(f'| {name} | — (declaration) | L{line}–L{end} | no `defrule` ordinal; declaration/state-carrier namespace |')
+          mp = pathlib.Path('docs/forensics/SHADOW_RULE_TRANSPLANTATION_MAP_v0.1.md')
+          text = mp.read_text(encoding='utf-8')
+          marker = '### A.0. Donor declaration regions (non-rule state namespace)'
+          if marker in text:
+              text = text.split(marker, 1)[0].rstrip() + '\n'
+          insertion = '\n'.join([
+              marker, '',
+              '| Declaration region | Ordinal | Source offsets | Evidence role |',
+              '|---|---:|---|---|',
+              *rows, ''
+          ])
+          atlas_marker = '<!-- BEGIN GENERATED RULE-LEVEL ATLAS -->'
+          text = text.replace(atlas_marker, insertion + '\n' + atlas_marker, 1)
+          mp.write_text(text, encoding='utf-8')
+          PY
 
       - name: Commit generated forensic artifacts
         run: |
@@ -51,5 +123,5 @@ jobs:
             echo 'Forensic artifacts unchanged.'
             exit 0
           fi
-          git commit -m 'forensics: generate rule-level transplantation atlas'
+          git commit -m 'forensics: regenerate lossless transplantation atlas'
           git push
