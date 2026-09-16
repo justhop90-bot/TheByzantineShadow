@@ -5,30 +5,31 @@
 ;
 ; PURPOSE
 ; -------
-; Convert proven military observations into a stable strategic state
-; interface for later composition/tactical modules.
+; Normalize documented military observations into strategic state.
+; This module owns OBSERVATION -> CLASSIFICATION only.
+; It does not own production, escrow, attack-group creation, or
+; tactical execution.
 ;
-; This module does NOT call attack-now, create attack groups, train units,
-; build buildings, alter escrow, or directly execute a countermeasure.
-; Shadow's donor military system already contains tactical execution;
-; this layer preserves that separation while formalizing its strategic
-; input/output boundary.
+; Documented interfaces:
+;   up-get-fact unit-type-count-total <unit-type> <goal>
+;   up-get-fact military-population 0 <goal>
+;   up-get-fact-sum every-enemy military-population 0 <goal>
+;   up-get-threat-data <time> <player> <source-class> <target-class>
+;   up-attacker-class <compare-op> <class>
+;   up-enemy-units-in-town <compare-op> <value>
+;   up-defender-count <compare-op> <value>
+;   up-compare-goal <goal> <compare-op> <goal>
 ;
-; Evidence basis:
-;   - Shadow Military Audit v0.1: observation -> threat -> policy ->
-;     tactical execution; preserve target/scouting/tactical knowledge.
-;   - UserPatch: military-population is readable through up-get-fact;
-;     up-get-fact-sum can aggregate enemy military-population.
-;   - UserPatch: up-get-threat-data records last threat time/player/
-;     source-class/target-class.
-;   - UserPatch: up-attacker-class identifies the last town attacker;
-;     it is meaningful only in conjunction with town-under-attack.
-;   - AIRef: up-compare-goal compares goal values; unit lines and classes
-;     are valid abstraction levels for military reasoning.
+; AIRef documents unit-type-count-total as including trained and queued
+; units. UserPatch documents military-population and the threat facts.
 ;
-; The ATTACK-READY threshold is a policy parameter, not an engine fact.
+; IMPORTANT: up-get-fact is the three-argument local-player form when
+; the fact parameter is the unit type itself. A literal 0 is therefore
+; NOT inserted between unit type and output goal for unit-type-count-total.
 ;
-;------------------------- initialization --------------------------
+;-------------------------------------------------------------
+; INITIALIZATION
+;-------------------------------------------------------------
 (defrule
     (goal SHADOW-MIL-INITIALIZED -1)
 =>
@@ -42,15 +43,19 @@
     (set-goal SHADOW-MIL-THREAT-SOURCE -1)
     (set-goal SHADOW-MIL-THREAT-TARGET -1)
     (set-goal SHADOW-MIL-SUPERIORITY SHADOW-MIL-INFERIOR)
+    (set-goal SHADOW-MIL-ENEMY-IN-TOWN 0)
+    (set-goal SHADOW-MIL-DEFENDER-COUNT 0)
 )
 
-;------------------------- observation ----------------------------
-; These are direct engine facts cached once per pass.
+;-------------------------------------------------------------
+; OBSERVATION
+;-------------------------------------------------------------
 (defrule
     (true)
 =>
     (up-get-fact military-population 0 SHADOW-MIL-POPULATION)
-    (up-get-fact-sum every-enemy military-population 0 SHADOW-MIL-ENEMY-POPULATION)
+    (up-get-fact-sum every-enemy military-population 0
+        SHADOW-MIL-ENEMY-POPULATION)
     (up-get-threat-data
         SHADOW-MIL-THREAT-TIME
         SHADOW-MIL-THREAT-PLAYER
@@ -58,7 +63,18 @@
         SHADOW-MIL-THREAT-TARGET)
 )
 
-;------------------------- superiority -----------------------------
+; Cache town threat facts once per pass. These facts are cheaper and
+; more stable to consume repeatedly than re-querying them in policy rules.
+(defrule
+    (true)
+=>
+    (up-get-fact up-enemy-units-in-town 0 SHADOW-MIL-ENEMY-IN-TOWN)
+    (up-get-fact up-defender-count 0 SHADOW-MIL-DEFENDER-COUNT)
+)
+
+;-------------------------------------------------------------
+; SUPERIORITY
+;-------------------------------------------------------------
 (defrule
     (up-compare-goal
         SHADOW-MIL-POPULATION
@@ -77,10 +93,12 @@
     (set-goal SHADOW-MIL-SUPERIORITY SHADOW-MIL-INFERIOR)
 )
 
-;------------------------- posture --------------------------------
-; Default posture is BUILDUP. More specific states follow so the
-; rule ordering produces deterministic precedence: emergency >
-; attack-ready > defensive > buildup.
+;-------------------------------------------------------------
+; POSTURE
+;-------------------------------------------------------------
+; Reset first, then apply increasingly specific states. Because the
+; rules are ordered, the intended precedence is:
+; EMERGENCY > ATTACK-READY > DEFENSIVE > BUILDUP.
 (defrule
     (true)
 =>
@@ -117,16 +135,17 @@
 (defrule
     (or
         (town-under-attack)
-        (up-enemy-units-in-town > 0))
+        (up-compare-goal SHADOW-MIL-ENEMY-IN-TOWN > 0))
 =>
     (set-goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-EMERGENCY)
 )
 
-;------------------------- capability bridge ----------------------
-; Capability is reset before threat-specific rules. No production
-; goal is written here: composition policy remains the owner of WHAT
-; should be produced, while this module reports WHY a capability is
-; required.
+;-------------------------------------------------------------
+; CAPABILITY CLASSIFICATION
+;-------------------------------------------------------------
+; up-attacker-class is only semantically current inside a
+; town-under-attack event. We therefore never classify an old retained
+; attacker class as a new threat by itself.
 (defrule
     (true)
 =>
@@ -168,17 +187,20 @@
     (set-goal SHADOW-MIL-CAPABILITY SHADOW-MIL-CAPABILITY-ANTI-NAVAL)
 )
 
-;------------------------- execution boundary ---------------------
-; Intentionally empty. The next military layer may consume:
+;-------------------------------------------------------------
+; EXECUTION BOUNDARY
+;-------------------------------------------------------------
+; Deliberately no attack-now, up-train, build, escrow mutation,
+; retreat, or target execution occurs here.
+;
+; Consumers may use:
 ;   SHADOW-MIL-POSTURE
 ;   SHADOW-MIL-CAPABILITY
 ;   SHADOW-MIL-SUPERIORITY
 ;   SHADOW-MIL-THREAT-PLAYER
 ;   SHADOW-MIL-THREAT-SOURCE
 ;   SHADOW-MIL-THREAT-TARGET
-; and translate them into strategic composition or tactical missions.
+;   SHADOW-MIL-ENEMY-IN-TOWN
+;   SHADOW-MIL-DEFENDER-COUNT
 ;
-; No attack-now call is permitted here. AIRef/UserPatch documentation
-; explicitly notes that attack-now creates attack groups and can impose
-; substantial ongoing execution cost. Tactical execution must therefore
-; be a later, explicit authority decision.
+; to authorize composition changes or later tactical execution.
