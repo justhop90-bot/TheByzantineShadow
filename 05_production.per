@@ -3,165 +3,527 @@
 ; MODULE 05 -- PRODUCTION AUTHORITY
 ;=============================================================
 ;
-; Production is an economic commitment consumer.
+; Complete production authority for the Byzantine military tree.
 ;
-; AUTHORITY BOUNDARY
-;   Composition Policy -> desired Spearman target
-;   Production Authority -> reservation / admission / execution /
-;                           completion / release
+; POLICY -> absolute domain targets
+; REGISTRY -> static engine production map
+; AUTHORITY -> site / capital / escrow / admission / execution
 ;
-; Production Authority MUST NOT declare or write the demand target.
-; SHADOW-PROD-DEMAND-SPEAR is declared by 05_composition_policy.per,
-; which must load before this module.
+; The implementation intentionally uses static unit-line symbols rather
+; than speculative goal-valued unit dispatch. AIRef documents that unit
+; lines are valid production targets and that unit-type-count-total
+; includes queued units. The engine remains authoritative for actual
+; availability and affordability through can-train/up-can-train.
 ;
-; A target of 0 means no Spearman demand.
+; The preserved Shadow donor uses escrow as a capital-commitment layer,
+; selective release, and explicit production-state reasoning. This file
+; preserves that model while extending it across the Byzantine roster.
 ;
-; Cost profile: goals 500-503 (food, wood, stone, gold).
-; Production state: goal 507.
-; Training escrow state: goal 508.
+; IMPORTANT LOAD ORDER:
+;   05_production_registry.per
+;   05_composition_policy.per
+;   05_production.per
 ;
-(defconst SHADOW-PROD-COST-FOOD 500)
-(defconst SHADOW-PROD-COST-WOOD 501)
-(defconst SHADOW-PROD-COST-STONE 502)
-(defconst SHADOW-PROD-COST-GOLD 503)
-(defconst SHADOW-PROD-STATE 507)
-(defconst SHADOW-PROD-ESCROW-STATE 508)
-
-(defconst SHADOW-PROD-ACCUMULATING 1)
-(defconst SHADOW-PROD-SATISFIED 2)
-(defconst SHADOW-PROD-ESCROW-PERCENT 35)
-(defconst SHADOW-PROD-BARRACKS-ESCROW-PERCENT 60)
-
+; The repository currently contains no verified aggregate loader for these
+; modules. Therefore this branch does not silently invent one.
+;
 ;=============================================================
 ; INITIALIZATION
 ;=============================================================
-;
-; Cost data remains an engine-defined one-Spearman reference
-; profile. Runtime affordability is established by up-can-train.
-; The demand target is deliberately NOT initialized here: policy
-; owns that goal.
-;
+
 (defrule
     (goal SHADOW-PROD-STATE -1)
 =>
+    (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
+    (set-goal SHADOW-PROD-ESCROW-STATE escrow-included)
+    (set-goal SHADOW-PROD-SITE-STATE 0)
+    (set-goal SHADOW-PROD-ADMISSION 0)
+    (set-goal SHADOW-PROD-LOCK 0)
+    (set-goal SHADOW-PROD-REASSESS 0)
+    (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+    (set-escrow-percentage gold SHADOW-PROD-ESCROW-PERCENT)
+    (set-escrow-percentage stone SHADOW-PROD-ESCROW-PERCENT)
+)
+
+; Engine cost vector is initialized once. The production executor does
+; not use a manually maintained unit price for admission; up-can-train
+; remains the affordability authority.
+
+(defrule
+    (goal SHADOW-PROD-COST-FOOD -1)
+=>
     (up-setup-cost-data 1 SHADOW-PROD-COST-FOOD)
     (up-add-object-cost c: spearman c: 1)
-    (set-goal SHADOW-PROD-ESCROW-STATE escrow-included)
+)
+
+;=============================================================
+; PASS RESET / ADMISSION CONTROL
+;=============================================================
+;
+; One successful production/build action per rule pass is deliberate.
+; UserPatch documents the training queue as an optional global feature;
+; Shadow's architecture instead treats production as an admitted
+; transaction. This lock gives every production domain a deterministic
+; arbitration point without requiring speculative dynamic dispatch.
+
+(defrule
+    (true)
+=>
+    (set-goal SHADOW-PROD-LOCK 0)
+    (set-goal SHADOW-PROD-ADMISSION 0)
     (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
 )
 
 ;=============================================================
-; NO ACTIVE SPEARMAN DEMAND
+; DEMAND STATE OBSERVATION
 ;=============================================================
 ;
-; A zero target is a policy withdrawal. Production Authority does
-; not create a transaction and releases only production-owned food/
-; wood escrow that is no longer required.
-;
-(defrule
-    (goal SHADOW-PROD-DEMAND-SPEAR 0)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
-=>
-    (release-escrow food)
-    (release-escrow wood)
-    (set-escrow-percentage food 0)
-    (set-escrow-percentage wood 0)
-    (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
-)
+; Each domain uses unit-type-count-total. This deliberately counts both
+; completed and queued units, preventing duplicate admission while a unit
+; is already in a training queue.
+
+(defrule (unit-type-count-total militia-line g:< SHADOW-PROD-INFANTRY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total spearman-line g:< SHADOW-PROD-ANTI-CAVALRY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total archer-line g:< SHADOW-PROD-RANGED) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total skirmisher-line g:< SHADOW-PROD-ANTI-RANGED) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total scout-line g:< SHADOW-PROD-LIGHT-CAVALRY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total knight-line g:< SHADOW-PROD-HEAVY-CAVALRY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total cavalry-archer-line g:< SHADOW-PROD-MOBILE-RANGED) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total cataphract g:< SHADOW-PROD-UNIQUE-CAVALRY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total battering-ram-line g:< SHADOW-PROD-RAM-SIEGE) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total mangonel-line g:< SHADOW-PROD-AREA-SIEGE) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total scorpion-line g:< SHADOW-PROD-ANTI-MASS-SIEGE) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total bombard-cannon g:< SHADOW-PROD-GUNPOWDER-SIEGE) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total trebuchet g:< SHADOW-PROD-CASTLE-SIEGE) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total monk g:< SHADOW-PROD-MONK) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total galley-line g:< SHADOW-PROD-GALLEY-NAVY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total fire-ship-line g:< SHADOW-PROD-FIRE-NAVY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total demolition-ship-line g:< SHADOW-PROD-DEMO-NAVY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
+(defrule (unit-type-count-total dromon g:< SHADOW-PROD-IMPERIAL-NAVY) => (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING))
 
 ;=============================================================
-; BARRACKS CAPITAL RESERVATION
+; PREREQUISITE SITE AUTHORITY
 ;=============================================================
 ;
-; Production Authority derives prerequisite demand from the policy
-; target. Composition policy does not issue the build.
-;
-(defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks < 1)
-    (unit-type-count-total spearman-line g:< SHADOW-PROD-DEMAND-SPEAR)
-    (up-pending-objects c: barracks < 1)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
-=>
-    (set-escrow-percentage wood SHADOW-PROD-BARRACKS-ESCROW-PERCENT)
-    (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
-)
+; The production authority owns the production site prerequisite. The
+; engine's can-build-with-escrow fact owns final feasibility. Only one
+; site transaction may be admitted in a pass.
 
-; Release the reserved wood only when this authority commitment is
-; active and the engine says the barracks is executable.
-;
 (defrule
-    (current-age >= feudal-age)
+    (goal SHADOW-PROD-LOCK 0)
+    (goal SHADOW-PROD-INFANTRY g:> 0)
     (building-type-count-total barracks < 1)
-    (unit-type-count-total spearman-line g:< SHADOW-PROD-DEMAND-SPEAR)
     (up-pending-objects c: barracks < 1)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
     (can-build-with-escrow barracks)
 =>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-SITE-STATE 1)
     (release-escrow wood)
-    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+    (set-escrow-percentage wood SHADOW-PROD-SITE-ESCROW-PERCENT)
     (build barracks)
-)
-
-;=============================================================
-; PRODUCTION RESERVE ACQUISITION
-;=============================================================
-;
-; Once the barracks exists, protect food and wood for the requested
-; military commitment. Gold and stone remain outside this executor.
-;
-(defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks > 0)
-    (unit-type-count-total spearman-line g:< SHADOW-PROD-DEMAND-SPEAR)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
-=>
-    (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
     (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
-    (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (goal SHADOW-PROD-ANTI-CAVALRY g:> 0)
+    (building-type-count-total barracks < 1)
+    (up-pending-objects c: barracks < 1)
+    (can-build-with-escrow barracks)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-SITE-STATE 1)
+    (release-escrow wood)
+    (set-escrow-percentage wood SHADOW-PROD-SITE-ESCROW-PERCENT)
+    (build barracks)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (or
+        (goal SHADOW-PROD-RANGED g:> 0)
+        (goal SHADOW-PROD-ANTI-RANGED g:> 0)
+        (goal SHADOW-PROD-MOBILE-RANGED g:> 0)
+    )
+    (building-type-count-total archery-range < 1)
+    (up-pending-objects c: archery-range < 1)
+    (can-build-with-escrow archery-range)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-SITE-STATE 1)
+    (release-escrow wood)
+    (set-escrow-percentage wood SHADOW-PROD-SITE-ESCROW-PERCENT)
+    (build archery-range)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (or
+        (goal SHADOW-PROD-LIGHT-CAVALRY g:> 0)
+        (goal SHADOW-PROD-HEAVY-CAVALRY g:> 0)
+    )
+    (building-type-count-total stable < 1)
+    (up-pending-objects c: stable < 1)
+    (can-build-with-escrow stable)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-SITE-STATE 1)
+    (release-escrow wood)
+    (set-escrow-percentage wood SHADOW-PROD-SITE-ESCROW-PERCENT)
+    (build stable)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (or
+        (goal SHADOW-PROD-RAM-SIEGE g:> 0)
+        (goal SHADOW-PROD-AREA-SIEGE g:> 0)
+        (goal SHADOW-PROD-ANTI-MASS-SIEGE g:> 0)
+        (goal SHADOW-PROD-GUNPOWDER-SIEGE g:> 0)
+    )
+    (current-age >= castle-age)
+    (building-type-count-total siege-workshop < 1)
+    (up-pending-objects c: siege-workshop < 1)
+    (can-build-with-escrow siege-workshop)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-SITE-STATE 1)
+    (release-escrow wood)
+    (set-escrow-percentage wood SHADOW-PROD-SITE-ESCROW-PERCENT)
+    (build siege-workshop)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (or
+        (goal SHADOW-PROD-UNIQUE-CAVALRY g:> 0)
+        (goal SHADOW-PROD-CASTLE-SIEGE g:> 0)
+    )
+    (current-age >= castle-age)
+    (building-type-count-total castle < 1)
+    (up-pending-objects c: castle < 1)
+    (can-build-with-escrow castle)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-SITE-STATE 1)
+    (release-escrow wood)
+    (release-escrow stone)
+    (set-escrow-percentage wood SHADOW-PROD-SITE-ESCROW-PERCENT)
+    (set-escrow-percentage stone SHADOW-PROD-SITE-ESCROW-PERCENT)
+    (build castle)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+    (set-escrow-percentage stone SHADOW-PROD-ESCROW-PERCENT)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (goal SHADOW-PROD-MONK g:> 0)
+    (current-age >= castle-age)
+    (building-type-count-total monastery < 1)
+    (up-pending-objects c: monastery < 1)
+    (can-build-with-escrow monastery)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-SITE-STATE 1)
+    (release-escrow wood)
+    (set-escrow-percentage wood SHADOW-PROD-SITE-ESCROW-PERCENT)
+    (build monastery)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (or
+        (goal SHADOW-PROD-GALLEY-NAVY g:> 0)
+        (goal SHADOW-PROD-FIRE-NAVY g:> 0)
+        (goal SHADOW-PROD-DEMO-NAVY g:> 0)
+        (goal SHADOW-PROD-IMPERIAL-NAVY g:> 0)
+    )
+    (building-type-count-total dock < 1)
+    (up-pending-objects c: dock < 1)
+    (can-build-with-escrow dock)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-SITE-STATE 1)
+    (release-escrow wood)
+    (set-escrow-percentage wood SHADOW-PROD-SITE-ESCROW-PERCENT)
+    (build dock)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
 )
 
 ;=============================================================
-; TRAINING ADMISSION / EXECUTION
+; STATIC TRAINING AUTHORITY
 ;=============================================================
 ;
-; Site readiness and affordability remain separate gates.
-; up-train-site-ready uses the root Spearman object.
-; up-can-train uses escrow-included through goal 508.
+; These rules are intentionally written as static dispatches. No goal
+; value is passed as a unit id. This is the qualified path supported by
+; the existing AI scripting model and avoids unverified dynamic-unit
+; semantics.
+;
+; Rule order is the production admission priority when multiple domains
+; share a production site. The first successful transaction claims the
+; pass through SHADOW-PROD-LOCK.
+;
+;------------------------- Barracks -----------------------------
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total militia-line g:< SHADOW-PROD-INFANTRY)
+    (can-train militia-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 400)
+    (up-train SHADOW-PROD-ESCROW-STATE c: militia-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total spearman-line g:< SHADOW-PROD-ANTI-CAVALRY)
+    (can-train spearman-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 401)
+    (up-train SHADOW-PROD-ESCROW-STATE c: spearman-line)
+)
+
+;------------------------- Archery Range ------------------------
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total archer-line g:< SHADOW-PROD-RANGED)
+    (can-train archer-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 402)
+    (up-train SHADOW-PROD-ESCROW-STATE c: archer-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total skirmisher-line g:< SHADOW-PROD-ANTI-RANGED)
+    (can-train skirmisher-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 403)
+    (up-train SHADOW-PROD-ESCROW-STATE c: skirmisher-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total cavalry-archer-line g:< SHADOW-PROD-MOBILE-RANGED)
+    (can-train cavalry-archer-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 406)
+    (up-train SHADOW-PROD-ESCROW-STATE c: cavalry-archer-line)
+)
+
+;------------------------- Stable -------------------------------
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total scout-line g:< SHADOW-PROD-LIGHT-CAVALRY)
+    (can-train scout-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 404)
+    (up-train SHADOW-PROD-ESCROW-STATE c: scout-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total knight-line g:< SHADOW-PROD-HEAVY-CAVALRY)
+    (can-train knight-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 405)
+    (up-train SHADOW-PROD-ESCROW-STATE c: knight-line)
+)
+
+;------------------------- Castle --------------------------------
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total cataphract g:< SHADOW-PROD-UNIQUE-CAVALRY)
+    (can-train cataphract)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 407)
+    (up-train SHADOW-PROD-ESCROW-STATE c: cataphract)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total trebuchet g:< SHADOW-PROD-CASTLE-SIEGE)
+    (can-train trebuchet)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 412)
+    (up-train SHADOW-PROD-ESCROW-STATE c: trebuchet)
+)
+
+;------------------------- Siege Workshop ------------------------
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total battering-ram-line g:< SHADOW-PROD-RAM-SIEGE)
+    (can-train battering-ram-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 408)
+    (up-train SHADOW-PROD-ESCROW-STATE c: battering-ram-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total mangonel-line g:< SHADOW-PROD-AREA-SIEGE)
+    (can-train mangonel-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 409)
+    (up-train SHADOW-PROD-ESCROW-STATE c: mangonel-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total scorpion-line g:< SHADOW-PROD-ANTI-MASS-SIEGE)
+    (can-train scorpion-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 410)
+    (up-train SHADOW-PROD-ESCROW-STATE c: scorpion-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total bombard-cannon g:< SHADOW-PROD-GUNPOWDER-SIEGE)
+    (can-train bombard-cannon)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 411)
+    (up-train SHADOW-PROD-ESCROW-STATE c: bombard-cannon)
+)
+
+;------------------------- Monastery -----------------------------
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total monk g:< SHADOW-PROD-MONK)
+    (can-train monk)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 413)
+    (up-train SHADOW-PROD-ESCROW-STATE c: monk)
+)
+
+;------------------------- Dock ----------------------------------
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total galley-line g:< SHADOW-PROD-GALLEY-NAVY)
+    (can-train galley-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 414)
+    (up-train SHADOW-PROD-ESCROW-STATE c: galley-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total fire-ship-line g:< SHADOW-PROD-FIRE-NAVY)
+    (can-train fire-ship-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 415)
+    (up-train SHADOW-PROD-ESCROW-STATE c: fire-ship-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total demolition-ship-line g:< SHADOW-PROD-DEMO-NAVY)
+    (can-train demolition-ship-line)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 416)
+    (up-train SHADOW-PROD-ESCROW-STATE c: demolition-ship-line)
+)
+
+(defrule
+    (goal SHADOW-PROD-LOCK 0)
+    (unit-type-count-total dromon g:< SHADOW-PROD-IMPERIAL-NAVY)
+    (can-train dromon)
+=>
+    (set-goal SHADOW-PROD-LOCK 1)
+    (set-goal SHADOW-PROD-ADMISSION 417)
+    (up-train SHADOW-PROD-ESCROW-STATE c: dromon)
+)
+
+;=============================================================
+; COMPLETION / WITHDRAWAL
+;=============================================================
+;
+; A domain is complete when unit-type-count-total reaches the absolute
+; policy target. Reducing a target does not cancel queued training.
+; Existing queue state therefore remains engine-owned.
 ;
 (defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks > 0)
-    (unit-type-count-total spearman-line g:< SHADOW-PROD-DEMAND-SPEAR)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
-    (up-train-site-ready spearman)
-    (up-can-train SHADOW-PROD-ESCROW-STATE c: spearman)
+    (goal SHADOW-PROD-LOCK 0)
+    (goal SHADOW-PROD-INFANTRY 0)
+    (goal SHADOW-PROD-ANTI-CAVALRY 0)
+    (goal SHADOW-PROD-RANGED 0)
+    (goal SHADOW-PROD-ANTI-RANGED 0)
+    (goal SHADOW-PROD-LIGHT-CAVALRY 0)
+    (goal SHADOW-PROD-HEAVY-CAVALRY 0)
+    (goal SHADOW-PROD-MOBILE-RANGED 0)
+    (goal SHADOW-PROD-UNIQUE-CAVALRY 0)
+    (goal SHADOW-PROD-RAM-SIEGE 0)
+    (goal SHADOW-PROD-AREA-SIEGE 0)
+    (goal SHADOW-PROD-ANTI-MASS-SIEGE 0)
+    (goal SHADOW-PROD-GUNPOWDER-SIEGE 0)
+    (goal SHADOW-PROD-CASTLE-SIEGE 0)
+    (goal SHADOW-PROD-MONK 0)
+    (goal SHADOW-PROD-GALLEY-NAVY 0)
+    (goal SHADOW-PROD-FIRE-NAVY 0)
+    (goal SHADOW-PROD-DEMO-NAVY 0)
+    (goal SHADOW-PROD-IMPERIAL-NAVY 0)
 =>
     (release-escrow food)
     (release-escrow wood)
-    (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
-    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
-    (up-train SHADOW-PROD-ESCROW-STATE c: spearman)
-)
-
-;=============================================================
-; DEMAND COMPLETION / CAPITAL RELEASE
-;=============================================================
-;
-; Composition policy owns the target. Production Authority observes
-; the engine's current + queued total and declares the commitment
-; satisfied only when the requested target is reached.
-;
-(defrule
-    (unit-type-count-total spearman-line g:>= SHADOW-PROD-DEMAND-SPEAR)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
-=>
-    (release-escrow food)
-    (release-escrow wood)
+    (release-escrow gold)
+    (release-escrow stone)
     (set-escrow-percentage food 0)
     (set-escrow-percentage wood 0)
+    (set-escrow-percentage gold 0)
+    (set-escrow-percentage stone 0)
     (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
 )
 
-; A reduced target is handled as desired-state convergence, not
-; implicit cancellation. Existing queue orders are not cancelled.
+; Re-establish the production escrow policy when any demand exists.
+(defrule
+    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
+=>
+    (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+    (set-escrow-percentage gold SHADOW-PROD-ESCROW-PERCENT)
+    (set-escrow-percentage stone SHADOW-PROD-ESCROW-PERCENT)
+)
+
+;=============================================================
+; NOTES ON CURRENT QUALIFICATION
+;=============================================================
+;
+; 1. Policy is absolute desired state.
+; 2. Production Authority owns admission and execution.
+; 3. Engine can-train remains prerequisite/availability authority.
+; 4. unit-type-count-total counts queued units.
+; 5. No hidden queue cancellation is performed.
+; 6. No goal-valued dynamic unit dispatch is assumed.
+; 7. Dromon is explicitly represented because current DE Byzantines
+;    receive Dromon and lose Cannon Galleon.
+; 8. Naval demand remains policy-controlled; no fabricated naval
+;    activity is generated by this file.
