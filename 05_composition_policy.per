@@ -1,0 +1,44 @@
+;=============================================================
+; THE BYZANTINE SHADOW
+; MODULE 05A -- COMPOSITION POLICY
+;=============================================================
+;
+; This module owns WHAT military composition should exist.
+; Production Authority owns HOW that request becomes an engine
+; transaction.
+;
+; Policy may write SHADOW-PROD-DEMAND-SPEAR.
+; Policy must not write production escrow, build, train, or
+; execution state.
+;
+; The initial target preserves the previous Shadow production
+; behavior: three Spearmen.
+;
+(defconst SHADOW-PROD-DEMAND-SPEAR 497)
+
+;=============================================================
+; INITIAL POLICY TARGET
+;=============================================================
+;
+; Initialize once only. Future composition rules may replace this
+; value as strategic evidence changes.
+;
+(defrule
+    (goal SHADOW-PROD-DEMAND-SPEAR -1)
+=>
+    (set-goal SHADOW-PROD-DEMAND-SPEAR 3)
+)
+
+;=============================================================
+; POLICY CONTRACT
+;=============================================================
+;
+; Example future policy rule:
+;
+; (defrule
+;     <composition evidence>
+; =>
+;     (set-goal SHADOW-PROD-DEMAND-SPEAR 8)
+; )
+;
+; No production action belongs here.
