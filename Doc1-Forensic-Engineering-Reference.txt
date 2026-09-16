@@ -1,0 +1,173 @@
+﻿AoE2DE AI Engineering Knowledge System
+Document 1 - Forensic Engineering Reference
+Native .per scripting: execution environment, contracts, control systems, corpus evidence
+Generated 2026-09-16 from live corpus + registry evidence. Companion: Document 2 (Apprenticeship).
+1. How to read this reference
+Every nontrivial semantic claim carries an evidence label. Do not treat all labels as equal:
+* CONFIRMED - demonstrated by controlled runtime evidence or multiple converging direct observations.
+* DIRECT - visible verbatim in authoritative source material (stock/Shadow/Naga code, registry).
+* COMPOSED - established by combining multiple direct observations.
+* INFERRED - best explanation of observed behavior; not directly demonstrated.
+* AEGIS-GENERALIZATION - architectural abstraction from evidence, not native engine terminology.
+* UNCERTAIN - evidence insufficient; rival explanations preserved.
+Version scope: claims are version-bound to Age of Empires II: Definitive Edition (2024-2026 client) unless marked UP (UserPatch 1.5), WK (WololoKingdoms), or AoC (original CD). Behavior that differs across versions is called out inline. Where the registry-ant registry (aoe2-ai-parser symbol reference, 2296 symbols) conflicts with corpus usage, both are shown.
+[DIRECT] The reference registry consulted contains 2296 symbols (189 up-* commands, 171 sn-* strategic numbers). Command details below quote it; corpus citations give file:line in a standard DE install ai/ folder.
+2. Execution environment: what actually exists
+2.1 Files: .ai, .per, folders, packages
+An AI is a package, not a file. The three physical elements:
+* <name>.ai - package marker. DIRECT: every stock and custom AI in the install carries a 0-byte .ai (Naga.ai, Shadow DC7.ai, ByzantineWarCouncil.ai are all 0 bytes). The engine/lint tooling resolves the root <name>.per by matching basename ("matching-per" source in package manifests). The .ai carries no code.
+* <name>.per - root script: a load list plus optional top-level rules. It is the compilation entry point.
+* <name>/ - module folder with one .per per subsystem. A correct distributable zip contains root .ai + root .per + the folder (34 entries in the verified ByzantineWarCouncil.zip: 2 root + 32 modules).
+[COMPOSED] Packages missing the root loaders (folder-only zips) fail publish/upload validation: the load tree has no entry point. This was the root cause of a real "freezes on upload" incident - three successive folder-only zips, fixed by rebuilding with root .ai/.per included.
+2.2 The load graph (Naga, verbatim root)
+Naga.per is 32 lines and is reproduced here in full because it is the canonical modular load graph [DIRECT, Naga.per:1-32]:
+(load "Naga\defaultConstants")
+(load "Naga\customConstants")
+(load "Naga\ext Civ Tech Tree Constants")
+(load "Naga\ext Game Stats")
+(load "Naga\initialization")
+(load "Naga\threats")
+(load "Naga\trade")
+(load "Naga\militaryMacro")
+(load "Naga\unsorted")
+(load "Naga\militaryMicro")
+(load "Naga\hunting")
+(load "Naga\escrow")
+(load "Naga\technologies")
+(load "Naga\interaction")
+(load "Naga\buildings")
+(load "Naga\builders")
+(load "Naga\units")
+(load "Naga\dawn")
+(load "Naga\gatherers")
+(load "Naga\flavor")
+(load "Naga\resign")
+(load "Naga\sudah")
+#load-if-not-defined UP-MULTIPLAYER-GAME
+#load-if-defined UP-PLAYER-1
+; personal debug file
+#end-if
+; other debug file
+#end-if
+Load semantics that matter:
+* Order is meaning: identifiers should be defined (defconst) before use in load order ("use-before-define is engine-fatal" per project convention; the validator reports undefined-identifier/undefined-strategic-number as definite findings). Constants files load first for exactly this reason.
+* Inner loads exist: initialization.per:634-635 loads miscFunctions + buildingsFunctions; initialization.per:6773 loads strategies; gatherers.per:3730 loads ugp. A file can therefore execute mid-stream of another file - dependencies of the inner file must already be loaded at that point.
+* Shadow DC7.per (22,603 lines, 615,773 bytes) carries ZERO (load ...) lines - a self-contained monolith - versus Naga's 22-module tree. Both architectures ship and run; modularity is an engineering choice, not an engine requirement. [DIRECT]
+2.3 Preprocessor: #load-if / #else / #end-if
+Conditional compilation selects code by engine-defined symbols (map type, game mode, position). Examples [DIRECT, Shadow DC7.per:322-328, 435-443]:
+#load-if-defined TINY-MAP
+	(defconst min-scout-hp1 12)
+	(defconst min-scout-hp2 15)
+	#else
+	(defconst min-scout-hp1 20)
+	(defconst min-scout-hp2 23)
+#end-if
+* Nesting is legal: Naga buildings.per:232-235 opens four nested #load-if-not-defined blocks (WONDER-RACE, ISLANDS-MAP, MIGRATION-MAP, NILE-DELTA-MAP), closes three, then #else on the outermost (lines 278-281 in Naga numbering). An #else after #end-ifs is NOT automatically a bug - verify nesting depth before "fixing" it.
+* Jump hazard [DIRECT, registry: up-jump-rule]: "Never use this command where #load-if-defined or #load-if-not-defined blocks may make your jump target unreliable." Rule counts shift under different build flags, so constant jump deltas are build-configuration-dependent.
+* Validator codes preserving this: duplicate-preprocessor-else, malformed-preprocessor-directive, preprocessor-nesting-depth-exceeded, load-cycle, load-depth-exceeded, missing-load-target, duplicate-per-load-target.
+2.4 Parse model and static validity
+The parser builds scopes: comments, defconst, defrule, facts, actions, loads. Structural validity (balanced parens, closed scopes, resolvable loads, known commands) is checkable offline - the package validator reported a real 33-file tree as: 0 errors, 216 warnings, integrity clean (no stale roots, no unreachable files, no duplicate loads, no missing loads).
+[COMPOSED] Static validity is not runtime validity. The same validator passes scripts containing wrong-store reads (g: vs s:) and set-goal with a goal operand - both compile, both silently misbehave. Chapters 5 and 10 catalog what static analysis cannot catch.
+3. The state trilogy: constants, goals, strategic numbers
+3.1 defconst: names for numbers
+Syntax [DIRECT, registry]: (defconst <Defconst> <Value>). A defconst binds a name to an integer (or a few strings like YES). Everything else - goals, SNs, timers, strategies, ages - is a number with a name. Two consequences:
+* A name collision with a different value redefines the symbol (validator: duplicate-defconst-conflict, defconst-alias-cycle). No duplicate-name conflicts were found across a 12,159-constant tree in the audited package.
+* Numeric reuse across domains is normal: the same integer can name a goal in one file and an SN slot in another (they are different engine stores). BWC goal block 3101-3182 was script-verified free of collisions; only bwc-switch-margin=15 shares its value, with unrelated action/strategy/attribute constants in other domains - harmless.
+3.2 Goals: AI-side writable integers
+Syntax: (goal <GoalId> <Value>) tests equality; (set-goal <GoalId> <Value>) writes a constant; (up-compare-goal <GoalId> <compareOp> <Value>) compares against constants, goals (g:), or SNs (s:). [DIRECT, registry]
+[DIRECT] DE exposes 16,000 goals (only 512 in UP, 40 in AoC) per the set-goal registry entry - version-bound your goal budget assumptions.
+Goals are the AI's private RAM: the engine never writes them except through script commands. Naga conventions [DIRECT]: train-* dials are goal ids 190-225 and 301-393 (customConstants.per:807-842, e.g. train-villager 196, train-mangonel 203, train-camel 222); construct-* are 512-539 (construct-mill 516 ... construct-wonder 539); assistance is goal 83; attacking is goal 391; current-affinity is goal 2.
+3.3 Strategic numbers: engine-owned settings + reusable slots
+Syntax: (strategic-number <SnId> <compareOp> <Value>) tests; (set-strategic-number ...) and (up-modify-sn ...) write. SNs primarily configure engine behavior (town size, attack groups, gathering), but authors also repurpose spare slots as threat counters.
+[DIRECT] Naga aliases threat slots in customConstants.per:1061-1083: sn-infantry 65, sn-archers 71, sn-shock-infantry 190, sn-husks 191, sn-cavalry 193, sn-monks 205, sn-siege 206, sn-ranged 213, sn-monksiege 214. threats.per:412-431 zeroes them every pass, then census rules accumulate (up-get-focus-fact unit-type-count ... + up-modify-sn ... g:+ temporary-goal, e.g. knight-line → sn-cavalry at threats.per:482-483), then roll-ups combine them (sn-ranged s:+ sn-archers/skirms at threats.per:1090-1091).
+Threat SNs are volatile by design (zeroed per pass); any memory across passes must be explicitly latched into goals - the exact problem BWC's belief layer solves (Chapter 8).
+4. The prefix system: c: vs g: vs s:
+Every operand position declares which store it reads. This is the single most violated contract in real code:
+PrefixReads fromExample (witnessed)c:literal constant(up-modify-goal train-mangonel c:max 2) - Naga units.per:1351g:goal store(up-modify-goal temporary-goal2 g:= my-mpop) - Naga init patterns:strategic-number store(up-modify-sn sn-ranged s:+ sn-archers) - Naga threats.per:1090
+Cross-store facts exist and are legal: (strategic-number sn-ranged g:>= ten-pop) reads an SN against a goal (Naga buildings.per:8136); (up-compare-goal bwc-t s:>= sn-home-exploration-time) reads a goal against an SN (Naga buildings.per:3080). The prefix on the OPERATOR selects the right-hand store, not the left.
+[CONFIRMED (validator-definite + forensic)] bwc-memory.per used (up-modify-goal bwc-bel-arch g:max sn-ranged): g:max reads GOAL #213 (an unrelated Naga dial), not SN #213 (ranged count). The validator message is verbatim: "up-modify-goal argument 3 uses 'sn-ranged', which looks like a strategic number, but argument 2 is 'g:max'; use s: when reading a strategic number value". Three instances (sn-ranged, sn-shock-infantry, sn-husks) - fixed to s:max. Symptom class: silent wrong-value reads; the AI behaves "as if blind" to those threats. Related validator code: command-typed-operand-mismatch / command-typed-prefix-mismatch.
+[CONFIRMED (forensic)] (set-goal bwc-regime bwc-best) writes the CONSTANT 3115 (bwc-best's id), not best's value - the regime machine sat at invalid 3115 forever, neutering all objective mapping. Correct form: (up-modify-goal bwc-regime g:= bwc-best). Rule: set-goal's Value position takes constants only; goal-to-goal copies require up-modify-goal g:=. The registry documents set-goal as Action-only while up-modify-goal is Fact/Action dual (DE).
+5. Rules: eligibility, execution, time, jumps
+5.1 Anatomy and the pass model
+(defrule <conditions> => <actions>). Each engine pass evaluates rules in source order; eligible rules (all conditions true) execute their actions. UP dual-nature commands (up-modify-goal, up-modify-sn, up-get-fact) act identically in conditions or actions [DIRECT, registry] - which is why Naga legally embeds (up-set-target-object search-local c: 0) and (up-set-target-by-id g: scouting-unit) in CONDITION position (militaryMicro.per:63-74). Do not "fix" those by moving them.
+5.2 One-shot rules: disable-self
+[DIRECT] disable-self "disables the rule so it is never run again. Since disabling takes effect in the NEXT execution pass, other actions in the same rule still execute once." And: disabled rules "are still counted as rules by commands that [jump]" - i.e., jump deltas count disabled rules. Both facts matter: Shadow uses ~199 one-shot inits (e.g. Shadow DC7.per:1957-1978 zeroing defense state); inserting a rule before a jump chain shifts every downstream landing (observed: a retreat-coherence insertion moved an (up-jump-rule 3) landing from past-four-rules to onto the scorpion rule - same SN write, benign there, but the class is real).
+5.3 Timers: the recurring tick
+Timer ids 1-50 [DIRECT]. Two witnessed setups:
+* Naga: one-minute = timer 7 (customConstants.per:1093); enabled once at boot with six siblings (initialization.per:505-517: three-seconds 3 ... one-minute 60 ... two-minutes 120). Rules gate on (timer-triggered one-minute) or (up-timer-status X != timer-running) + re-enable (self-perpetuating pattern).
+* Shadow: ONE-MINUTE = timer 2, plus 30SEC/TWO-MINUTE/THREE-MINUTE/five-seconds-timer, re-armed by (up-timer-status X != timer-running) => (enable-timer X N) (Shadow DC7.per:22541-22576). Plus a software turn counter firing every pass: gl-turn-count c:+1 with mod-2/5/7/10 phases (22578-22603) - fractional scheduling without timers.
+[COMPOSED] Timer states: timer-disabled 0, timer-triggered 1, timer-running 2 (Naga defaultConstants.per:127-129). A one-shot (enable once, test triggered) differs from a heartbeat (test + re-arm). Forgetting the re-arm converts a heartbeat into a one-shot - a classic silent failure.
+5.4 Jumps: skip, loop, dispatch
+up-jump-rule <RuleDelta> skips forward/backward [DIRECT]. Witnessed patterns:
+* Guard-skip: (up-group-size c: RangedGroup < 1) => (up-jump-rule 44/56/12) over eval/targeting blocks (Shadow DC7.per:2057-2064, 2536-2540, 2666-2671). Naga: threat filter skipping 3 (threats.per:8-18); ally-scan loop with jump -2 over players 1-8 (interaction.per:2286-2290).
+* Negative jumps are loops: Shadow DC7.per:9805-9811 (up-get-search-state lt ... up-jump-rule -2) iterates a search set in one pass. Loops amplify per-pass cost - the registry warns to "consider game performance".
+* Computed dispatch: Naga strategies.per:1-10 - if affinity-function-id < 10000, skip the 136-rule table; else (up-get-rule-id affinity-function-id) then (up-jump-rule 135) to land at the return point. Callers set temporary-goal/temporary-goal2 + bookmark, invoke via up-jump-direct, and diff current-affinity before/after (initialization.per:6857-6890). This is a real calling convention built from jumps + goals.
+[INFERRED] Jump deltas are positional, not symbolic: any insertion/deletion between jumper and target silently retargets. There is no assembler or label system in the native language (the lab has an experimental assembler.py - Tier 7, not engine). Treat jump regions as frozen once tuned.
+6. Command contracts (core set)
+Each entry: syntax [DIRECT, registry], reads/writes, preconditions, effects split four ways, completion, failure modes, evidence. Full 24-entry table:
+CommandSyntaxReads / WritesKey failure modesset-goal(set-goal GoalId Value)R:- / W: goal:=constgoal operand in Value writes the ID constant (Ch.4 case); Action-onlyup-modify-goal(up-modify-goal Goal mathOp Val)R: goal/SN/const per prefix / W: goalg:/s: store confusion (Ch.4); c:/ division by zeroup-compare-goal(up-compare-goal Goal cmp Val)R: goal vs const/goal/SNbare name in Val must be const; g:/s: select storegoal / strategic-number(goal G V) / (strategic-number S cmp V)R: goal / SNgoal tests equality only - other comparisons need up-compare-goalup-modify-sn / up-get-fact(up-modify-sn S op V) / (up-get-fact Fact Param Goal)R: SN / any fact / W: SN / goalFact/Action dual in DE (action-only in UP/WK) - version-boundenable-timer / up-timer-status(enable-timer T secs)R:- / W: timermissing re-arm turns heartbeat into one-shot; id range 1-50train / up-train / can-train(train Unit) / (up-train Esc c: Unit)R: availability, escrow / W: queuetrain ignores escrowed stock; needs can-train guardresearch (+escrow)(research T) / (can-research[-with-escrow] T)R: availability, queue idle, escrow / W: queueREGISTRY: use can-research guards "to prevent possible crashes" - documented crash linkup-build / can-build(up-build place esc c: Bldg)R: availability, placement / W: queuecan-build excludes walls/gates - use can-build-wall/gate (registry)set-escrow-% / release-escrow / up-modify-escrowsee §7.1R: stockpiles / W: escrow splitescrowed ≠ spendable; non-escrow commands starve behind escrowup-find-* / up-target-pointsearch + actR: object DB / W: search set, ordersstale search sets; legal in conditions (Naga precedent)chat-local-to-self / up-chat-data-to-self(chat-local-to-self "...")R: goal/SN for data formfacts are NOT goals: g: military-population/game-time are undefined goal refs (removed in audit)up-retreat-now / up-retreat-tono-arg / (up-retreat-to Obj op Unit)R:- / W: ordersunits within 6 of target ignore retreat; explorers need up-reset-scoutsattack-now / acknowledge-tauntno-arg / (acknowledge-taunt P T)R:- / W: attack flag / taunt flagunacknowledged taunts re-fire every passup-log-data(up-log-data Opt Str typeOp Val)R: goal/SN per prefixneeds LOGSYSTEMS=AIScript+VERBOSELOGGING launch flags in DE; mind log volume(load ...)(load "Folder\File")R: filesystem / W: rule table appendmissing target, cycles (validator: load-cycle), depth; inner loads execute mid-file
+[DIRECT] FactId numbers useful for up-get-fact routing: game-time 0, housing-headroom 3, escrow-amount 9, current-age 19, military-population 31 (registry FactId values).
+7. Control systems reconstructed
+7.1 Economy: observation → escrow-aware allocation
+Shadow's economy core, verbatim [DIRECT, Shadow DC7.per:1821-1845]: every pass it snapshots escrow into goals, snapshots gross stockpiles, then derives NET (spendable) amounts:
+(defrule
+	(true)
+=>
+	(up-get-fact escrow-amount food gl-food-escrow)
+	(up-get-fact escrow-amount wood gl-wood-escrow)
+	(up-get-fact escrow-amount gold gl-gold-escrow)
+	(up-get-fact escrow-amount stone gl-stone-escrow)
+	(up-get-fact food-amount 0 TOTAL-FOOD-AMOUNT)
+	...)
+Then: NET-FOOD = food − gl-food-escrow (etc.). Downstream rules branch on NET (what can be spent now) vs TOTAL (what exists). Escrow split is driven by set-escrow-percentage 0-100 + release-escrow; the progression-pause enum (gl-progression-pause 272: PIKES 1 ... CHAINMAIL 6; Shadow DC7.per:1520-1529) sequences tech pauses, each with collect rule (up-modify-escrow c:max N) and fire rule (can-research-with-escrow → up-research + release + pause −1), e.g. Scale Mail at 14309-14324. Castle Age itself goes through escrow: pause −1 + build-item CUP + can-research-with-escrow castle-age → release food+gold → research (14893-14905).
+[COMPOSED] Policy reserve vs physical escrow: Shadow keeps BOTH - goals like gl-food-escrow mirror physical escrow for logic, while percentages enforce it physically. A rule checking food-amount >= X while escrow holds the food will misfire; escrow-aware checks (with-escrow facts or NET goals) are the documented fix. Feudal fires on can-research + villager thresholds (FlushDarkAgeVills 23, 14854-14866) - affordability is necessary but never sufficient: queue-idle, pause state, and build-item gating complete the authority.
+7.2 Production: dial indirection (Naga)
+Writer side [DIRECT, Naga units.per:1336-1351]: desire rules raise ceilings, never issue units - (up-modify-goal train-mangonel c:max 2) under tower/ranged pressure with age/superiority guards. Reader side [DIRECT, units.per:11323-11329]: (unit-type-count-total mangonel-unit g:< train-mangonel) + not-targeting + enough-siege + (up-can-train 0 c: mangonel-unit) => (train mangonel-unit). Escrow variant decrements the dial on spend: (can-train-with-escrow ...) => (up-modify-goal train-mangonel c:-1)(train ...) (escrow.per:635-640).
+[AEGIS-GENERALIZATION] REQUIREMENT (dial ceiling) → FUNDING → AUTHORIZED PRIORITY → FEASIBILITY (up-can-train) → PRODUCTION (train). BWC's capability layer inserts joint max(belief, standing, dial) before this chain - same executor, richer requirement. Ownership: dials written by strategy/threat/capability logic, read only by producer rules; two writers on one dial need max-semantics or last-writer-wins discipline.
+7.3 Progression: cursors, pauses, re-entry
+Shadow: gl-current-build-item enum (RANGES 1 ... MARKET1 41; 1581-1622) + gl-build-progress step numbers (KrushFinishedNumber 23, FinishedNumber 35) + gl-progression-pause form a progression cursor with interrupt (pause ≠ −1 suspends competing spends) and re-entry (pause −1 resumes). BWC regime (R0-R10 + objectives + emergency) is the same pattern at strategic scope: score → commit (persistence) → switch (margin 15 after 90 s) → release (hard invalidation) → emergency preemption.
+7.4 Scouting and threat pipeline
+Naga: per-pass zero → focus-player census (up-get-focus-fact per line) → roll-ups → sn-military-superiority map (temporary-goal2 = my-mpop − target-mpop, threats.per:304-308; tower adjustments 1203-1220; band mapping 1225-1321, e.g. >=28 → 4, −3...5 → 0). Shadow: up-get-threat-data into gl-threat-* goals + villager-count snapshot (17119-17127), guarded by a 14-rule skip when threat is stale/absent (17401-17408), with a town-safe latch (17725-17749).
+7.5 Military response and attack authority
+Naga gates attack start on superiority + mass + age/tech context (militaryMacro.per:730-745: attacking no + sup >= 0 + (sup >= 1 with bodkin/crossbow pending OR target feudal) + (sup >= 2 OR milpop >= 21 OR assistance)), lowers the bar for assisted attacks (746-757: sup >= −1, milpop >= 7), and converses to retreat at sup <= −1/−2 (759-774). Shadow instead raises sn-maximum-town-size to 1000 + gl-attacking YES + TSA timer (16638-16651), retracts with up-retreat-to + NO + disable-timer (16653-16667), and zeroes sn-number-attack-groups while microing through UP groups (17859-17880).
+[COMPOSED] Two valid attack authorities: (a) engine attack-groups via the `attacking` goal + group counts; (b) UP-group micro with groups zeroed and town-size uncapped. Mixing them without precedence (deny vs force ordering) causes attack/retreat oscillation - BWC's deny-application-before-force-application file order plus timer guards exist for exactly this.
+7.6 Research and recovery
+Research = requirement → escrow-aware affordability → authority → command → completion → release. Shadow's pause/fire pairs (§7.1) are the reference implementation; Naga's technologies.per gates Elite/UT behind commitment/gold/pop. Recovery pattern: EXPECTED (standing/requirement) vs OBSERVED (counts) → divergence deficit → correction (raise dial) → restoration → reassessment; BWC capability's deficit = max(belief, standing, dial) − current, floored at 0, is this loop in closed form, with infra-blocked flags (stable/castle/monastery/siege-workshop absence) marking unfillable demand so arbitration stops spending ceiling on it.
+8. Shadow as engineering corpus
+* Monolith discipline: 22,603 lines, zero loads - duplication-free global search works; the cost is merge fragility. Naga's 22-module tree inverts the tradeoff.
+* State enums as documentation: gl-march-type (−1...10), gl-ranged-group-state (FIRING/MARCHING/DEFENDING/SIDLING/MINI-RETREAT/TRACKING/HOME-RETREAT), build-item and pause enums - read the enum before the rules.
+* Turn-phase scheduling (mod-2/5/10) as a timer alternative for sub-minute cadences.
+* TSA + town-size uncapping as attack authority; gl-attacking as the single strategic attack bit with named set/reset sites.
+* Transplant danger: Shadow's escrow snapshot assumes per-pass execution and its jump deltas assume monolithic order - lifting single rules without their guards/timers/enums reproduces the exact failure class in Chapter 10.
+[INFERRED] Shadow has no imperial-age research rule (only comparisons) - consistent with its Vikings-Tiny-Arabia flush/krush scope (header :26-40), not with a general theory of late game. Do not generalize its progression past Castle from this specimen.
+9. Machine-readable semantic model (extract)
+Structured rows for tooling futures (symbol, category, reads, writes, authority, completion, failure, evidence, confidence):
+SymbolCategoryReads→WritesCompletion signalTop failureEvidencetrain-mangonel (goal 203)dial/goalthreat SNs→dial ceilingcount g:< dial falsecompeting writer resets dialDIRECT Nagasn-military-superiorityderived SNmpop diff→band −?..4stable band across passestower skew unadjustedDIRECT Nagagl-progression-pausecursor enumbuild-item→pause idpause −1 + research firedfire rule starved by escrowDIRECT Shadowgl-attacking / attackingauthority bitsup/mass→YES/NOtown-size uncapped + groups setdual authority oscillationDIRECT bothone-minute / ONE-MINUTEheartbeatre-arm rule→triggereddownstream rules fire 1/minmissing re-arm → one-shotDIRECT bothbwc-bel-*belief latchthreat SNs→goal+timestampexpiry releases to 0g:/s: store confusionCOMPOSED BWCbwc-regimeregime cursorscores→regime idcommit/switch/release fireset-goal with goal operandCOMPOSED BWCescrow splitresource partitionpercentages→escrowed stockcan-X-with-escrow truegross-check misfireDIRECT Shadow
+10. Negative knowledge (mandatory)
+* g: vs s: store confusion (CONFIRMED, validator-definite): (up-modify-goal X g:max sn-*) reads goal-store. Always match prefix family to the operand's store; treat any g:+/-/:/* with an sn-* name as guilty until proven otherwise.
+* set-goal with a goal operand (CONFIRMED forensic): (set-goal R best) writes best's ID. Goal-to-goal copy is up-modify-goal g:= only.
+* Facts are not goals (CONFIRMED forensic): g: military-population / g: game-time reference undefined goals. up-get-fact into a scratch goal first, or drop the line.
+* research without can-research guards "to prevent possible crashes" (DIRECT, registry) - the only documented crash link in the contract set; never fire research/train bare.
+* Jump deltas count disabled rules and shift on insertion (DIRECT registry + observed); freeze jump regions after tuning; never jump across #load-if regions.
+* Folder-only zips have no entry point (COMPOSED, incident): root .ai + .per must ship; stale zips referencing removed modules break loads.
+* Registry gaps are not engine gaps (COMPOSED): sn-required-forest-tiles, fire-galley-line, eagle-scout-line, donjon-serjeant-line flag as undefined-* in the validator yet run in stock trees - corroborate with corpus before "fixing".
+* Threat SNs zeroed per pass (DIRECT): reading them as persistent state without a latch is the LOS-loss→zero oscillation; STALE vs EXPIRED must be explicit.
+* Unacknowledged taunts re-fire (DIRECT, acknowledge-taunt); un-released escrow starves non-escrow commands (DIRECT, train).
+[UNCERTAIN (preserved)] Whether an undefined goal symbol in an action hard-crashes DE at load or merely disables the script could not be settled from available evidence - the offending lines were removed rather than trialed. Minimal experiment in Chapter 12 covers it.
+11. Static analysis: what the validator proves
+Package lint over the audited tree: 33 reachable files, 0 errors, 216→213 warnings after fixes, integrity clean (no stale roots/unreachable/duplicate/missing loads). Diagnostic codes that matter most to engineers: bad-set-goal, command-typed-operand-mismatch, undefined-identifier/strategic-number/constant, duplicate-defconst-conflict, defconst-alias-cycle, load-cycle, missing-load-target, duplicate-per-load-target, empty-fact/empty-action, defrule-missing-arrow, load-random-plus-weight-de-behavior (67 codes total).
+[COMPOSED] Parser verdicts needed to pass a load: balanced scopes, resolvable loads, known commands, sane arity. Runtime verdicts need replay/AI-debug: eligibility, timing, authority, resources. A green lint never licensed the belief-latch or regime-commit bugs - both compiled.
+12. Experiment cookbook
+Every unresolved question converts to: HYPOTHESIS → STATIC EVIDENCE → MINIMAL TEST → OBSERVATION → INTERPRETATION → CONFIDENCE → VERSION. Starter set:
+* Undefined-goal-in-action: one rule with (up-log-data 1 "x" g: never-defined-xyz) on a one-minute tick; launch with LOGSYSTEMS=AIScript VERBOSELOGGING CONSTANTLOGGING; observe load vs minute-1 behavior.
+* Store isolation: set goal #N and SN #N to different values via defconst aliasing; read back with g:= vs s:=; log both.
+* Jump accounting: three rules, middle disabled via disable-self after first pass; log which rule a fixed up-jump-rule 2 lands on before/after.
+* Escrow starvation: escrow 95% food, then (train villager) without release; observe queue stall vs (up-train ...) success.
+* Threat volatility: log sn-cavalry each pass during a raid that enters/leaves LOS; confirm zero-reset and latch need.
+13. Adversarial appendix (grumpy-senior notes)
+* "Threat SNs are engine truth" - no: they are Naga-authored census slots on repurposed SN ids, zeroed per pass. Any doc presenting them as engine-provided is wrong.
+* "set-goal copies values" - no: constants only. The regime-3115 incident is the standing counterexample.
+* "More rules = smarter AI" - no: per-pass evaluation cost is real (registry performance warnings on jumps/loops); Shadow spends its budget on skips for a reason.
+* "The validator passing means correct" - no: see Chapter 11. Static ≠ runtime, and the gap has names and line numbers.
+* "Escrow is savings" - no: escrow is a second stockpile with its own accounting; gross-amount checks do not see it, normal commands cannot spend it.
+End of Document 1. Companion Document 2 teaches this material by building three bots and debugging them to life.
