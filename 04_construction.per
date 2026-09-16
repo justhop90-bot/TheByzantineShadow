@@ -9,13 +9,22 @@
 ; Namespace: 01b_byz_constants.per
 ; ============================================================
 
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE -1)
 =>
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
     (set-goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-INACTIVE)
+    (set-goal BYZ-CURRENT-BUILD-ITEM -1)
+    (set-goal BYZ-BUILD-PROGRESS 0)
+    (set-goal BYZ-PROGRESSION-PAUSE 0)
 )
 
+; ------------------------------------------------------------
+; REQUEST -> QUALIFY
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
     (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
@@ -23,7 +32,6 @@
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-REQUESTED)
 )
 
-; Requirements owns qualification.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-REQUESTED)
     (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
@@ -32,7 +40,11 @@
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
 )
 
-; Escrow owns capital commitment.
+; ------------------------------------------------------------
+; QUALIFY -> RESERVE
+; ------------------------------------------------------------
+; Module 10 owns the economic commitment. Construction only observes
+; that the commitment exists.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
@@ -40,7 +52,9 @@
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RESERVED)
 )
 
-; Authority owns the execution grant.
+; ------------------------------------------------------------
+; RESERVE -> AUTHORIZATION
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RESERVED)
     (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-GRANTED)
@@ -48,14 +62,18 @@
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
 )
 
-; Placement becomes the next state only after authority exists.
+; ------------------------------------------------------------
+; AUTHORIZATION -> PLACEMENT
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
 =>
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PLACEMENT)
 )
 
-; Placement owns target validity. Execution owns engine commands.
+; ------------------------------------------------------------
+; PLACEMENT -> EXECUTION
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PLACEMENT)
     (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
@@ -63,6 +81,9 @@
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
 )
 
+; ------------------------------------------------------------
+; EXECUTION -> PENDING
+; ------------------------------------------------------------
 ; Engine-visible pending is an intermediate state, never completion.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
@@ -71,7 +92,9 @@
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
 )
 
-; Verification owns the pending -> observing boundary.
+; ------------------------------------------------------------
+; PENDING -> VERIFYING
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
@@ -79,7 +102,9 @@
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-VERIFYING)
 )
 
-; Only verified world-state evidence establishes completion.
+; ------------------------------------------------------------
+; VERIFYING -> COMPLETE
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-VERIFYING)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
@@ -87,17 +112,24 @@
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
 )
 
-; Completion advances the progression cursor only after verification.
+; ------------------------------------------------------------
+; VERIFIED COMPLETION -> PROGRESSION ADVANCE
+; ------------------------------------------------------------
+; The world-state verifier, not the execution command, authorizes this
+; progression advance.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
 =>
     (up-modify-goal BYZ-BUILD-PROGRESS c:+ 1)
     (set-goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-INACTIVE)
+    (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
     (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
 )
 
-; Execution failure enters recovery rather than disappearing.
+; ------------------------------------------------------------
+; FAILURE -> RECOVERY
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-FAILED)
@@ -120,6 +152,6 @@
 
 ; INVARIANTS:
 ; command != pending != complete
-; construction does not choose strategy, release escrow, resolve
-; placement, grant authority, or independently declare completion.
+; construction does not choose strategy, set escrow policy, release escrow,
+; resolve placement, grant authority, execute commands, or verify completion.
 ; ============================================================
