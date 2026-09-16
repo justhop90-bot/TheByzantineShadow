@@ -110,32 +110,36 @@ jobs:
 
       - name: Rebuild ShadowByzantine runtime from authenticated donor
         run: |
+          git show 1d9f45b3b9ac03adc24103df2b21c84b92a45fb6:'Shadow DC7.per' > /tmp/ShadowCanonical.per
           python3 - <<'PY'
           import hashlib
           import pathlib
           import re
 
-          donor_path = pathlib.Path('ShadowSource.per')
+          donor_path = pathlib.Path('/tmp/ShadowCanonical.per')
           runtime_path = pathlib.Path('ShadowByzantine/ShadowByzantine.per')
-          donor = donor_path.read_text(encoding='utf-8')
+          donor_bytes = donor_path.read_bytes()
+          donor = donor_bytes.decode('utf-8')
 
+          # The authenticated matrix is generated from this exact historical
+          # Git object. Authenticate both its identity and rule count.
           expected_sha256 = 'c6431af3f16597b3de223e65e7b60db6c0b22266c0684915ed435bbb054f55b4'
           normalized = donor.replace('\r\n', '\n').replace('\r', '\n')
           actual_sha256 = hashlib.sha256(normalized.encode('utf-8')).hexdigest()
-          print(f'ShadowSource normalized SHA-256: {actual_sha256}')
+          print(f'authenticated historical donor normalized SHA-256: {actual_sha256}')
           if actual_sha256 != expected_sha256:
-              raise SystemExit(f'authenticated donor normalized hash mismatch: {actual_sha256}')
+              raise SystemExit(f'authenticated historical donor hash mismatch: {actual_sha256}')
 
           def count_rules(text):
               return len(re.findall(r'(?m)^\s*\(defrule\b', text))
 
           donor_rules = count_rules(donor)
           if donor_rules != 1956:
-              raise SystemExit(f'authenticated donor rule-count mismatch: {donor_rules}')
+              raise SystemExit(f'authenticated historical donor rule-count mismatch: {donor_rules}')
 
           adapted = donor.replace('(not(civ-selected viking))', '(not(civ-selected byzantines))')
           if donor.count('(not(civ-selected viking))') != 1:
-              raise SystemExit('expected exactly one Viking civilization gate')
+              raise SystemExit('expected exactly one Viking civilization gate in authenticated donor')
           if adapted.count('(not(civ-selected byzantines))') != 1:
               raise SystemExit('Byzantine civilization gate replacement failed')
 
@@ -147,29 +151,29 @@ jobs:
 
       - name: Static transplant integrity check
         run: |
+          git show 1d9f45b3b9ac03adc24103df2b21c84b92a45fb6:'Shadow DC7.per' > /tmp/ShadowCanonical.per
           python3 - <<'PY'
-          import hashlib
           import pathlib
           import re
 
-          donor = pathlib.Path('ShadowSource.per').read_text(encoding='utf-8')
+          donor = pathlib.Path('/tmp/ShadowCanonical.per').read_text(encoding='utf-8')
           runtime = pathlib.Path('ShadowByzantine/ShadowByzantine.per').read_text(encoding='utf-8')
           normalized_donor = donor.replace('\r\n', '\n').replace('\r', '\n')
           normalized_runtime = runtime.replace('\r\n', '\n').replace('\r', '\n')
           expected = normalized_donor.replace('(not(civ-selected viking))', '(not(civ-selected byzantines))')
           if normalized_runtime != expected:
-              raise SystemExit('runtime is not an exact donor transplant plus the authorized Byzantine civilization-gate substitution')
+              raise SystemExit('runtime is not an exact authenticated historical donor transplant plus the authorized Byzantine civilization-gate substitution')
           if len(re.findall(r'(?m)^\s*\(defrule\b', runtime)) != 1956:
               raise SystemExit('runtime rule count is not 1956')
           if '(load ' in runtime:
               raise SystemExit('runtime contains nested load')
-          print('PASS: 1956 rules; exact normalized donor identity except authorized civ gate; no nested load')
+          print('PASS: 1956 rules; exact authenticated historical donor identity except authorized civ gate; no nested load')
           PY
 
       - name: Commit generated forensic artifacts and rebuilt runtime
         run: |
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+users.noreply.github.com'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add ShadowByzantine.per ShadowByzantine/ShadowByzantine.per \
                   docs/forensics/SHADOW_SOURCE_ORDER_MATRIX_v0.3.md \
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_AND_ESCROW_v0.1.md \
@@ -181,5 +185,5 @@ jobs:
             echo 'Runtime and forensic artifacts unchanged.'
             exit 0
           fi
-          git commit -m 'transplant: rebuild ShadowByzantine from authenticated donor'
+          git commit -m 'transplant: rebuild ShadowByzantine from authenticated historical donor'
           git push
