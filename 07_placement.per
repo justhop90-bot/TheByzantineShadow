@@ -1,0 +1,107 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 07P -- PLACEMENT
+; ============================================================
+;
+; Authority: target selection, placement-mode state, and placement
+; validation handoff.
+;
+; This module deliberately does not choose strategic objectives,
+; grant construction authority, release escrow, or declare completion.
+; Geometry and retry thresholds remain policy-owned.
+; ============================================================
+
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
+(defrule
+    (goal BYZ-PLACEMENT-STATE -1)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-NONE)
+)
+
+; ------------------------------------------------------------
+; AUTHORIZED CONSTRUCTION ENTERS PLACEMENT
+; ------------------------------------------------------------
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+=>
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-SEARCHING)
+)
+
+; ------------------------------------------------------------
+; NORMAL PLACEMENT
+; ------------------------------------------------------------
+; Normal placement can become executable once the target subsystem has
+; established a valid ordinary-placement target. No geometry is invented.
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+    (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
+=>
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
+)
+
+; ------------------------------------------------------------
+; POINT TARGET HANDOFF
+; ------------------------------------------------------------
+; Upstream policy selects point mode. Search/point extraction belongs to
+; this module, while exact distance/zone/failure values remain external.
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-POINT)
+    (goal BYZ-TARGET-STATE BYZ-TARGET-NONE)
+=>
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-SEARCHING)
+)
+
+; A point candidate is considered ready only after target resolution.
+(defrule
+    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-POINT)
+    (goal BYZ-TARGET-STATE BYZ-TARGET-POINT)
+=>
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
+)
+
+; ------------------------------------------------------------
+; CONTROLLED TARGET HANDOFF
+; ------------------------------------------------------------
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-CONTROL)
+    (goal BYZ-TARGET-STATE BYZ-TARGET-CONTROL)
+=>
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
+)
+
+; ------------------------------------------------------------
+; EXECUTION HANDOFF
+; ------------------------------------------------------------
+; Construction consumes target validity. Placement never issues build.
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PLACEMENT)
+    (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
+=>
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
+)
+
+; ------------------------------------------------------------
+; INVALIDATION
+; ------------------------------------------------------------
+; A downstream observer may invalidate a previously prepared target.
+(defrule
+    (goal BYZ-TARGET-STATE BYZ-TARGET-INVALID)
+=>
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-SEARCHING)
+)
+
+; INVARIANTS:
+; placement != strategy
+; placement != escrow
+; placement != authority
+; placement != execution
+; placement != completion
+; geometry/retry/builder counts remain unassigned policy.
+; ============================================================
