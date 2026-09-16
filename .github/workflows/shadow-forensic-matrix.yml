@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'tools/forensics_shadow_source_matrix.py'
+      - 'tools/forensics_shadow_cfg_escrow.py'
       - '.github/workflows/shadow-forensic-matrix.yml'
       - 'Shadow DC7.per'
   workflow_dispatch:
@@ -20,17 +21,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate matrix from historical Git object
+      - name: Generate source-order matrix
         run: python3 tools/forensics_shadow_source_matrix.py
 
-      - name: Commit generated forensic artifact
+      - name: Generate live CFG and escrow path trace
+        run: python3 tools/forensics_shadow_cfg_escrow.py
+
+      - name: Commit generated forensic artifacts
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/forensics/SHADOW_SOURCE_ORDER_MATRIX_v0.3.md
+          git add docs/forensics/SHADOW_SOURCE_ORDER_MATRIX_v0.3.md \
+                  docs/forensics/SHADOW_LIVE_CONTROL_FLOW_AND_ESCROW_v0.1.md \
+                  docs/forensics/SHADOW_LIVE_CONTROL_FLOW_v0.1.svg
           if git diff --cached --quiet; then
-            echo 'Matrix unchanged.'
+            echo 'Forensic artifacts unchanged.'
             exit 0
           fi
-          git commit -m 'forensics: generate full Shadow source-order matrix'
+          git commit -m 'forensics: generate Shadow live CFG and escrow trace'
           git push
