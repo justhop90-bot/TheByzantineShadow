@@ -1,6 +1,6 @@
 # AEGIS + Shadow Banker Architecture — Final Pass v0.1
 
-**Status:** Architecture baseline; implementation not yet authorized by this document.
+**Status:** Architecture baseline; implementation is being qualified incrementally.
 
 **Purpose:** Preserve Shadow's proven economic machinery while adding an AEGIS cognitive/arbitration layer and Byzantine-specific capability economics. This document is deliberately conservative: AEGIS must improve Shadow where evidence supports improvement, not replace functioning Shadow mechanisms for architectural cleanliness.
 
@@ -185,16 +185,25 @@ Canonical example:
 
 The exact technology identifier must still be separately qualified against the current AIRef/AI Encyclopedia corpus before implementation.
 
-## 7. Goal namespace correction
+## 7. Goal namespace and comparison semantics
 
-Goals are integer state storage, not declared variables. The AI Encyclopedia documents a large goal space in DE and a much smaller extended-goal space under older engines/UserPatch. The critical constraint for UserPatch cost-data is narrower: cost-data consumes four consecutive extended goals, and the documented valid starting range is 41–508.
+Goals are integer state storage, not declared variables. The AI Encyclopedia documents a large goal space in DE and a smaller 1–512 goal space for UserPatch. The critical constraint for UserPatch cost-data is narrower: cost-data consumes four consecutive extended goals, and the documented valid starting range is 41–508.
+
+The ordinary `goal` fact is an **equality check**:
+
+```lisp
+(goal GoalId Value)
+```
+
+It must not be used as though it accepted `<`, `>=`, or other comparison operators. Comparisons involving goal values must use `up-compare-goal`.
 
 Therefore the AEGIS registry must distinguish:
 
 1. general logical goal availability;
 2. extended-goal availability;
 3. four-goal contiguous cost-data blocks;
-4. other commands that consume extended goal pairs/quads.
+4. other commands that consume extended goal pairs/quads;
+5. equality tests versus comparative tests.
 
 A goal number being unused does **not** by itself make it safe for cost-data.
 
@@ -245,17 +254,12 @@ It must not leave stale cost data from the previous transaction available to cap
 
 ## 10. Capital module correction
 
-The current capital architecture is correct in ownership, but the arithmetic floor operation identified in the prior audit must be treated as a definite implementation defect.
+The current capital implementation has now been corrected for two engine-semantics defects identified during qualification:
 
-The liquid/discretionary calculations currently use `c:min 0`. Under the intended floor-at-zero semantics, the operation must be `c:max 0`:
+1. Liquid/discretionary nonnegative floors use `c:max 0`, because UserPatch's later/current semantics make `c:max` the greater-of-two operation.
+2. Comparative feasibility tests use `up-compare-goal`; the ordinary `(goal GoalId Value)` fact is equality-only.
 
-```lisp
-(up-modify-goal AEGIS-LIQUID-FOOD c:max 0)
-```
-
-and equivalently for all four liquid resources and all four discretionary resources.
-
-The conceptual model remains:
+The implemented accounting remains:
 
 ```text
 GROSS
@@ -269,7 +273,7 @@ LIQUID
 
 with explicit nonnegative flooring.
 
-This is a code defect to correct during implementation, not a reason to redesign the accounting model.
+Capital remains observational/accounting only. It does not construct cost data, modify escrow, grant authority, execute, or verify transactions.
 
 ## 11. Byzantine capability economics
 
@@ -390,6 +394,7 @@ Before touching `.per`:
 - Shadow substrate preservation: DIRECT / CONFIRMED from retained corpus.
 - UserPatch cost-data four-goal order: DIRECT / CONFIRMED.
 - `up-add-research-cost` requires technology id plus operation/count: DIRECT / CONFIRMED.
+- `(goal GoalId Value)` equality semantics and `up-compare-goal` for comparative goal tests: DIRECT / CONFIRMED.
 - AEGIS capability arbitration layer: AEGIS-GENERALIZATION.
 - Byzantine capability economics: AEGIS-GENERALIZATION grounded in documented civilization economics; implementation details remain to be qualified.
-- Capital `c:min 0` defect: DIRECT code audit finding.
+- Capital `c:min 0` and comparative `(goal ... < ...)` defects: DIRECT code/semantic audit findings; corrected in `09_capital.per`.
