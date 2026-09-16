@@ -1,847 +1,2567 @@
-AoE2DE AI Engineering Knowledge System
-Document 2 — Professional .per Engineering Apprenticeship (re-engineered revision)
-Companion: Document 1 (Forensic Engineering Reference). This document teaches how
-experienced .per engineers think, organize, read, write, debug, extend, and architect.
-It assumes no prior .per knowledge and ends at independent engineering competence.
+AoE2DE AI ENGINEERING KNOWLEDGE SYSTEM
+DOCUMENT 2 — THE .PER ENGINEER'S APPRENTICESHIP
+A zero-to-expert guide to reading, writing, debugging, designing, and engineering native AoE2DE AI
+
+Companion to Document 1 — Forensic Engineering Reference
+
+PURPOSE
+-------
+This is a book, not a command dictionary.
+
+It is written for the person who opens an unfamiliar .per file and sees a wall of parentheses, names, numbers, jumps, timers, loads, and rules — and wants to understand what the author was trying to make the computer do.
+
+The goal is not merely that the reader can write valid .per syntax. The goal is that, after working through this book, the reader can enter an unfamiliar AI, find its architecture, understand its state, follow information through several files, identify who owns important decisions, recognize the patterns experienced authors use, modify the system without breaking hidden contracts, and design new systems of their own.
+
+The reader should eventually be able to look at a mature bot and think in two directions at once:
+
+    What does this line literally do?
+
+and:
+
+    Why does a competent engineer need this mechanism here?
+
+That second question is the dividing line between fluency and engineering.
+
+STYLE AND PEDAGOGICAL INTENT
+----------------------------
+The explanatory character of this book is deliberately influenced by two traditions of technical writing: the concrete, patient, mechanism-first teaching associated with Charles Petzold, and the investigative, systems-oriented narrative curiosity associated with James Gleick. This is an influence on exposition, not an imitation of either author's prose.
+
+The first influence contributes a habit of making invisible machinery visible: start with the thing the reader can see, take it apart carefully, name each moving piece, and show how the pieces cooperate. The second contributes a habit of treating difficult systems as things worth investigating: follow clues, notice strange behavior, compare competing explanations, and let the reader discover why an apparently peculiar mechanism exists.
+
+The result should feel like an experienced engineer sitting beside the reader, opening a real AI, and saying: "Look here. This line matters. Now follow it. Who writes this value? Who reads it? What happens if it disappears? What happens if another module writes it?" The book should never hide technical depth in order to become approachable. It should make the depth approachable.
+
+A note on evidence: this book distinguishes what the engine establishes, what the corpus demonstrates, what can be composed from multiple observations, and what is an engineering recommendation. The evidence vocabulary is inherited from Document 1:
+
+CONFIRMED — directly established by authoritative engine or registry evidence.
+DIRECT — directly observed in a real source or runtime artifact.
+COMPOSED — supported by multiple independently observed facts whose relationship is explicit.
+INFERRED — a reasoned interpretation not directly demonstrated.
+AEGIS-GENERALIZATION — an engineering abstraction derived from observed systems.
+UNCERTAIN — plausible but not adequately established.
+
+A beautiful explanation is still not evidence. A compiler accepting a rule is still not proof that the rule produces the intended world state. A pattern appearing in Naga is not automatically an engine law. The reader is expected to learn both how to build systems and how to know what has actually been proved.
 
 TABLE OF CONTENTS
- 1. Graduate profile: what competence means here
- 2. The three knowledges: language, idiom, engineering
- 3. How to work this course (verification discipline, evidence labels, prose contract)
- 4. Pattern language I: time and state (one-shot, heartbeat, latch, hysteresis, cooldown, re-entry)
- 5. Pattern language II: control flow (guard-skip, loop, dispatch, computed jumps, preprocessor specialization)
- 6. Pattern language III: production and resources (dials, producer/consumer, escrow, arbitration, deficit correction)
- 7. Pattern language IV: observation to effect (census, classification, policy, authorization, verification)
- 8. Modularity: why competent bots are modular, and what module boundaries do NOT give you
- 9. Architecture atlas: Stock, Naga, Shadow as design philosophies
- 10. Style as engineering evidence: reading authorial intent from code shape
- 11. What the 2296-symbol corpus actually contains (mined findings)
- 12. State as a system: lifecycles, ownership, invalidation
- 13. Policy versus mechanism
- 14. The failure of local reasoning (eleven cases)
- 15. Engineering mysteries (forensic puzzles with durable lessons)
- 16. Forensic reading progression: ten phases on unfamiliar code
- 17. Historical humility: why ugly code may be load-bearing
- 18. Bot threads: fluency, systems, engineering (practice spine)
- 19. Designing from a blank project
- 20. Design vocabulary
- 21. Intuition drills: see-this-ask-that
- 22. Graduation: independent engineering inside an unfamiliar AI
- 23. Final standard
-
-================================================================
-1. GRADUATE PROFILE: WHAT COMPETENCE MEANS HERE
-================================================================
-A graduate works without a tutorial per mechanism. Concretely, and without
-exception-by-omission, the graduate can: write idiomatic native .per; separate
-facts, actions, goals, strategic numbers, timers, constants, engine state, and
-world state in both reading and writing; recognize mature-AI control structures
-on sight and state why each exists; distinguish language mechanism from
-architectural convention; read large imperfect legacy code without losing the
-thread in local syntax; reconstruct an unfamiliar AI's architecture from its
-root and module graph; infer a module's role from its state and consumers;
-name the initialization, maintenance, policy, execution, telemetry,
-arbitration, and recovery layers in any competent bot; trace information from
-observation to world effect across files; identify ownership and competing
-writers; explain how production, economy, construction, military, technology,
-scouting, and strategy subsystems interact; draw coherent module boundaries;
-choose state representations with explicit lifecycles; compose independently
-developed subsystems without letting shared state run uncontrolled; diagnose
-failures that cross module boundaries; modify an established AI without
-violating hidden assumptions; construct new subsystems from established
-patterns; and reason about whole-bot behavior rather than single rules.
-Syntax is the foundation. It is not the destination. Every chapter below
-serves the profile above; anything that does not serve it was cut.
-
-================================================================
-2. THE THREE KNOWLEDGES: LANGUAGE, IDIOM, ENGINEERING
-================================================================
-For every construct the course teaches three layers, and names which layer is
-being taught, because conflating them is the root of most confident error.
-
-Language knowledge: what the engine accepts. Operands, stores, parser
-behavior, the command's literal effect. Example: (set-goal R V) writes the
-constant V into goal R; it is Action-only. This layer comes from the registry
-and the validator. It is necessary and nowhere near sufficient.
-
-Idiomatic knowledge: how competent authors normally use the construct. The
-recurring forms, naming, grouping, guarding, sequencing. Example: desire rules
-raise train-* dials with c:max and never lower them; exactly one producer
-family reads each dial. This layer comes from the corpus (Naga units.per,
-Stock producers, Shadow pause/fire pairs). It tells you what "normal" looks
-like, so abnormal stands out.
-
-Engineering knowledge: why the pattern emerged — the engine limitation,
-control requirement, performance pressure, or architectural need behind it;
-when to use it and when not to; what assumptions it smuggles in; what breaks
-when they fail. Example: dials exist because desire changes faster than
-feasibility (threats spike in a pass; queues clear over minutes), so coupling
-them directly would stampede production. This layer is the course's real
-subject. A student who writes a rule has language. A student who reaches for
-a dial, names its writer and reader, and can predict the failure when a second
-writer appears, has engineering.
-
-Each pattern entry in Chapters 4–7 follows the same spine: problem →
-pressure → pattern → implementation → observed corpus usage → invariant →
-failure mode → recovery → design tradeoff. Read that spine as a contract: if
-you adopt the pattern, you adopt its invariant and its failure modes with it.
-
-================================================================
-3. HOW TO WORK THIS COURSE
-================================================================
-Verification discipline: an unverified rule is a rumor. Every exercise ends
-with an observation procedure (log line, count change, replay check) that
-distinguishes working from believed-working. The instrumentation kit is fixed
-throughout: chat-local-to-self as a local marker, up-chat-data-to-self with
-%d and the prefix matched to the store (g: for goals, s: for SNs — mismatch
-is the silent-wrong-value class of Document 1 §4), up-log-data under the
-LOGSYSTEMS=AIScript VERBOSELOGGING CONSTANTLOGGING launch flags, one-minute
-state dumps, and the package validator after every structural edit.
-
-Evidence discipline: claims carry CONFIRMED / DIRECT / COMPOSED / INFERRED /
-AEGIS-GENERALIZATION / UNCERTAIN exactly as in Document 1. A pattern observed
-in Naga is an observed pattern, not an engine requirement; a pattern seen
-independently in Stock, Naga, and Shadow is stronger; a pattern derivable
-from engine semantics is stronger still. Recommendations without direct
-observation are labeled engineering recommendations. Convention is never
-presented as law.
-
-Prose contract: precise technical exposition, causal explanations,
-comparative analysis, counterexamples, failure analysis. No tutorial filler,
-no motivational language, no "now let's try this" transitions, no jargon
-without definition, no toy example presented as a mature system. Narrative
-only where it clarifies, diagrams where they reveal structure, code where
-code is the evidence, tables where relations outgrow prose.
-
-================================================================
-4. PATTERN LANGUAGE I: TIME AND STATE
-================================================================
-4.1 One-shot initialization. Problem: boot state (timers, SN defaults, mode
-goals) must be established exactly once. Pressure: per-pass re-execution
-would reset tuning and re-fire enables. Pattern: (true) => (...,
-(disable-self)). Corpus: ~370 one-shot inits in Stock (boot at AI (HD
-version).per:5040–5132 enabling civ-explore/attack/spread-military timers and
-SN defaults); ~199 in Shadow (defense-state zeroing at Shadow DC7.per:
-1957–1978). Invariant: one-shots run before first maintenance use; nothing
-downstream may assume they re-run. Failure: a maintenance rule depending on
-re-initialization rots after first pass. Tradeoff: disable-self takes effect
-next pass and disabled rules still count for jump deltas (registry) —
-one-shots inside jump regions shift landings; freeze tuned regions.
-
-4.2 Heartbeat/timer loops. Problem: periodic reassessment without per-pass
-cost. Pressure: 60-second strategy cadence vs per-pass evaluation budget.
-Pattern: enable once at boot, gate rules on (timer-triggered T), re-arm in
-the firing rule (self-perpetuating) or by a dedicated re-arm rule testing
-(up-timer-status T != timer-running) as Shadow does for ONE-MINUTE/30SEC/
-TWO-MINUTE/THREE-MINUTE (Shadow DC7.per:22541–22576); Naga enables seven
-timers at boot including one-minute=7 for 60s (initialization.per:505–517).
-Invariant: every heartbeat names its re-armer. Failure: missing re-arm
-degrades a heartbeat to a one-shot — silent, and the classic mystery ("it
-worked once, then never again"). Recovery: audit enable sites per timer id;
-Stock's attack-timer re-arm at multiple sites (e.g. 150s naval commit,
-60s retreat hold, 3s reset probe) shows intentional multi-rate use of one id.
-
-4.3 State latching (SEEN→CURRENT→STALE→EXPIRED). Problem: volatile inputs
-(Naga zeroes threat SNs every pass, threats.per:412–431) make absence of
-sighting indistinguishable from absence of threat. Pressure: LOS flicker
-would become production flicker. Pattern: on SN>0 copy to goal plus
-game-time stamp (up-get-fact game-time 0 seen-X); retain while fresh;
-release after silence threshold. Invariant: latch values must equal the SN
-at sighting time — verify with the s:/g: prefix check (Document 1 §4
-incident: g:max on an sn-* name reads the unrelated goal cell). Failure:
-latched garbage poisons every downstream layer while compiling clean.
-Recovery: expiry rules per class; standing minima (Chapter 6) survive expiry.
-
-4.4 Hysteresis. Problem: single-threshold guards flap (enter/exit same
-boundary under noise). Pressure: superiority oscillates 0/1 at contact.
-Pattern: enter low, exit high (enter hold at sup<1, release at sup≥2;
-enter harassed at ≥2 enemies in town, exit at 0). Invariant: the gap exceeds
-observed noise amplitude. Failure: coincident thresholds produce
-attack/retreat oscillation indistinguishable from authority bugs — check
-thresholds before redesigning authority.
-
-4.5 Cooldowns and delayed transitions. Problem: re-entry must wait out
-transients (retreat dust, queue drain). Pattern: enable-timer on exit,
-guard re-entry on (up-timer-status T != timer-running). Stock: retreat holds
-attack-timer 60 then re-probes at 3s after reset clears (34440–34450 →
-34583–34596). Invariant: cooldown length covers the transient it guards.
-Failure: too short = re-entry into the same emergency; too long = passivity
-misread as strategic patience.
-
-4.6 Interruption and resumption (re-entry). Problem: durable activities
-(attack, save-up, tech pause) meet emergencies mid-course. Pattern: pause
-execution, preserve authorization, resume with re-checked guards — never
-resume a stale order. Shadow's pause enum (pause ≠ −1 suspends, −1 resumes,
-§7.1 corpus) and the retreat-coherence shape (groups-zero + retreat orders
-while attack authorization stays set) are the two canonical forms.
-Invariant: resume re-evaluates guards. Failure: canceling authorization
-instead of pausing forces full stand-down plus slow re-authorization (the
-passivity ratchet); resuming obsolete objectives feeds units into lost
-fights. Recovery: edge latches + timer-paced refire.
-
-================================================================
-5. PATTERN LANGUAGE II: CONTROL FLOW
-================================================================
-5.1 Guard-skip (forward jump). Problem: deep eval blocks cost passes when
-irrelevant. Pattern: test cheap absence, (up-jump-rule N) over the block.
-Corpus: Shadow skips 44/56/12-rule targeting blocks when RangedGroup is
-empty (2057–2064, 2536–2540, 2666–2671); Naga threat filter skips 3
-(threats.per:8–18); Stock skips 2 without siege infrastructure
-(5321–5326). Invariant: the skipped region's preconditions are exactly the
-negation of the guard. Failure: insertions between jumper and target
-silently retarget — freeze tuned regions; never jump across #load-if
-regions (registry warning verbatim for up-jump-rule and up-jump-dynamic).
-
-5.2 Search loops (negative jump). Problem: iterate a found set within one
-pass. Pattern: index goal + (up-jump-rule -N) back to the scan head, as in
-Shadow's search-state loop (9805–9811) and Naga's ally scan over players
-1–8 (interaction.per:2286–2290, jump −2 with focus increment). Invariant:
-monotonic progress toward a bound (index < 8) or the loop is infinite and
-the pass never ends — a genuine freeze class. Failure/recovery: always bound
-loops by counts; test with empty sets (zero iterations must fall through).
-
-5.3 Computed dispatch. Problem: one entry point, many behaviors, no
-subroutines in the language. Pattern: bookmark + jump-direct. Naga's
-affinity dispatcher (strategies.per:1–10): if affinity-function-id < 10000
-skip the 136-rule table, else record (up-get-rule-id) and jump 135 to the
-return; callers set candidates, invoke via up-jump-direct, diff
-current-affinity before/after (initialization.per:6857–6890). Invariant:
-table length frozen; bookmark protocol documented at call sites. Failure:
-table edits without delta updates misroute every dispatch. This is the
-closest native .per comes to a calling convention — recognize it on sight.
-
-5.4 Preprocessor specialization. Problem: one codebase, many maps/modes.
-Pattern: #load-if-defined blocks selecting constants and rule variants
-(Shadow TINY-MAP scout HP at 322–328; pocket/flank scouting at 435–443;
-Naga's 4-deep map exclusion nest at buildings.per:232–235 with #else on the
-outermost). Invariant: every #load-if has its #end-if in the same file and
-jump regions avoid conditional spans. Failure: duplicate-preprocessor-else,
-nesting-depth violations (validator codes exist because authors hit them).
-
-================================================================
-6. PATTERN LANGUAGE III: PRODUCTION AND RESOURCES
-================================================================
-6.1 Demand/executor separation via dials. Problem: desire changes faster
-than feasibility (threats spike per pass; queues clear over minutes).
-Pattern: desire rules raise goal ceilings with c:max/g:max and never lower
-them; producer rules test (count g:< dial) + feasibility guards
-(up-can-train/can-train) then issue (train/up-train). Corpus: Naga
-mangonel — writer at units.per:1336–1351 ((up-modify-goal train-mangonel
-c:max 2) under tower/ranged pressure with age/superiority guards), readers
-at units.per:11323–11329 (count g:< dial + not-targeting + enough-siege +
-up-can-train → train), escrow spend decrements the dial
-(escrow.per:635–640). Stock's contrasting choice: direct (can-train X) =>
-(train X) with long enemy-state guards (villager at 19399–19407, spearman
-at 28117–28131) — no dial layer, steeper guards instead. Invariant: dials
-are raised-only by policy families and read-only by producers; any lowering
-needs an owner (expiry rule). Failure: second writer lowering = ownership
-fight; dial without reader = desire without executor; escrow spend without
-decrement = dial stuck high. Tradeoff: dials add a frame of latency and a
-naming/ownership burden in exchange for decoupling fast desire from slow
-feasibility — worth it past a handful of producers.
-
-6.2 Producer/consumer chains (construction). Same separation for buildings:
-Naga writes construct-mill ceilings (buildings.per:3071–3075) and executes
-via placement data + sn tuning + (up-build place-control 0 c:
-food-placement-camp) with (disable-self) + jump past the chain
-(3076–3094); helpers in buildingsFunctions.per read the same dials
-(g:max). Invariant: placement/affordability/queue checks stay with the
-executor, never the desire rule. Failure: desire rules issuing builds
-directly bypass queue discipline and double-place.
-
-6.3 Reservation and escrow. Problem: lump sums (ages, techs, TCs) must
-survive contact with per-pass spenders. Pattern: divert income
-(set-escrow-percentage), accumulate (up-modify-escrow c:max N under a pause
-id), fire on escrow-aware feasibility (can-research-with-escrow), release
-and clear. Corpus: Shadow pause/fire pairs (Scale Mail at 14309–14324;
-Castle via escrow with CUP gate at 14893–14905); Stock TC save/spend
-(escrow-purpose-goal town-center at 5687–5717) and Imperial at 18282–18293.
-Shadow additionally mirrors physical escrow into goals and reasons on NET =
-gross − escrowed (1821–1845). Invariant: every escrowed resource has a
-named purpose and a release path; gross-amount checks are blind to escrow
-(use with-escrow facts or NET goals). Failure: un-released escrow starves
-normal commands (train cannot see escrowed stock); pause never cleared
-(−1 discipline); trash rules eating savings for lack of escrow guards.
-Registry: research without can-research guards risks "possible crashes" —
-guard every research/train rule.
-
-6.4 Priority arbitration under scarcity. Problem: independent lines each
-authorize past what the economy sustains. Pattern: sum-of-deficits vs a
-ceiling from existing funding bands, enforced in fixed cost order on
-non-mandatory lines only; mandatory counters immune. Invariant: arbitration
-reads final (post-suppression) deficits and never touches believed-threat
-lines. Failure: ceiling computed pre-suppression (double counting);
-blocked-by-infrastructure demand consuming ceiling (subtract flagged lines
-first — stable/castle/monastery/workshop absence marks unfillable demand).
-
-6.5 Deficit correction and watchdogs. Problem: open-loop requests rot
-(queues stall, placements fail). Pattern: deficit = max(desire) − current
-floored at 0, recomputed per tick; persistence beyond N ticks logs UNMET
-and switches producer or flags infrastructure gap. Stock's reset probe
-(attack-timer 3 after reset clears) is the same shape at military scope.
-Invariant: completion observed in world state, never inferred from
-issuance. Failure: retrying a structurally blocked producer forever.
-
-================================================================
-7. PATTERN LANGUAGE IV: OBSERVATION TO EFFECT
-================================================================
-7.1 Census/aggregation. Problem: decisions need counts, engine gives
-objects. Pattern: zero accumulators per pass, per-line focus queries,
-roll-ups. Naga threats.per:412–431 zeroing; camel/knight lines into
-sn-camels/sn-cavalry via up-get-focus-fact + up-modify-sn g:+ temporary-goal
-(463–489); roll-ups sn-ranged s:+ sn-archers/skirms, sn-monksiege s:+
-sn-monks/siege (1085–1094). Shadow: up-get-threat-data into gl-threat-*
-plus villager snapshot (17119–17127), guarded by a 14-rule skip when stale
-(17401–17408). Invariant: census precedes policy in source order every
-pass; accumulators never persist. Failure: reading accumulators as memory
-(the LOS-loss→zero oscillation); policy placed before census reads last
-pass's world.
-
-7.2 Classification pipelines. Threat lines → classes (cav/arch/inf/siege/
-monk) → per-class requirement. Naga's sn-ranged folding (archers + skirms
-+ gunpowder + cavalry-archers) shows classification is a judgment (what
-counts as "ranged mass"), not a measurement. Invariant: the folding rule
-is documented where the class is consumed, or the next author refolds
-differently and double-counts.
-
-7.3 Policy-to-dial translation. Joint requirement = max(belief, standing,
-dial): beliefs release on expiry, standing minima persist (counter-fulfilled
-≠ army-fulfilled), dials carry strategy intent. Funding gates suppress only
-discretionary top-up, never mandatory counters. Invariant: suppression
-rules run after joint computation and before arbitration reads deficits.
-
-7.4 Authorization and attack state machines. Two valid authorities: engine
-attack-groups via the attacking bit + group counts (Naga: start bands at
-militaryMacro.per:730–745, assisted bar 746–757, retreat converse 759–774),
-or UP-group micro with groups zeroed and town-size uncapped (Shadow:
-gl-attacking + 1000 + TSA at 16638–16651, symmetric retract at
-16653–16667). Stock: attack-goal 0/1/6 staging with attack-timer pacing and
-attack-now commit (36340–36358), retreat-now-goal + reset discipline for
-recovery (34440–34450 → 34583–34596). Invariant: exactly one authority
-owns start/stop per force; deny precedes force in file order with timer
-guards. Failure: dual authorities without precedence oscillate; canceling
-authorization on retreat causes stand-down + slow re-auth.
-
-7.5 Verification and reassessment. Every chain ends in world observation:
-counts changed, building exists, superiority recomputed, gap reassessed.
-Shadow's town-safe latch (17725–17749) and Stock's reset probe are
-verification gates before resuming offense. Invariant: no chain is closed
-by issuance. Failure: assumed completion (the "requested ≠ committed ≠
-executed" collapse of Document 1).
-
-================================================================
-8. MODULARITY: WHY COMPETENT BOTS ARE MODULAR
-================================================================
-Modularity answers cognitive complexity, reuse, separation of concerns,
-initialization dependencies, state ownership, source-order management,
-maintainability, debugging, experimental replacement, domain specialization,
-policy/mechanism separation, control-flow containment, multi-author
-evolution. Naga's 22-module tree (initialization, threats, trade,
-militaryMacro/Micro, escrow, technologies, interaction, buildings,
-builders, units, gatherers…) lets an engineer open one domain without
-loading the whole bot into working memory; Stock's 38,217-line monolith
-pays for global searchability with merge fragility; Shadow's 22,603-line
-monolith with enum discipline sits between.
-
-The subtle point, drilled until reflexive: a module boundary is a
-source-organization boundary, NOT a state-isolation boundary. Files stay
-coupled through goals (train-*/construct-*/assistance/attacking), SNs
-(threat slots, superiority), timers (one-minute, retreat-timer),
-engine/queue state, and source-order assumptions (census before policy,
-deny before force, inner loads mid-file at initialization.per:634–635/6773
-and gatherers.per:3730). File separation does not imply behavioral
-independence. Consequences the course rehearses: moving one rule can
-retarget jumps pages away; adding a writer to a foreign dial breaks a
-distant producer; loading a module without its initializer's timers
-silently converts heartbeats to dead rules. Modularity contains reading
-and writing; only ownership discipline contains behavior.
-
-================================================================
-9. ARCHITECTURE ATLAS
-================================================================
-MONOLITHIC-CENTRALIZED [DIRECT: line/byte/load/rule counts measured]
-(Stock AI (HD version).per: 38,217 lines, 1.24 MB,
-3 loads, 4230 defconsts, 2447 rules). Root carries boot + all logic;
-strategy-goal/unit-goal/enemy-goal/control-goal enums steer; producers fire
-directly on game state with long guard conjunctions; escrow via
-escrow-purpose-goal save/spend pairs; attack-goal 0/1/6 staging with timer
-pacing; 79 jumps for skips/loops; 370 one-shot inits then per-tick
-maintenance (threat-data/victory-data/navy-count recompute). Tradeoffs:
-single search space, no load graph to break, brutal merge conflicts,
-conventions carried entirely by naming + comments (2.6% comment lines,
-numbered rules, terse closers).
-
-HIGHLY MODULAR-DIAL-DRIVEN [DIRECT: 32-line root reproduced; module roles
-from load list and rule contents] (Naga: 32-line root, ~26 modules). Desire and
-feasibility separated by goal dials; census aggregated before policy;
-affinity dispatch as computed control flow; assistance ally-scan loop;
-helpers as libraries (miscFunctions/buildingsFunctions/ugp/strategies
-loaded mid-stream). Tradeoffs: readable domains, explicit contracts,
-load-order and jump-fragility overhead, indirection latency.
-
-MONOLITH-DISCIPLINED [DIRECT: zero (load ...) lines verified; enum/macro
-structure quoted] (Shadow DC7.per: 22,603 lines, zero loads). Enums for
-march/group/build-item/pause states; per-pass escrow snapshot + NET
-reasoning; turn-phase scheduling alongside timers; TSA + town-size attack
-authority; ~199 one-shot inits; guard-skip jumps as performance budget.
-Tradeoffs: enum readability inside one file, transplantation danger (rules
-lifted without guards/timers/enums fail exactly as Chapter 14 predicts).
-
-Reading question for each: what complexity is this architecture containing?
-[INFERRED architectural reading from DIRECT structural facts] Stock contains
-variant sprawl (maps/modes/ages in one table); Naga contains domain
-interaction (coupling via dials not calls); Shadow contains tempo
-(flush/krush timing on Tiny Arabia). Copy the answers, not the folders.
-
-================================================================
- 10. STYLE AS ENGINEERING EVIDENCE
-================================================================
-Naming: Naga's train-*/construct-* verbs mark dial layer membership on
-sight; Stock's *-goal terse ids (attack-goal 2, strategy-goal 3,
-retreat-now-goal 20 with value-meanings in trailing comments) mark a
-central-enum style; Shadow's gl- prefix + UPPER state tokens
-(gl-attacking YES/NO, FIRING/MARCHING/DEFENDING) mark file-scoped state
-machine membership. Prefixes (gl-, sn-, bwc-) are namespace claims — read
-them as ownership declarations and verify by writer search.
-
-Grouping: rule families separated by banner comments and blank lines are
-subsystem claims; verify by shared state (common dial/goal = one
-subsystem regardless of banners). Section ordering (constants → init →
-census → policy → executors → recovery) is a dataflow claim; violations
-(policy before census) are suspects, not style choices.
-
-Repetition: near-duplicate producer guards (Stock's spearman/knight/villager
-families) signal missing abstraction OR deliberate per-case tuning — check
-whether the differing conjuncts encode real distinctions (focus-player
-counts, age gates) before "cleaning up". Commented-out alternatives (Stock's
-349 disabled chat- lines; Naga's DISABLED patrol rule) are decision fossils:
-they record rejected tunings, and re-enabling them replays old bugs.
-
-Defensive checks (pending-objects, queue-idle, can-* guards, blocked
-flags) mark executor maturity; their absence marks either boot code (safe)
-or hazard (unsafe). Indentation/tab discipline and closers ("end init; end
-jump") mark jump-region awareness. Style is the author's architecture
-diagram drawn in Kraft durch Verhalten — learn to read it before redrawing.
-
-================================================================
-
-================================================================
- 11. WHAT THE 2296-SYMBOL CORPUS ACTUALLY CONTAINS (MINED, NOT SAMPLED)
-================================================================
-Every file under generated/symbols was parsed programmatically. Exact
-results (counts computed, not estimated):
-
-Kinds [DIRECT: computed over all 2296 files]: value 1175, object 356,
-command 347, tech 247, strategic-number 171 (total 2296). Only Kind==command files carry a Syntax: line (347 = 347).
-The 171 sn-* files and all value/object/tech files are syntax-less
-reference rows — the registry documents vocabulary, not behavior, for most
-of the language surface. Pedagogical consequence: command lookup answers
-arity; it almost never answers semantics. Semantics live in corpus usage.
-
-Detail fields: 918 distinct values, 795 singletons (per-ID rows: SN n,
-Object n, Tech n, ResourceType 272, MapType 193, Terrain 116, Civ 60,
-FactId 57). Only 123 Details repeat. The repeating set IS the engineering
-core: Fact/Action duals, Can-Do facts, attack/economy actions, DUC search
-actions, timers, goals, chat. Students should learn the repeating 123
-before the singleton 795 — frequency in the registry mirrors frequency in
-real rule tables.
-
-Dual-nature commands (Detail contains "Fact/Action") [DIRECT: computed over
-all 2296 files]: exactly 21 —
-up-modify-goal, up-modify-sn, all up-get-*-fact variants (get/get-focus/
-get-player/get-target/get-fact-max/min/sum), up-get-object-data(-target),
-up-get-point-contains, up-set-target-by-id, up-set-target-object, the
-up-find-* family (local/remote/resource/status), up-add-object-by-id, and
-xs-script-call. Architectural meaning: these 21 are the bridges — they read
-engine state into script state (facts→goals) or test-and-touch in either
-position, which is why Naga legally embeds up-set-target-object in
-condition position (militaryMicro.per:63–74). Misreading a bridge as
-action-only produces the "moved it to actions and broke the guard" mystery.
-
-Command families by filename: up-* 189 (all commands), sn-* 171, build-* 58,
-attack/group 94, search/target super-family (find/target/filter/search/
-remove/group) 129, chat/taunt 26, train-* 15, research-* 24, escrow-* 11,
-timer-* 11, goal-* 12. The 129-strong search/target family is the DUC
-micro substrate most beginners never meet and most advanced bots live in.
-
-State writers vs executors (judgment-filtered): writers — set-goal,
-set-strategic-number, up-modify-goal/sn, up-get-fact family, timers,
-escrow splits, set-shared-goal, set-signal, generate-random-number;
-executors — train/up-train, build/up-build(-line), research/up-research,
-attack-now, up-target-objects/point, delete-*, tribute, buy/sell, resign.
-The writers list is short and closed; the executors list is short and
-closed [COMPOSED: judgment-filtered from keyword hits over command
-descriptions, cross-checked against Naga/Shadow producer rules].
-Everything else — 200+ commands — is observation, search,
-guarding, or messaging. Pattern recognition starts here: in any unfamiliar
-file, find the writers first (they define the state), then the executors
-(they define the effects); the rest is plumbing.
-
-Guard-requirement signals (description mining): "must" 295 lines,
-"guard" 78, "prevent" 19, "ensure" 13, "never" 16, "crash" 2. Strongest
-verbatim warnings a graduate memorizes: research — "use can-research [or]
-escrow [variants] in any rule where you use the research command, in order
-to prevent possible crashes"; up-train-site-ready — "Unit lines, negative
-unit IDs, or invalid unit Ids may result in a crash" + "Do not use unit
-lines or unit classes"; up-jump-rule/dynamic — "Never use this command
-where #load-if blocks may make your jump target unreliable" (twice);
-up-modify-group-flag — manage flags carefully, never store foreign-owned
-objects; sn-target-point-adjustment — restore to 0–5 or up-target-point
-"sends units to the left corner of the map". Each warning is a mystery in
-Chapter 15 waiting to happen; each maps to a debugging-taxonomy class.
-
-Store-crossing commands (descriptions naming both goal and strategic
-number): exactly 10, including up-compare-sn (whose syntax takes a GoalId
-despite the name), up-modify-goal, set-goal, strategic-number. These ten
-are where prefix discipline (Document 1 §4) is load-bearing — and where
-the g:max-on-sn-* incident lived.
-
-Timer infrastructure: 11 symbols — enable/disable-timer, up-set/get-timer,
-up-timer-status, timer-status/disabled/running/triggered states, plus
-object-data-attack-timer. Note up-get-timer and up-set-timer exist: timers
-are readable into goals and settable dynamically, enabling computed
-cooldowns, not just constants.
-
-Oddities: zero empty/malformed files; 19 pure-numeric basenames (-1,
--266…-399: sentinel values like "use -1 to ignore the ActionId"); the word
-"excepto" appears nowhere. The corpus is clean reference data with thin
-behavioral prose — corroborate every behavioral claim against running code.
-
-================================================================
- 12. STATE AS A SYSTEM: LIFECYCLES, OWNERSHIP, INVALIDATION
-================================================================
-Stop seeing variables; see lifecycles: initialization → writer → mutation →
-reader → effect → observation → mutation → reset/expiry/release. For every
-state object that matters, the engineer answers: who initializes it (boot
-rule or first-writer default — goals start at 0, which IS a design fact);
-who writes it (exactly one family, or an arbiter); who reads it (executors,
-guards, telemetry); who can overwrite it (competitors, search yours for);
-what the value means (units documented at the defconst, like Stock's
-retreat-now-goal 1/2/3 conditions); when it goes stale (threat beliefs on
-LOS loss; superiority on army death; escrow mirrors on un-released
-spends); what invalidates it (age change, emergency, blocked
-infrastructure); what resets it (expiry, release, re-entry guard); what
-happens if the consumer never acts (UNMET persistence → watchdog); what
-happens under incompatible demands (arbitration, Chapter 6.4); what happens
-after interruption and on re-entry (resume re-checks guards).
-
-Ownership assignment is the design act: single writer per goal; many
-writers only through max-semantics dials or an explicit arbiter rule;
-timers owned by their re-armer; escrow splits owned by the purpose goal
-(Stock's escrow-purpose-goal pattern); search sets owned per pass (reset
-before fill — up-full-reset-search discipline). Invalidation is the
-forgotten half: every latch needs its expiry, every pause its −1, every
-escrow its release, every loop its bound. Audit any subsystem by walking
-its states through the lifecycle questions; unanswered ones are bugs with
-the serial numbers filed off.
-
-================================================================
- 13. POLICY VERSUS MECHANISM
-================================================================
-What should happen versus how the engine makes it happen. Full chain:
-observation → interpretation → requirement → policy → demand →
-authorization → feasibility → execution → completion → recovery. Small bots
-compress layers (a guard tests enemy count and trains directly, as Stock's
-spearman rule does); large bots separate them (Naga's threat→dial→producer
-chain; Shadow's pause→escrow→fire chain). Separation pays off as complexity
-grows because each layer changes for different reasons: observations change
-with scouting, policy with strategy, feasibility with economy, execution
-with engine version. Compressed layers force synchronized edits across
-unrelated reasons — the "trivial edit breaks distant behavior" phenomenon
-is usually a compressed layer snapping.
-
-Exercise (recurring): take any Stock producer and reconstruct its hidden
-layers — name the capability it answers, the requirement it implies, the
-authorization it assumes, the feasibility it checks, the completion it
-ignores. Then take the Naga mangonel chain and point at each layer's
-physical rule. The layers are present in both; only their explicitness
-differs. Design judgment = choosing per-subsystem how explicit each layer
-earns the right to be.
-
-================================================================
- 14. THE FAILURE OF LOCAL REASONING (ELEVEN CASES)
-================================================================
-A rule can be locally correct and globally wrong. Eleven canonical forms,
-each with mechanism and detector:
-1. Correct writer, wrong owner — value right, author unauthorized; detector:
-writer search shows two families. 2. Correct command, wrong timing —
-escrowed savings spent by a per-pass producer before the age rule fires;
-detector: savings curve flattens. 3. Correct condition, stale state —
-threat latch never expired; detector: belief persists with SN at zero.
-4. Correct demand, competing writer — dial raised then lowered by a foreign
-rule; detector: dial flicker. 5. Correct timer, incorrect re-arm —
-heartbeat degraded to one-shot; detector: fired-once-then-silent. 6.
-Correct jump, invalidated target — insertion shifted landing; detector:
-behavior changed with no local edit (diff the jump region). 7. Correct
-module, wrong load order — inner load reads uninitialized timers/dials;
-detector: works when merged, fails modular (order suspect). 8. Correct
-executor, missing authorization — producer fires outside policy windows;
-detector: right units, wrong battles. 9. Correct policy, no feasibility —
-gold-gated Cataphract demand with empty coffers; detector: deficit
-persists, queue empty. 10. Correct command, assumed completion — train
-issued into a blocked queue; detector: UNMET watchdog. 11. Correct
-transition, no recovery path — dead state entered legally; detector:
-minute-log flatlines in a non-terminal state. The theme is one sentence:
-correctness is a property of the rule-in-system, never of the rule alone.
-
-================================================================
- 15. ENGINEERING MYSTERIES (FORENSIC PUZZLES)
-================================================================
-Each mystery states symptoms, withholds the mechanism, and resolves into a
-durable lesson. Work them before reading the resolutions.
-
-M1. The bot affords the unit; the production rule fires; the unit never
-appears. (Resolution: escrow holds the food — gross checks pass,
-train cannot spend escrowed stock; the with-escrow variant or a release
-was missing. Lesson: affordability has two accountings.)
-
-M2. The code compiles; a number changes; behavior is irrational; nothing
-crashes. (Resolution [CONFIRMED: validator-definite finding plus forensic
-fix]: g:max on an sn-* name reads the unrelated goal
-cell — the store confusion of Document 1 §4. Lesson:
-prefixes are the type system; audit g: operands mechanically.)
-
-M3. One rule moved; condition and action identical; behavior differs.
-(Resolution: source order — a jump landing shifted, or a competing writer
-now runs last. Lesson: position is semantics for jumps and writers.)
-
-M4. Two modules correct in isolation; together they oscillate.
-(Resolution: competing writers on one goal, or dual attack authorities
-without precedence. Lesson: compose through ownership and precedence,
-never through timing.)
-
-M5. Correct state entered, never left. (Resolution: latched without exit —
-missing expiry, un-released escrow, pause never cleared. Lesson: every
-latch ships with its release.)
-
-M6. Worked once, then never again. (Resolution: heartbeat missing re-arm,
-or one-shot consumed. Lesson: name every timer's re-armer.)
-
-M7. Research ordered; game stutters; occasionally dies. (Resolution:
-unguarded research — the registry's documented crash link. Lesson: guard
-every research/train rule; feasibility guards are safety equipment.)
-
-M8. Micro orders send armies to the map corner. (Resolution:
-sn-target-point-adjustment left outside 0–5 — registry verbatim. Lesson:
-global modes are shared state; set-use-restore discipline for SN modes.)
-
-M9. Ally-coordinated attacks never trigger. (Resolution: assistance loop
-never matches — focus-player scan or taunt acknowledgement missing.
-Lesson: cross-player facts (up-allied-goal) need the full handshake:
-scan, stance, shared target, ack.)
-
-M10. Threat response works in testing, vanishes in real games.
-(Resolution: policy placed before census in source order reads last
-pass's world — one frame stale, fatal at contact. Lesson: order the pass:
-zero → census → roll-up → policy → executors.)
-
-M11. Refactor for clarity; behavior degrades everywhere slightly.
-(Resolution: "clarity" destroyed jump regions, enum groupings, and guard
-order the tuner depended on — the load-bearing ugliness of Chapter 17.
-Lesson: ask what invariant the ugly code protects before cleaning it.)
-
-================================================================
-
-================================================================
- 16. FORENSIC READING PROGRESSION: TEN PHASES ON UNFAMILIAR CODE
-================================================================
-Take an AI you did not write (Naga first, then Stock, then anything) and
-work the phases in order, writing down each answer before proceeding. Each
-phase has an exit criterion; a phase skipped is a phase that will ambush
-you later.
-
-Phase 1 — Package: root, loads, non-loads. Exit: the full load graph on
-one page, including inner loads (Naga's initialization.per:634–635/6773,
-gatherers.per:3730) and the debug tail. Note what does NOT load — dead
-files are suspects, not scenery.
-
-Phase 2 — Architecture: modules and apparent responsibilities from names,
-sizes, and rule density. Exit: one-line role hypothesis per module (to be
-confirmed or killed in later phases, never assumed).
-
-Phase 3 — State: the goals, SNs, timers, constants that matter. Method:
-collect defconsts, then rank by writer-count and reader-count (writers
-first, per Chapter 11). Exit: the top-20 state inventory with id numbers.
-
-Phase 4 — Dataflow: who writes what, who reads it. Build the writer→state
-→reader table for the top 20. Flag multi-writer cells immediately — each
-is either max-semantics, an arbiter, or a bug. Exit: no multi-writer cell
-left unclassified.
-
-Phase 5 — Control: state machines (goals with small id sets + transition
-rules), loops (negative jumps with bounds), heartbeats (re-armed timers),
-dispatch (jump-direct + bookmarks). Exit: every loop bounded, every machine
-drawn with exits checked (dead-state audit).
-
-Phase 6 — Authority: who decides each important thing (attack, age-up,
-tech, production mix). Exit: one named authority per decision plus its
-preconditions; dual authorities flagged with precedence evidence.
-
-Phase 7 — Execution: which rules actually issue engine commands (the
-executor list of Chapter 11 is short — find them all). Exit: every train/
-build/research/order traced back to its feasibility guard; unguarded ones
-listed as hazards.
-
-Phase 8 — Recovery: what happens when actions cannot occur (UNMET paths,
-resets, fallbacks, blocked flags). Exit: named recovery for every major
-chain, or an explicit gap ("no recovery observed for X").
-
-Phase 9 — Hypothesis: what the engineer believes each subsystem intends.
-Written as falsifiable sentences ("this family holds 2–3 monks for healing
-independent of siege belief"), never as restatements of code.
-
-Phase 10 — Verification: the observation that would prove or kill each
-hypothesis (log line, replay check, experiment from Document 1 Chapter 12).
-Exit: at least one killed hypothesis per subsystem studied — a reading with
-no kills was skimming.
-
-Graduate drill: perform all ten on Stock's escrow-purpose-goal chain
-(5687–5717, 18269–18293) and on Naga's affinity dispatch (strategies.per:
-1–10 + initialization.per:6857–6890), then compare the two write-ups.
-Same phases, different architectures, different answers — that variance is
-the lesson.
-
-================================================================
- 17. HISTORICAL HUMILITY: WHY UGLY CODE MAY BE LOAD-BEARING
-================================================================
-Repetition, odd orderings, magic numbers, commented-out alternatives, and
-defensive checks that look paranoid usually predate you and protect
-something [INFERRED general rule from DIRECT instances: Stock's 349
-disabled chat lines, Naga's parked patrol rule, Shadow's turn counter]. Candidate reasons, in check order: engine semantics (dual-nature
-commands in conditions); parser limitations (no labels, so positional jumps
-with frozen regions); missing abstraction (the language has no functions —
-repetition IS the subroutine); source-order dependence (census before
-policy; deny before force); jump addressing (deltas count disabled rules);
-performance (guard-skips bought passes); compatibility (UP vs DE duals,
-age-gated idioms); defensive behavior (pending/queue/idle checks earned by
-past stalls); legacy behavior (obsolete-SN reuse like sn-infantry-threat
-53); incremental evolution (rejected tunings fossilized as comments);
-constraints from another subsystem (a weird guard satisfying a distant
-executor). The rule is procedural: ask what invariant the ugly code might
-protect, find the failure its removal would cause, and only then decide.
-Stock's 349 disabled chat lines are not clutter but a tuning log; Naga's
-DISABLED patrol rule is a parked experiment; Shadow's turn counter is a
-timer system built from arithmetic because timers were all spoken for.
-Refactoring without the invariant inventory is how M11 happens.
-
-================================================================
- 18. BOT THREADS: FLUENCY, SYSTEMS, ENGINEERING (PRACTICE SPINE)
-================================================================
-The three bots remain, reinterpreted as practice volume for the pattern
-language — not as the curriculum's content, which is Chapters 4–17.
-
-Bot 1 — Language fluency. Build LittleBot file by file: package, first
-rule, facts, goals, prefixes, timers, first production with guards. Each
-step verified by observation; five deliberate failures classified by the
-twelve-class taxonomy (parser/symbol/load/semantic/scheduling/state/
-authority/resource/execution/completion/recovery/version). New load-bearing
-addition: split Bot 1 into two files with a (load ...) and break it three
-ways (missing target, wrong order vs defconst use, duplicate load) —
-loading is practiced, not described. Exit: syntactic and semantic fluency;
-the twelve classes are reflexes.
-
-Bot 2 — Systems thinking. State machines with drawn graphs and audited
-exits; hysteresis on every threshold pair; cooldowns with named re-armers;
-interruption preserving authorization with guard re-check on resume;
-ownership with one arbiter built by hand; the production dial end to end
-(verified Naga mangonel shape: desire ceiling → count-vs-dial → feasibility
-→ train → escrow decrement); deficit watchdog diagnosing a deliberately
-blocked queue. Exit: thinking in interacting systems; every exercise
-names writers, readers, and the invariant.
-
-Bot 3 — Engineering on real structures. Reconstruct one unfamiliar module
-per week using the ten phases; compare Stock-direct vs Naga-dial
-production on the same unit and state the tradeoff from evidence;
-implement the observe→verify chain one arrow at a time with per-arrow
-verification; run the escrow save-and-fire with the curve observed;
-provoke oscillation by removing precedence, then restore it and keep the
-log as a regression test. Exit: independent subsystem design inside
-existing architecture, traced observation to effect.
-
-================================================================
- 19. DESIGNING FROM A BLANK PROJECT
-================================================================
-No universal template — a reasoning process: requirements (what must the
-bot do on which maps, against whom) → domain decomposition (economy,
-production, construction, tech, military, strategy, scouting, recovery —
-merge or split by expected interaction density) → state inventory (every
-goal/SN/timer the design needs, with lifecycle answers from Chapter 12
-before any rule exists) → ownership assignment (one writer per cell;
-arbiters explicit) → observation layer (census shapes, cadences) → policy
-layer (requirements as max-semantics joints) → execution layer (dials,
-guards, executors) → recovery layer (deficits, watchdogs, fallbacks) →
-module boundaries (drawn around ownership, not aesthetics) → load order
-(constants → init → census → policy → executors → recovery; inner loads
-documented) → verification strategy (per-arrow observations + validator +
-replay). Architectural options with honest tradeoffs [engineering recommendations:
-not directly observed as advice, derived from the atlas above]: centralized
-controller (Stock-like: one table, fast global reasoning, merge pain);
-distributed dials (Naga-like: decoupled tempo, contract burden);
-libraries + thin controllers (helpers owned once, policy files small);
-telemetry module from day one (minute state dumps are cheaper than
-archaeology); state-machine controllers for strategy modes. Choose per
-subsystem, document why, revisit when the reason changes.
-
-================================================================
- 20. DESIGN VOCABULARY (PRECISION INSTRUMENTS)
-================================================================
-initialization / maintenance / heartbeat / state / transition / latch /
-hysteresis / cooldown / telemetry / census / aggregation / classification /
-policy / requirement / demand / feasibility / authorization / executor /
-completion / recovery / fallback / reservation / escrow / producer /
-consumer / writer / reader / ownership / arbitration / preemption /
-dependency / invariant / side effect / world-state observation /
-source-order dependency / control-flow region / dispatch / re-entry. Use
-these in design reviews and commit messages; "this rule does something
-with food" is no longer an available sentence.
-
-================================================================
- 21. INTUITION DRILLS: SEE-THIS—ASK-THAT
-================================================================
-(timer ...) → what periodic process, who re-arms. Multi-writer goal →
-ownership suspect; find the arbiter or file the bug. Production dial →
-writer, consumer, lowering rule (if any). disable-self → one-shot; check
-it sits outside jump regions. Repeated census rules → aggregation; check
-zeroing and order vs policy. Threshold pair → hysteresis gap vs noise.
-Command → is completion observable, and where. Module load → what state
-was assumed initialized. Jump → positional fragility; frozen region?
-Large rule pile → partition into subsystems by shared state. Escrow
-percentages → named purpose + release path. Commented-out code → decision
-fossil; read before re-enabling. Drill weekly on unfamiliar files until
-the questions precede conscious effort — that precedence is the intuition.
-
-================================================================
- 22. GRADUATION: INDEPENDENT ENGINEERING INSIDE AN UNFAMILIAR AI
-================================================================
-Receive an unfamiliar AI and a new requirement (e.g., answer cavalry with
-a production path the bot lacks). Without scaffolding: (1) reconstruct the
-architecture (ten phases, written); (2) identify relevant modules;
-(3) inventory existing state; (4) map writers/readers; (5) determine
-ownership; (6) select established patterns with corpus citations;
-(7) decide extend-vs-new-module with reasons; (8) design the state model
-with lifecycles; (9) define the module boundary; (10) implement; (11)
-integrate preserving existing behavior (before/after replay + validator);
-(12) introduce a controlled failure and diagnose it blind; (13) verify
-runtime effects per arrow; (14) demonstrate recovery (blocked producer,
-stale belief, interrupted execution); (15) explain the resulting
-architecture aloud in design vocabulary; (16) document evidence and
-uncertainty per claim. Passing is not a working bot — it is a traced,
-owned, verified, recoverable subsystem inside a living ecosystem, plus an
-engineer who can narrate every decision twice: once from evidence, once
-from tradeoffs.
-
-================================================================
- 23. FINAL STANDARD
-================================================================
-(defrule ...) first reads as "what does this syntax mean", then "what
-mechanism is this rule in", then "what subsystem owns it", and finally
-"what contract does this subsystem implement, what state does it consume
-and produce, what can interfere, and what world-state evidence would prove
-it works". The graduate opens Naga, Stock, or any unfamiliar competent AI
-and reads an engineered system: modules with purposes, idioms with
-reasons, organization with pressures, strength with boundaries, danger
-with names — and then builds something new from the same reasoning.
-Document 1 establishes what the machine is. This document taught how its
-engineers think. The rest is practice volume.
-
-END OF DOCUMENT 2 (RE-ENGINEERED REVISION).
+-----------------
+
+PART I — LEARNING TO SEE THE LANGUAGE
+
+1.  Before the First Rule
+2.  What a .per Program Actually Is
+3.  Your First Rule: Facts, Actions, and the Arrow
+4.  The Seven Places Information Can Live
+5.  Constants, Goals, Strategic Numbers, and the Prefix Problem
+6.  Passes, Source Order, and Why Time Exists Even Without a Clock
+7.  Loading a Bot: The Moment a Folder Becomes a Program
+8.  The First Debugging Habit: Never Guess What a Value Means
+
+PART II — LEARNING TO SEE PATTERNS
+
+9.  The Shape of an Experienced AI
+10. One-Shot Initialization
+11. Heartbeats, Timers, and the Difference Between "Once" and "Again"
+12. Remembering What the World Just Told You
+13. Hysteresis, Cooldowns, and the Art of Not Changing Your Mind Too Quickly
+14. Loops, Search, and the Dangerous Beauty of Negative Jumps
+15. Guard-Skips and Computed Dispatch
+16. The Preprocessor: One Source, Several Programs
+17. Deficit Correction and the Quiet Mathematics of Control
+
+PART III — HOW A BOT THINKS
+
+18. Observation Comes Before Strategy
+19. Census: Turning a World Into Numbers
+20. Classification: Turning Numbers Into Meaning
+21. Capability Gaps and Requirements
+22. Policy: What the Bot Wants
+23. Authorization: What the Bot Is Actually Allowed to Do
+24. Execution: Let the Existing Machine Execute
+25. Verification: Did the World Change?
+26. Reassessment: The Bot's Most Important Habit
+
+PART IV — HOW MATURE BOTS ARE ORGANIZED
+
+27. Why There Are So Many Files
+28. Module Boundaries Are Not State Boundaries
+29. Initialization, Maintenance, Policy, Execution, Telemetry, Arbitration, Recovery
+30. Producer and Consumer
+31. Dials: Separating Desire From Feasibility
+32. Reservation, Escrow, and the Difference Between Intention and Money
+33. Ownership: The Question That Solves More Bugs Than Another Rule
+34. Competing Writers and Shared State
+35. Authority and Arbitration
+36. State Lifecycles: Birth, Use, Staleness, Expiry, Re-entry
+37. Failure Containment and Recovery
+
+PART V — THREE ARCHITECTURES WORTH STUDYING
+
+38. The Stock AI: A Large Historical Machine
+39. Naga: Modularity, Libraries, and Reusable Control Structures
+40. Shadow: Density, Scale, and the Power of a Monolith
+41. Reading the Same Problem in Three Architectural Dialects
+42. Writing Style as Engineering Evidence
+43. Why Good Engineers Sometimes Leave Ugly Code Alone
+
+PART VI — THE CORPUS AS A TEXTBOOK
+
+44. What the Symbol Corpus Teaches
+45. Reading a Symbol Without Turning It Into a Dictionary Entry
+46. Command Contracts and Failure Modes
+47. Timers as Control-System Components
+48. Goals as Software State
+49. Strategic Numbers as Engine-Facing State
+50. Jumps as a Native Control-Flow Language
+51. Common Idioms and What They Reveal
+52. Negative Knowledge: Learning From What Does Not Work
+
+PART VII — BECOMING AN ENGINEER
+
+53. The Eleven Failures of Local Reasoning
+54. Engineering Mysteries
+55. How to Read an Unfamiliar AI Without Getting Lost
+56. How to Design a Bot From a Blank Folder
+57. How to Add a Subsystem to a Living Bot
+58. How to Refactor Without Destroying Load-Bearing Behavior
+59. How to Prove a Change Worked
+60. From Syntax to Systems: The Three Bot Apprenticeship
+61. Intuition Drills
+62. Graduation Examination
+63. The Professional Standard
+
+APPENDIX A — DESIGN VOCABULARY
+APPENDIX B — THE ENGINEER'S TRACE SHEET
+APPENDIX C — EVIDENCE AND VERIFICATION CHECKLISTS
+APPENDIX D — RECOMMENDED PRACTICE PROJECTS
+
+======================================================================
+PART I — LEARNING TO SEE THE LANGUAGE
+======================================================================
+
+1. BEFORE THE FIRST RULE
+
+There is a useful mistake to make when learning .per: assume, for a little while, that the code is telling you a story.
+
+It is not a story in the ordinary programming-language sense. There is no comfortable sequence of functions marching from top to bottom. There is a collection of rules, state stores, commands, timers, loads, and control-flow tricks that together form a machine. The story is hidden in the relationships between them.
+
+A mature AI therefore looks confusing for the same reason a city looks confusing from an airplane. You can see thousands of things, but you cannot yet see why the streets meet where they do.
+
+Your first job is not to memorize every street.
+
+Your first job is to learn what kind of thing a street is.
+
+A .per engineer gradually develops this ability. A line such as:
+
+    (defrule
+        (can-train spearman-line)
+     =>
+        (train spearman-line))
+
+starts as syntax. Then it becomes a production rule. Then it becomes an executor. Then, in a larger AI, the engineer asks the more important question: "Why is this executor here, and who decided that a spearman should be trained?"
+
+That question opens the architecture.
+
+A strong engineer learns to move continuously between scales:
+
+    character → token → expression → rule → mechanism → state → subsystem → architecture → behavior
+
+Beginners tend to stop at the first scale they understand. Experts keep moving.
+
+This book is designed to teach that movement deliberately.
+
+
+2. WHAT A .PER PROGRAM ACTUALLY IS
+
+At first glance, an AI is just text. The engine reads the text, evaluates conditions, performs actions, and the game changes.
+
+That description is true and almost useless.
+
+The important mental model is this:
+
+    WORLD
+       ↓
+    ENGINE OBSERVATION
+       ↓
+    .PER FACTS / STRATEGIC NUMBERS
+       ↓
+    RULE EVALUATION
+       ↓
+    GOALS / STRATEGIC NUMBERS / COMMANDS
+       ↓
+    ENGINE EFFECTS
+       ↓
+    WORLD
+
+The loop closes.
+
+A villager count is an observation. A goal storing a desired number of archers is software state. A train command is an engine request. A new archer appearing in the world is an effect. The next census observes that archer.
+
+The same piece of information can therefore exist in several forms during its journey.
+
+Suppose the enemy is producing cavalry.
+
+One part of the AI may observe cavalry.
+Another may classify the observation as a cavalry threat.
+Another may decide that cavalry creates a requirement for anti-cavalry capability.
+Another may raise a production dial.
+Another may reserve resources.
+Another may authorize a producer.
+The producer may train a counter unit.
+A verification layer may observe that the counter-unit count actually changed.
+
+The beginner sees seven rules.
+
+The engineer sees a control loop.
+
+That distinction will recur throughout this book.
+
+
+3. YOUR FIRST RULE: FACTS, ACTIONS, AND THE ARROW
+
+The basic .per unit is a rule:
+
+    (defrule
+        CONDITIONS
+     =>
+        ACTIONS)
+
+Read the arrow as a boundary between evidence and intervention.
+
+The left side asks questions. The right side changes something.
+
+A condition might ask whether a unit exists, whether a goal has a particular value, whether a timer is running, or whether an engine query returns a certain result.
+
+An action might change a goal, train a unit, enable a timer, jump to another rule, or alter some other piece of AI state.
+
+This sounds simple until you encounter a mature program.
+
+Then the same command may appear in twenty files, the same goal may be written by five rule families, and a number that looks like a constant may actually be a goal value because of an operand prefix.
+
+So learn a discipline immediately:
+
+For every unfamiliar rule, ask five questions.
+
+1. What must be true for this rule to fire?
+2. What exactly does each action do?
+3. Which state does each action read or write?
+4. Who else writes that state?
+5. What observable change should eventually appear in the game?
+
+Do not skip question four because the rule "looks right."
+
+Do not skip question five because the parser accepted it.
+
+Those two omissions create an extraordinary number of AI bugs.
+
+
+4. THE SEVEN PLACES INFORMATION CAN LIVE
+
+A .per engineer must distinguish at least these categories:
+
+1. constants
+2. goals
+3. strategic numbers
+4. timers
+5. engine/world facts
+6. local rule-control state
+7. actual world state
+
+Constants are names for fixed values. They are useful because a meaningful name can replace an unexplained integer, but a constant is not a variable.
+
+Goals are AI-side storage. They are programmable state and can represent counters, modes, targets, cursors, bookmarks, timestamps, and many other things.
+
+Strategic numbers are engine-facing values. Some are true engine settings; others are reusable strategic-number slots whose interpretation depends on the AI.
+
+Timers provide temporal state. They allow the AI to perform work periodically, create delays, and distinguish an event from an ongoing condition.
+
+Facts expose engine observations or logical predicates.
+
+Rule-control state includes things such as enabled/disabled rules and jump position. It is easy to overlook because it is embedded in the control structure rather than stored in an obvious variable.
+
+World state is what actually happened: units trained, buildings completed, resources spent, units moving, battles occurring.
+
+These are not interchangeable.
+
+One of the most important habits in the entire profession is to stop saying "the value" and instead say "the goal," "the SN," "the timer state," "the constant," or "the world observation."
+
+Precision in nouns produces precision in debugging.
+
+
+5. CONSTANTS, GOALS, STRATEGIC NUMBERS, AND THE PREFIX PROBLEM
+
+Native .per has an especially dangerous feature: similar-looking numbers can come from different stores.
+
+Document 1 establishes the critical prefix distinction. When an operator expects a value, prefixes such as c:, g:, and s: select the relevant store:
+
+    c:NAME   constant
+    g:NAME   goal
+    s:NAME   strategic number
+
+This matters because the code can remain syntactically valid while reading the wrong cell.
+
+A historical forensic example illustrates the danger. A rule using a goal operation with a strategic-number name can accidentally read an unrelated goal cell when the author intended an SN. A parser may accept the expression. The game may continue. The AI may then make decisions from a perfectly legal, perfectly wrong number.
+
+Another classic error is treating a constant's identifier as though it were the value stored in a goal. For example, a form like:
+
+    (set-goal bwc-regime bwc-best)
+
+uses the constant value of bwc-best as the value written to the goal. If the desired behavior is to copy the current value of one goal into another, a goal-to-goal operation such as an appropriately formed up-modify-goal expression is required.
+
+The lesson is larger than either example:
+
+    A name is not a value.
+    A value is not a store.
+    A store is not world state.
+
+When debugging, trace all four separately.
+
+
+6. PASSES, SOURCE ORDER, AND WHY TIME EXISTS EVEN WITHOUT A CLOCK
+
+A .per AI is evaluated repeatedly. Rules are not simply functions called once in the order a programmer might imagine.
+
+Source order matters because rule evaluation and jump behavior depend on the compiled rule sequence. Actions such as disable-self affect subsequent passes. Jump distances are positional. Inserting a rule can therefore alter control flow even if the inserted rule seems unrelated to the logic around it.
+
+This is why experienced engineers sometimes treat a section of .per as structurally frozen.
+
+Imagine a jump that says, in effect, "skip the next twelve rules." The number twelve is not a semantic label. It is a physical distance in the compiled rule stream. Add two rules and the destination can change.
+
+The language has no ordinary symbolic label mechanism that makes these regions immune to positional change.
+
+This gives .per a peculiar engineering character: text editing can be a control-flow transformation.
+
+The safest habit is to regard tuned jump regions as compiled artifacts. If you change them, re-audit every landing point.
+
+This is also why preprocessor boundaries matter. Conditional compilation changes which rules exist. A jump that is safe in one configuration may land somewhere else in another.
+
+The beginner sees a number.
+
+The engineer sees an address encoded as a distance.
+
+
+7. LOADING A BOT: THE MOMENT A FOLDER BECOMES A PROGRAM
+
+A mature AI is usually not one enormous file because humans cannot work effectively that way. It is a root program that assembles modules.
+
+The root is therefore more than a list of filenames. It is the architecture's entrance.
+
+A canonical modular root tends to establish something like:
+
+    constants
+    initialization
+    observation / threats
+    economy
+    construction
+    production
+    military
+    strategy
+    recovery / maintenance
+
+The exact order varies. The principle does not: load order creates visibility and temporal assumptions.
+
+Naga's root is a useful architectural specimen because its small entry file exposes a larger design behind it. Shadow provides the opposite specimen: a huge monolithic source where the architecture must be reconstructed from the organization of the rule stream rather than from a load graph.
+
+This teaches an important lesson before the reader knows enough to appreciate it:
+
+    modularity is a human organization technique, not automatic state isolation.
+
+Two modules can be beautifully separated into files and still fight over the same goal.
+
+A root file tells you where the rooms are.
+
+It does not tell you who owns the keys.
+
+
+8. THE FIRST DEBUGGING HABIT: NEVER GUESS WHAT A VALUE MEANS
+
+When an AI behaves strangely, beginners often search for the rule that "looks suspicious."
+
+Do something else first.
+
+Find the state.
+
+Suppose the bot suddenly trains too many skirmishers. Do not begin by changing the training rule. Ask:
+
+    What value tells the producer how many skirmishers are wanted?
+    Who writes it?
+    Under what conditions?
+    Is it a goal or SN?
+    Does another rule lower it?
+    Does escrow decrement it?
+    Does expiry clear it?
+    Does the producer read the same store?
+    Is the producer actually the rule issuing the command?
+    Did the world count change?
+
+This is state-centered debugging.
+
+It scales.
+
+A suspicious rule is local. A state variable can lead you through the entire architecture.
+
+======================================================================
+PART II — LEARNING TO SEE PATTERNS
+======================================================================
+
+9. THE SHAPE OF AN EXPERIENCED AI
+
+Once the syntax becomes familiar, something strange happens: large AIs begin to look repetitive.
+
+You see the same ideas wearing different names.
+
+A timer fires. A state is latched. A value is raised. A producer consumes it. A temporary condition expires. A guard prevents an action. A jump skips irrelevant work. A counter advances through a search. A policy chooses a target. An executor tests feasibility.
+
+This repetition is not accidental.
+
+Native .per is limited enough that experienced engineers repeatedly rediscover a relatively small set of useful control patterns.
+
+Learning those patterns is much more powerful than memorizing isolated rules.
+
+A pattern is a solution shape.
+
+It answers a recurring problem:
+
+    "I need this behavior, but the engine gives me these constraints. What shape reliably survives those constraints?"
+
+The following chapters teach the major shapes as a beginner encounters them, then deepen them into engineering principles.
+
+
+10. ONE-SHOT INITIALIZATION
+
+Imagine the bot has a timer that must be enabled at startup.
+
+You want:
+
+    enable timer once
+    then leave it alone
+
+The natural pattern is a rule that fires at initialization and disables itself.
+
+Conceptually:
+
+    startup → establish state → disable initialization rule
+
+The corpus contains hundreds of such rules in mature AIs. Stock contains large initialization blocks; Shadow contains substantial one-shot initialization as well.
+
+Why does this pattern exist?
+
+Because maintenance logic should not repeatedly overwrite the state it is maintaining.
+
+The distinction is fundamental:
+
+    initialization establishes a state
+    maintenance preserves or changes a state
+
+If initialization runs forever, maintenance cannot own the state cleanly.
+
+The pattern also teaches the reader something subtle about .per: disable-self does not make a rule disappear from the positional rule stream. Jumps still count the rule. Therefore, one-shot rules inside positional jump regions remain structurally significant.
+
+Engineering invariant:
+
+    Anything downstream that requires initialized state must not execute before initialization establishes it.
+
+Failure signature:
+
+    values repeatedly return to defaults.
+
+Or, if the initialization rule is accidentally omitted:
+
+    maintenance assumes a state that was never established.
+
+
+11. HEARTBEATS, TIMERS, AND THE DIFFERENCE BETWEEN "ONCE" AND "AGAIN"
+
+A timer turns an AI from a machine that reacts every pass into a machine that can choose its own rhythm.
+
+A one-minute strategy review does not need to happen every evaluation pass. A five-second recovery check does not need to happen every minute.
+
+Mature AIs therefore develop multiple time scales.
+
+A heartbeat usually has three pieces:
+
+    enable
+    trigger
+    re-arm
+
+The third is the one beginners forget.
+
+A rule that fires when a timer triggers is not necessarily periodic. If nobody re-arms the timer, the heartbeat has quietly become a one-shot.
+
+Shadow demonstrates multiple periodic timer families, including one-minute, 30-second, two-minute, and three-minute patterns. Naga's initialization enables multiple timers, including its one-minute timer.
+
+The engineering question is not merely "does timer 7 exist?"
+
+It is:
+
+    Who enables timer 7?
+    Who consumes timer 7?
+    Who re-arms timer 7?
+    At what cadence?
+    Can another subsystem re-arm it too?
+
+The last question matters because shared timers create hidden coupling.
+
+A timer is not just a clock.
+
+It is a shared control resource.
+
+
+12. REMEMBERING WHAT THE WORLD JUST TOLD YOU
+
+The game world is volatile.
+
+A threat can disappear from line of sight. A unit can move behind terrain. A census can return zero because the relevant observation is temporarily unavailable.
+
+If the AI treats every zero as permanent truth, it becomes nervous and forgetful.
+
+The solution is state latching.
+
+The simplest conceptual lifecycle is:
+
+    SEEN → CURRENT → STALE → EXPIRED
+
+Suppose an enemy cavalry observation arrives through an SN.
+
+At observation time, copy the value into AI-side state and record when it was seen. Continue using it while it is fresh. If the observation disappears for too long, let it expire.
+
+This is not merely a coding trick. It is a model of imperfect information.
+
+The engineer must then answer:
+
+    How long is fresh?
+    Does every threat class use the same lifetime?
+    What happens when a new observation arrives?
+    What survives expiry?
+    Who owns the expiry rule?
+
+A standing minimum, such as a baseline defensive production floor, may deliberately survive temporary threat expiry. That is different from a temporary threat demand.
+
+This introduces an important distinction:
+
+    volatile observation
+    persistent policy
+
+Do not store both as though they had the same lifetime.
+
+
+13. HYSTERESIS, COOLDOWNS, AND THE ART OF NOT CHANGING YOUR MIND TOO QUICKLY
+
+A bot that changes its mind every time a value crosses a boundary can look irrational even when every individual rule is correct.
+
+Suppose an attack rule activates when superiority is at least one.
+Suppose the retreat rule activates when superiority is below one.
+
+At the boundary, tiny fluctuations can cause:
+
+    attack
+    retreat
+    attack
+    retreat
+
+The solution is hysteresis: use different thresholds for entering and leaving a state.
+
+For example:
+
+    enter emergency when condition ≥ 2
+    leave emergency only when condition = 0
+
+The gap creates stability.
+
+Cooldowns solve a related problem in time rather than value space. After a retreat, do not immediately re-enter the same battle while units are still repositioning. Arm a timer and wait for the transient to settle.
+
+These patterns are forms of control engineering.
+
+They prevent noise from becoming behavior.
+
+A mature AI therefore does not merely ask:
+
+    "Is the condition true?"
+
+It asks:
+
+    "Has it been true long enough?"
+    "Did it just become true?"
+    "Did it recently stop being true?"
+    "Am I allowed to re-enter yet?"
+
+Once the reader sees this, many apparently mysterious attack and retreat systems become much easier to understand.
+
+
+14. LOOPS, SEARCH, AND THE DANGEROUS BEAUTY OF NEGATIVE JUMPS
+
+Native .per does not hand you ordinary modern-language loops with a comfortable loop keyword.
+
+Yet mature AIs search.
+
+They scan players, units, states, targets, and other bounded domains.
+
+A common shape is:
+
+    index stored in goal
+    ↓
+    inspect current candidate
+    ↓
+    advance index
+    ↓
+    negative jump back to scan
+
+This is powerful because the same rule region can process several candidates during one pass.
+
+It is dangerous because a negative jump is an actual loop.
+
+If the index never advances, the pass may never finish.
+
+Therefore every .per loop should make a progress argument visible:
+
+    What changes on each iteration?
+    What is the maximum value?
+    What happens at the bound?
+    What happens when there are zero candidates?
+
+A loop without a monotonic progress measure is not merely suspicious. It is a candidate for a real execution freeze.
+
+Naga's player/ally scanning and Shadow's search-state structures demonstrate that sophisticated control flow is not an accidental side effect of .per. It is part of the native engineering vocabulary.
+
+
+15. GUARD-SKIPS AND COMPUTED DISPATCH
+
+The simplest performance optimization in .per is often to avoid doing work that cannot matter.
+
+A guard can detect that a relevant group is empty and jump over a large targeting block.
+
+Conceptually:
+
+    if no targets exist:
+        skip targeting machinery
+    otherwise:
+        evaluate targeting machinery
+
+The jump distance is positional, so the engineer must treat the block as a frozen region.
+
+A more advanced pattern is computed dispatch.
+
+Naga contains a striking example around its affinity machinery: a caller establishes candidate state, jumps into a rule table, lets one of many behaviors determine an answer, and returns using positional information captured from the rule stream.
+
+This is function-like behavior implemented in a language without conventional subroutines.
+
+The reader should learn to recognize the shape before memorizing its exact implementation:
+
+    establish arguments
+    → enter dispatch table
+    → execute selected behavior
+    → capture result / return position
+    → compare or consume result
+
+This is one of the points where .per stops looking like a primitive rules language and starts looking like a tiny machine language for control systems.
+
+
+16. THE PREPROCESSOR: ONE SOURCE, SEVERAL PROGRAMS
+
+Conditional compilation exists because one AI may need different code for different maps, modes, or environments.
+
+The preprocessor can select blocks before the runtime rule stream exists.
+
+This creates a subtle interaction with jumps:
+
+    preprocessing changes which rules exist
+    jumps count rules
+    therefore preprocessing can change jump destinations
+
+That implication should become reflexive.
+
+Never say merely "the jump is twelve rules away."
+
+Say:
+
+    "the jump is twelve compiled rules away under this preprocessing configuration."
+
+Every #load-if-defined should have a balanced termination. Nested conditions must be understood as source transformation, not runtime branching.
+
+This is another reason to distinguish source text from compiled rule topology.
+
+
+17. DEFICIT CORRECTION AND THE QUIET MATHEMATICS OF CONTROL
+
+Resource systems often fail gradually.
+
+A bot does not necessarily collapse because one rule is catastrophically wrong. It can drift because demand grows faster than supply.
+
+A useful pattern is deficit correction:
+
+    desired
+    − current
+    = deficit
+
+Then:
+
+    if deficit > 0:
+        authorize production / gathering / construction
+
+This sounds trivial, but the engineering challenge is choosing what "desired" means and what "current" means.
+
+Current should be an observation.
+Desired should belong to policy.
+The difference is a requirement for execution.
+
+If the same rule invents desired state, checks resources, spends resources, trains the unit, and verifies the result, it has become difficult to reason about and difficult to replace.
+
+Separating those concerns is the beginning of architecture.
+
+======================================================================
+PART III — HOW A BOT THINKS
+======================================================================
+
+18. OBSERVATION COMES BEFORE STRATEGY
+
+A bot cannot reason about a world it has not represented.
+
+The first question in a mature system is therefore not:
+
+    "What should I build?"
+
+It is:
+
+    "What do I know?"
+
+Observation can include:
+
+    enemy military census
+    enemy cavalry count
+    enemy ranged count
+    own military count
+    own resource stock
+    building count
+    production availability
+    age / phase
+    local danger
+    attack status
+    technology status
+    timer state
+    recent events
+
+An observation should be understood as evidence, not automatically as truth about the entire world.
+
+Line-of-sight information may be incomplete. Engine queries may have specific semantics. Cached observations may be stale.
+
+That is why observation and classification are separate stages.
+
+
+19. CENSUS: TURNING A WORLD INTO NUMBERS
+
+A census answers questions such as:
+
+    How many cavalry units do I observe?
+    How many archers do I have?
+    How many military buildings exist?
+    How many farms are active?
+
+A census compresses the world.
+
+The compression is useful because policy rules cannot examine every physical detail directly all the time.
+
+But compression creates responsibility.
+
+Every aggregate should have a defined population and lifetime.
+
+"Enemy cavalry count" could mean:
+
+    currently visible cavalry
+    last observed cavalry
+    all known cavalry
+    estimated cavalry
+
+Those are different variables even if they all contain integers.
+
+The engineer therefore writes down the semantic definition before choosing the storage location.
+
+
+20. CLASSIFICATION: TURNING NUMBERS INTO MEANING
+
+Census produces measurements.
+
+Classification produces categories.
+
+For example:
+
+    cavalry count > 0
+        ↓
+    cavalry threat
+
+Or:
+
+    local enemy military present + own town under attack
+        ↓
+    local defense emergency
+
+A classification is more durable than the raw observation because many downstream rules can consume the category.
+
+This is why threat telemetry should not immediately train units.
+
+A clean architecture is:
+
+    observation
+        ↓
+    classification
+        ↓
+    requirement
+        ↓
+    policy
+        ↓
+    authorization
+        ↓
+    execution
+
+This chain gives every stage a job.
+
+If a threat module starts spending resources, the boundary has become unclear.
+
+
+21. CAPABILITY GAPS AND REQUIREMENTS
+
+A threat is not yet a production order.
+
+Enemy cavalry is an observation.
+"We lack enough anti-cavalry capability" is a capability-gap statement.
+
+A requirement converts that gap into something the rest of the system can satisfy.
+
+For example:
+
+    observed cavalry threat
+        ↓
+    anti-cavalry capability insufficient
+        ↓
+    require additional spearmen
+        ↓
+    production demand rises
+
+This distinction prevents the AI from confusing enemy description with action.
+
+The same architecture works outside military production:
+
+    too few farms → economic requirement
+    insufficient siege → siege requirement
+    missing production building → infrastructure requirement
+    unsafe forward position → fortification / relocation requirement
+    technology dependency unmet → research requirement
+
+The requirement is the bridge between perception and policy.
+
+
+22. POLICY: WHAT THE BOT WANTS
+
+Policy answers:
+
+    Given the current situation, what should the AI prefer?
+
+Policy should be relatively stable compared with raw observations.
+
+If the enemy cavalry count flickers from 0 to 1 to 0 because of visibility, policy should not necessarily oscillate in exactly the same way.
+
+Policy can establish floors, ceilings, priorities, and desired composition.
+
+A production dial is one possible policy representation.
+
+The important principle is ownership:
+
+    the policy layer decides what is wanted
+    the executor decides whether and how it can happen
+
+This is the beginning of demand/executor separation.
+
+
+23. AUTHORIZATION: WHAT THE BOT IS ACTUALLY ALLOWED TO DO
+
+A desire is not permission.
+
+This distinction becomes essential in complex systems.
+
+Suppose policy says:
+
+    desired spearmen = 6
+
+That does not mean:
+
+    train six spearmen immediately
+
+The bot may lack resources, production infrastructure, population room, a valid production location, or strategic permission to commit resources.
+
+Authorization is the gate between desire and execution.
+
+A useful conceptual chain is:
+
+    policy demand
+        ↓
+    feasibility
+        ↓
+    capital availability
+        ↓
+    arbitration
+        ↓
+    authorization
+        ↓
+    executor
+
+Not every AI needs every explicit layer as a separate file. But the engineer should know which conceptual responsibility is being performed somewhere.
+
+
+24. EXECUTION: LET THE EXISTING MACHINE EXECUTE
+
+One of the most dangerous temptations when extending a mature AI is to rebuild an executor because the policy layer is easier to understand than the existing machinery.
+
+Do not do this casually.
+
+An established executor may contain years of accumulated assumptions about:
+
+    queueing
+    placement
+    affordability
+    producer availability
+    interruption
+    re-entry
+    resource reservation
+    tactical conditions
+    technology prerequisites
+    unit-state constraints
+
+A new policy layer can often improve the decision without replacing the mechanism that physically carries it out.
+
+That is why the engineering pattern:
+
+    policy → demand → existing executor
+
+is so powerful.
+
+It adds intelligence without unnecessarily destroying proven machinery.
+
+
+25. VERIFICATION: DID THE WORLD CHANGE?
+
+A command is not a result.
+
+This sentence should become instinctive.
+
+The AI can issue a train command.
+The engine can accept the command.
+The producer can become busy.
+The unit can fail to appear because another condition intervened.
+
+Therefore:
+
+    command accepted ≠ world-state completion
+
+Verification closes the loop.
+
+If the desired spearman count was six, the engineer should distinguish:
+
+    demand = 6
+    authorization = true
+    train command issued
+    queue item exists
+    unit completed
+    census now observes six
+
+Those are separate states.
+
+Verification may use runtime logging, state dumps, replay inspection, or direct observation.
+
+The method should be chosen so that a false positive is difficult.
+
+
+26. REASSESSMENT: THE BOT'S MOST IMPORTANT HABIT
+
+Every decision becomes stale.
+
+A threat changes.
+A unit dies.
+A resource is spent.
+A building completes.
+A technology finishes.
+A queue changes.
+A timer expires.
+A previous authorization becomes invalid.
+
+A mature AI therefore closes its control loop:
+
+    observe → classify → decide → authorize → act → verify → observe again
+
+This is the deeper reason timers, heartbeats, state lifecycles, and verification exist.
+
+They are all ways of managing the fact that the world moves after the rule fires.
+
+A bot that cannot reassess becomes a collection of old decisions.
+
+======================================================================
+PART IV — HOW MATURE BOTS ARE ORGANIZED
+======================================================================
+
+27. WHY THERE ARE SO MANY FILES
+
+When a beginner sees an AI with dozens of modules, it is tempting to think each file is simply a convenience for keeping the text shorter.
+
+That is only part of the story.
+
+A mature module often corresponds to a conceptual responsibility:
+
+    constants
+    initialization
+    observations
+    threats
+    economy
+    construction
+    production
+    military state
+    strategy
+    diplomacy / interaction
+    telemetry
+    recovery
+
+The boundary lets the engineer answer:
+
+    Where should I look when this kind of state changes?
+
+But module boundaries are not magical.
+
+The real architecture lives in the dataflow between files.
+
+A tiny module that writes a goal consumed by five other modules may be architecturally more important than a 2,000-line utility library.
+
+Measure architecture by state and authority, not by line count.
+
+
+28. MODULE BOUNDARIES ARE NOT STATE BOUNDARIES
+
+Two files can both write:
+
+    g:attack-state
+
+Nothing in the filesystem prevents it.
+
+If one module thinks 0 means "idle" and another thinks 0 means "authorized," the system has semantic collision.
+
+Even if both understand the value identically, they may disagree about when they are allowed to change it.
+
+Therefore every important shared state should have:
+
+    semantic definition
+    owner
+    writers
+    readers
+    lifecycle
+    initialization
+    invalidation
+    arbitration rules
+    verification
+
+This is the state contract.
+
+The engineer should build these contracts before adding large amounts of behavior.
+
+
+29. INITIALIZATION, MAINTENANCE, POLICY, EXECUTION, TELEMETRY, ARBITRATION, RECOVERY
+
+These labels are not mandatory file names. They are conceptual jobs.
+
+INITIALIZATION establishes defaults.
+
+MAINTENANCE keeps long-lived state coherent.
+
+POLICY decides what should be wanted.
+
+EXECUTION performs feasible engine actions.
+
+TELEMETRY exposes what the system believes is happening.
+
+ARBITRATION resolves competing demands.
+
+RECOVERY restores or abandons state when reality invalidates an assumption.
+
+A single file may perform several jobs in a small AI. In a mature AI they often become more visibly separated.
+
+The engineer's task is to identify the job, not worship the filename.
+
+
+30. PRODUCER AND CONSUMER
+
+A producer creates a state value or effect.
+A consumer uses it.
+
+For example:
+
+    policy rule → writes desired archers
+    production rule → reads desired archers
+
+This separation creates a clean contract.
+
+But it also creates a debugging opportunity.
+
+If desired archers rises to ten and no archers appear, the problem must lie somewhere along the chain:
+
+    writer
+    → stored value
+    → reader
+    → feasibility
+    → authorization
+    → command
+    → queue
+    → completion
+    → verification
+
+This is far easier to debug than one giant rule that tries to perform everything.
+
+Producer/consumer architecture is therefore not just organizational style. It creates traceable causality.
+
+
+31. DIALS: SEPARATING DESIRE FROM FEASIBILITY
+
+A production dial is one of the most important patterns in mature AI design.
+
+Imagine a threat appears.
+
+Policy reacts immediately and says:
+
+    We want two mangonels.
+
+But the production system may need time to determine whether siege production exists, whether resources are available, whether the current queue is occupied, and whether the unit is still strategically appropriate.
+
+A dial lets policy express desire without pretending that desire is execution.
+
+A common idiom is for policy to raise a ceiling and for producers to consume the dial.
+
+Conceptually:
+
+    POLICY
+      ↓
+    desired count
+      ↓
+    PRODUCER
+      ↓
+    feasibility checks
+      ↓
+    train
+      ↓
+    decrement demand / reconcile
+
+Naga provides strong corpus evidence for this style. Its mangonel production behavior demonstrates a policy writer and producer readers around a shared desired-count state, with escrow participation.
+
+Stock demonstrates a different architectural choice in places: some production decisions are made directly in the producer through extensive guards rather than through an explicit demand dial.
+
+Neither should be treated as a universal engine law.
+
+They are different architectural solutions to the same problem.
+
+The engineering question is:
+
+    At what scale does separating desire from execution buy enough clarity to justify the additional state and ownership burden?
+
+
+32. RESERVATION, ESCROW, AND THE DIFFERENCE BETWEEN INTENTION AND MONEY
+
+A bot can want something without being able to pay for it.
+
+It can also decide to reserve resources for something without having physically spent them yet.
+
+These are different states.
+
+A useful accounting vocabulary is:
+
+    policy reserve
+    logical commitment
+    physical escrow
+    authorization
+    execution
+    completion
+
+Do not collapse them.
+
+The engine provides mechanisms around escrow and research/training execution. Shadow provides especially useful evidence of execution accounting, progression pause, interruption, re-entry, and reconciliation.
+
+For example, an escrow state can control whether an engine action is attempted with escrow semantics. That does not by itself prove that the AI has a separate logical commitment ledger.
+
+The engineer must distinguish:
+
+    what the engine tracks
+
+from:
+
+    what the AI's architecture intends to track.
+
+This distinction is critical when transplanting mechanisms from one bot into another.
+
+
+33. OWNERSHIP: THE QUESTION THAT SOLVES MORE BUGS THAN ANOTHER RULE
+
+Ask this whenever a system misbehaves:
+
+    Who owns this state?
+
+If nobody can answer, the architecture is already in trouble.
+
+If three modules claim ownership, the architecture is worse.
+
+Ownership means more than "this file writes it most often."
+
+A true owner should define:
+
+    valid values
+    transitions
+    initialization
+    expiration
+    conflict rules
+    writers
+    authority to override
+    verification
+
+For a production demand dial, policy may own increases while the executor owns consumption. That is a shared lifecycle with asymmetric authority, not necessarily a conflict.
+
+The important thing is to say so explicitly.
+
+
+34. COMPETING WRITERS AND SHARED STATE
+
+Suppose module A writes:
+
+    g:attack-state = 1
+
+Module B later writes:
+
+    g:attack-state = 0
+
+Which one wins?
+
+The source order may decide.
+
+That is not arbitration. It is accidental precedence unless deliberately designed.
+
+A proper authority model answers:
+
+    Who can request a change?
+    Who can authorize it?
+    Who can override another request?
+    Under what conditions?
+    For how long?
+    What happens when the authorization expires?
+
+This becomes particularly important for military state, emergency defense, technology pauses, and production composition.
+
+Never solve competing writers by simply moving one rule lower in the file unless the positional precedence is itself the intended contract and has been documented and tested.
+
+
+35. AUTHORITY AND ARBITRATION
+
+Multiple subsystems can make individually reasonable requests.
+
+Economy wants villagers.
+Military wants spearmen.
+Technology wants a research investment.
+Construction wants a stable.
+Defense wants a tower.
+
+Resources are finite.
+
+The problem is not that one subsystem is wrong.
+
+The problem is that all of them cannot necessarily be satisfied simultaneously.
+
+Arbitration converts competing requirements into an ordered commitment.
+
+A useful conceptual architecture is:
+
+    observations
+        ↓
+    requirements
+        ↓
+    competing demands
+        ↓
+    capital / feasibility analysis
+        ↓
+    arbitration
+        ↓
+    commitment
+        ↓
+    authorization
+        ↓
+    execution
+
+The exact implementation can be simple or sophisticated. What matters is that the conflict has a home.
+
+If conflict resolution is distributed accidentally across unrelated producer guards, the architecture becomes difficult to reason about.
+
+
+36. STATE LIFECYCLES: BIRTH, USE, STALENESS, EXPIRY, RE-ENTRY
+
+Every meaningful state should have a lifecycle.
+
+Ask:
+
+    How is it born?
+    Who can change it?
+    How long is it valid?
+    What makes it stale?
+    What makes it expire?
+    What survives expiry?
+    Can it be paused?
+    How does it resume?
+    What proves it is still valid?
+
+This applies to threat observations, attack authorization, production demands, research intentions, construction requirements, and defensive states.
+
+The lifecycle model prevents a common failure: a value that was correct once becoming permanent simply because nothing ever clears it.
+
+Persistent garbage is one of the most dangerous forms of AI state because it looks stable.
+
+
+37. FAILURE CONTAINMENT AND RECOVERY
+
+A mature AI assumes that plans can become invalid.
+
+Recovery is therefore not an optional afterthought.
+
+A good recovery system can:
+
+    detect stale authorization
+    release obsolete reservations
+    clear impossible requirements
+    preserve useful policy floors
+    pause execution during emergencies
+    resume after guards become valid
+    reinitialize corrupted local state
+    prevent one failed subsystem from poisoning unrelated systems
+
+Shadow's interruption and pause structures are particularly useful study material because they demonstrate that stopping execution does not necessarily mean erasing the strategic state that caused execution to begin.
+
+This is a profound distinction:
+
+    pause ≠ cancel
+
+A pause preserves the possibility of resumption.
+A cancel destroys or invalidates the commitment.
+
+An engineer must know which behavior is intended.
+
+======================================================================
+PART V — THREE ARCHITECTURES WORTH STUDYING
+======================================================================
+
+38. THE STOCK AI: A LARGE HISTORICAL MACHINE
+
+The Stock AI should not be read as a pile of rules.
+
+Read it as accumulated engineering history.
+
+Its size means it contains many generations of solutions, special cases, timing decisions, direct production rules, strategic states, military machinery, and compatibility assumptions.
+
+Its value to an apprentice is precisely that it is not clean.
+
+Clean examples teach syntax.
+
+Large historical systems teach consequences.
+
+When reading Stock, look for:
+
+    initialization blocks
+    timers
+    strategic-number defaults
+    attack state
+    retreat logic
+    production decisions
+    resource guards
+    military state transitions
+    positional jumps
+    recovery behavior
+
+Ask what each region protects.
+
+Do not immediately rewrite a strange pattern because you can imagine a prettier version.
+
+First determine whether the strange code is load-bearing.
+
+
+39. NAGA: MODULARITY, LIBRARIES, AND REUSABLE CONTROL STRUCTURES
+
+Naga is valuable because its architecture makes conceptual boundaries easier to see.
+
+The root load graph reveals a modular philosophy. Initialization loads supporting libraries. Strategy is separated. Buildings have helpers. Threats have their own machinery. Production uses shared state patterns.
+
+Study Naga at three levels.
+
+First, the module level:
+
+    What responsibility does this file appear to have?
+
+Second, the state level:
+
+    What values does it write and what values do its consumers read?
+
+Third, the control level:
+
+    How does execution move through it?
+
+Naga also demonstrates advanced idioms such as computed dispatch, demand dials, construction producer/consumer chains, threat aggregation, and interaction loops.
+
+Do not copy the syntax blindly.
+
+Extract the mechanism.
+
+Then ask whether your AI has the same problem.
+
+
+40. SHADOW: DENSITY, SCALE, AND THE POWER OF A MONOLITH
+
+Shadow demonstrates another possibility.
+
+A very large monolithic source can still implement sophisticated control systems.
+
+The absence of a large load graph does not mean absence of architecture. The architecture is encoded in rule neighborhoods, naming, state conventions, control-flow blocks, timers, and repeated interaction patterns.
+
+Shadow is therefore an excellent apprenticeship environment for forensic reading.
+
+If Naga teaches:
+
+    "Architecture can be made visible through modules,"
+
+Shadow teaches:
+
+    "Architecture can be hidden inside a single rule stream and must be reconstructed from behavior and state."
+
+The two lessons are complementary.
+
+
+41. READING THE SAME PROBLEM IN THREE ARCHITECTURAL DIALECTS
+
+Suppose the problem is "respond to enemy ranged pressure."
+
+In one AI, the answer may be a direct production rule with extensive guards.
+
+In another, it may be:
+
+    threat census
+    → classification
+    → demand dial
+    → producer
+
+In another, it may be buried inside a large military state machine.
+
+The apprentice should learn to translate between these representations.
+
+Do not ask:
+
+    "Which file is the ranged counter file?"
+
+Ask:
+
+    "Where is ranged pressure observed?"
+    "Where is it classified?"
+    "Where does it become a requirement?"
+    "Where is the requirement converted to demand?"
+    "Who arbitrates it?"
+    "Who executes it?"
+    "How is completion observed?"
+
+Those questions survive architectural differences.
+
+
+42. WRITING STYLE AS ENGINEERING EVIDENCE
+
+Experienced authors leave clues in their code.
+
+Naming reveals conceptual groupings.
+
+Repeated prefixes reveal state families.
+
+Comments reveal intended invariants, although comments can be stale.
+
+Rule adjacency reveals control-flow assumptions.
+
+Long guard chains reveal whether a system is direct or mediated.
+
+Helper files reveal repeated abstractions.
+
+One-shot rules reveal initialization boundaries.
+
+Paired enable/fire or pause/resume rules reveal lifecycle design.
+
+A good reader learns to read code shape before understanding every line.
+
+But style is evidence, not proof.
+
+If twenty rules named "attack-*" exist, that strongly suggests a subsystem. It does not prove that all twenty belong to one authority domain.
+
+Always trace state and consumers.
+
+
+43. WHY GOOD ENGINEERS SOMETIMES LEAVE UGLY CODE ALONE
+
+Legacy AI code often contains awkward constructs.
+
+A beginner sees duplication.
+An experienced engineer asks what the duplication is protecting.
+
+Maybe the code compensates for an engine quirk.
+Maybe a jump depends on its exact rule count.
+Maybe another module relies on source order.
+Maybe a timer is intentionally shared across several rates.
+Maybe an apparently redundant guard prevents a transient state.
+
+The rule is not "never refactor."
+
+The rule is:
+
+    understand before simplifying.
+
+A safe refactor preserves observable behavior and architectural invariants, not merely syntax.
+
+======================================================================
+PART VI — THE CORPUS AS A TEXTBOOK
+======================================================================
+
+44. WHAT THE SYMBOL CORPUS TEACHES
+
+The generated symbol corpus is not merely a dictionary.
+
+Its scale — thousands of symbols spanning commands, strategic numbers, categories, operands, and related metadata — gives the apprentice a map of the language surface.
+
+The purpose of studying it is not to memorize 2,296 entries.
+
+The purpose is to learn how to ask questions about a symbol.
+
+For every command or engine-facing construct, determine:
+
+    exact spelling
+    category
+    syntax
+    arity
+    operand types
+    store semantics
+    fact/action classification
+    read/write behavior
+    engine interaction
+    side effects
+    guards
+    completion semantics
+    failure behavior
+    version scope
+    observed idioms
+    common misuse
+    interactions with related commands
+    evidence status
+
+The corpus should be mined for clusters.
+
+Which commands manipulate goals?
+Which query timers?
+Which write engine settings?
+Which are dual fact/action constructs?
+Which participate in production chains?
+Which appear around research escrow?
+Which occur in jump idioms?
+
+That is how a reference corpus becomes engineering knowledge.
+
+
+45. READING A SYMBOL WITHOUT TURNING IT INTO A DICTIONARY ENTRY
+
+Suppose you encounter a command you have never used.
+
+Do not stop at:
+
+    "This command means X."
+
+Ask:
+
+    What problem would require X?
+    What state does X touch?
+    Does X merely request an engine operation or guarantee an effect?
+    What must be true before X?
+    What should be observed afterward?
+    How do mature AIs use it?
+    Is that usage required or conventional?
+
+The final question protects against cargo cult engineering.
+
+A command used in Naga may be useful because Naga solved a problem your bot also has. It may also be a historical artifact specific to Naga's architecture.
+
+Copy the reason, not the appearance.
+
+
+46. COMMAND CONTRACTS AND FAILURE MODES
+
+Every important command should be treated as a contract.
+
+A contract describes:
+
+    inputs
+    reads
+    writes
+    preconditions
+    effects
+    completion
+    failure
+    temporal behavior
+
+For example, an operation that writes a goal should be analyzed separately from an operation that requests a unit train.
+
+The former changes AI state.
+The latter asks the engine to alter world state.
+
+Confusing the two is a category error.
+
+Document 1's command-contract material should be used as the authoritative companion reference while working through this book.
+
+
+47. TIMERS AS CONTROL-SYSTEM COMPONENTS
+
+A timer can implement:
+
+    heartbeat
+    cooldown
+    delayed re-entry
+    periodic census
+    retry
+    timeout
+    staged escalation
+
+That means timer IDs should be treated as architectural resources.
+
+If two modules both assume ownership of the same timer, they may interfere even though neither rule is locally wrong.
+
+Record for every timer:
+
+    owner
+    purpose
+    enabling rules
+    firing rules
+    re-arm rules
+    cadence
+    consumers
+    reset behavior
+
+A timer table is often more informative than reading hundreds of individual timer references.
+
+
+48. GOALS AS SOFTWARE STATE
+
+Goals are deceptively simple.
+
+Because they can hold integers, engineers use them for many purposes:
+
+    counters
+    modes
+    cursors
+    timestamps
+    desired counts
+    bookmarks
+    state machines
+    temporary values
+
+This flexibility is both their strength and their danger.
+
+A goal with a vague name becomes a hidden global variable.
+
+A professional naming discipline therefore describes semantic role, not merely storage type.
+
+A state registry should record:
+
+    goal ID
+    symbolic name
+    semantic type
+    writer
+    reader
+    lifecycle
+    valid range
+    sentinel values
+    reset behavior
+
+
+49. STRATEGIC NUMBERS AS ENGINE-FACING STATE
+
+Strategic numbers deserve special caution because some are engine-defined and some are used as reusable AI-facing slots.
+
+A slot's number alone is not its meaning.
+
+A mature AI may intentionally repurpose a slot under a defined convention.
+
+The engineer must establish:
+
+    whether the SN is engine-owned
+    whether the AI writes it
+    whether the AI reads it
+    whether another system changes it
+    what version assumptions apply
+
+Naga's threat aliases provide concrete examples of symbolic names mapped onto SN IDs for infantry, archers, cavalry, siege, monks, and related categories.
+
+Again: corpus usage establishes a usage pattern. It does not automatically establish universal semantics for every context.
+
+
+50. JUMPS AS A NATIVE CONTROL-FLOW LANGUAGE
+
+Once the reader becomes comfortable with jumps, an important realization occurs:
+
+The .per language has a control-flow vocabulary richer than its surface syntax suggests.
+
+There are:
+
+    forward guard-skips
+    negative search loops
+    computed dispatch
+    direct jumps
+    bookmarks
+    positional returns
+
+These mechanisms form a low-level control language.
+
+The engineer should document jump regions like code documents function boundaries in another language.
+
+For every nontrivial jump region record:
+
+    source rule
+    target rule
+    delta
+    purpose
+    guard
+    assumptions about intervening rules
+    preprocessor constraints
+    edit sensitivity
+
+A jump without a documented invariant is technical debt with a numeric disguise.
+
+
+51. COMMON IDIOMS AND WHAT THEY REVEAL
+
+The corpus repeatedly demonstrates patterns such as:
+
+    true → initialization → disable-self
+    timer-triggered → work → re-arm
+    observation → latch → timestamp
+    low threshold → enter
+    high threshold → exit
+    index → inspect → increment → negative jump
+    cheap absence test → forward skip
+    candidate setup → dispatch table → return
+    policy demand → producer feasibility → execution
+    escrow spend → demand reconciliation
+    pause → preserve authorization → resume after recheck
+    census → classification → requirement → policy
+
+These are the alphabet of experienced .per engineering.
+
+Once they become familiar, reading a large AI becomes less like translating every sentence and more like recognizing words.
+
+That is fluency.
+
+Engineering begins when you know when not to use the word.
+
+
+52. NEGATIVE KNOWLEDGE: LEARNING FROM WHAT DOES NOT WORK
+
+An expert guide must teach failure, not just successful patterns.
+
+Important failure classes include:
+
+    wrong store prefix
+    constant substituted for state
+    duplicate writer
+    missing reader
+    missing re-arm
+    stale latch
+    expired state treated as current
+    direct execution bypassing policy
+    demand with no executor
+    executor with no demand contract
+    escrow without reconciliation
+    source-order dependency hidden in a jump
+    jump across conditional compilation
+    unbounded negative loop
+    initialization occurring after maintenance
+    cancellation mistaken for pause
+    command accepted mistaken for completion
+    world completion assumed without verification
+
+A system becomes easier to engineer when failure modes have names.
+
+======================================================================
+PART VII — BECOMING AN ENGINEER
+======================================================================
+
+53. THE ELEVEN FAILURES OF LOCAL REASONING
+
+Local reasoning means looking at a rule and deciding whether it is correct without tracing its surroundings.
+
+It fails repeatedly in mature AIs.
+
+Failure 1 — The correct command reads the wrong store.
+
+Failure 2 — The producer is correct but its demand writer never fires.
+
+Failure 3 — The demand is correct but another writer lowers it later.
+
+Failure 4 — The producer issues a command but the world never reaches completion.
+
+Failure 5 — The world completes but verification state is never updated.
+
+Failure 6 — A timer fires correctly once but is never re-armed.
+
+Failure 7 — A jump was correct before a harmless-looking insertion.
+
+Failure 8 — A threat classifier is correct but its state expires too quickly.
+
+Failure 9 — A paused authorization is accidentally canceled.
+
+Failure 10 — A resource reservation is logically present but physical escrow is not.
+
+Failure 11 — Two modules use the same state name with different meanings.
+
+The common cause is the same:
+
+    the bug is not inside the line being inspected.
+
+The solution is to widen the trace.
+
+
+54. ENGINEERING MYSTERIES
+
+A good apprentice should learn to enjoy the strange behavior of a bot.
+
+Consider these cases.
+
+MYSTERY A — "It worked once."
+
+A strategy activates correctly at the beginning and then never responds again.
+
+First suspect: heartbeat without re-arm.
+
+MYSTERY B — "The number is right, but the bot behaves as if it is zero."
+
+Trace the store prefix.
+
+MYSTERY C — "The bot keeps wanting more units forever."
+
+Trace the producer's consumption and reconciliation of demand.
+
+MYSTERY D — "The attack toggles every few seconds."
+
+Check hysteresis, cooldowns, and competing authority before rewriting the attack logic.
+
+MYSTERY E — "Adding one innocent rule broke an unrelated system."
+
+Look for positional jump dependence.
+
+MYSTERY F — "The command appears in the log, but the expected unit never arrives."
+
+Separate command acceptance from world-state completion.
+
+MYSTERY G — "The bot suddenly spends all its resources on one priority."
+
+Trace competing demands, capital arbitration, escrow, and priority ownership.
+
+MYSTERY H — "The bot remembers an enemy that has not been seen for ages."
+
+Trace latch timestamps and expiry.
+
+These mysteries are not tricks. They are training for the exact moment an AI behaves differently from the engineer's mental model.
+
+
+55. HOW TO READ AN UNFAMILIAR AI WITHOUT GETTING LOST
+
+Never begin with the largest file.
+
+Begin at the root.
+
+Phase 1 — Identify the entry point.
+
+Phase 2 — Record the load graph.
+
+Phase 3 — Identify constants and initialization.
+
+Phase 4 — Build a state inventory.
+
+Phase 5 — Find major writer families.
+
+Phase 6 — Find consumers.
+
+Phase 7 — Reconstruct control loops and timers.
+
+Phase 8 — Trace one important behavior end to end.
+
+Phase 9 — Find competing writers and authority conflicts.
+
+Phase 10 — Verify the reconstructed model against runtime or replay evidence.
+
+The first behavior to trace should be narrow enough to finish.
+
+For example:
+
+    enemy cavalry
+        → cavalry classification
+        → counter requirement
+        → desired spearmen
+        → production reader
+        → train command
+        → completed spearman
+
+One complete trace teaches more than reading 5,000 lines without a model.
+
+
+56. HOW TO DESIGN A BOT FROM A BLANK FOLDER
+
+A blank project is not a blank page.
+
+It is an opportunity to define contracts before accidents become architecture.
+
+Start with requirements.
+
+Then define domains.
+
+Then define state.
+
+Then define ownership.
+
+Then define observation.
+
+Then define policy.
+
+Then define execution.
+
+Then define verification.
+
+Then define recovery.
+
+Then choose modules.
+
+Then define load order.
+
+Then implement the smallest closed loop.
+
+The first useful loop should be end-to-end:
+
+    observation → decision → command → world effect → verification
+
+A system that has ten policy rules but no verified world effect is less complete than a system with one fully closed loop.
+
+
+57. HOW TO ADD A SUBSYSTEM TO A LIVING BOT
+
+Do not start by writing rules.
+
+Start by finding the existing mechanism.
+
+Ask:
+
+    Does the bot already observe this?
+    Does it already classify it?
+    Does it already have a production executor?
+    Does it already have a resource allocator?
+    Does it already have a timer?
+    Does it already have recovery?
+
+Reuse proven mechanisms wherever possible.
+
+Then define the new boundary.
+
+A strong extension often looks like:
+
+    existing observation
+        ↓
+    new classification / policy
+        ↓
+    existing demand state or a new declared state
+        ↓
+    existing executor
+        ↓
+    existing verification
+
+This is safer than duplicating the entire pipeline.
+
+
+58. HOW TO REFACTOR WITHOUT DESTROYING LOAD-BEARING BEHAVIOR
+
+Before changing mature code, build a baseline.
+
+Record:
+
+    parser validity
+    load graph
+    rule counts
+    constants
+    goals
+    SNs
+    timers
+    jump regions
+    writer/reader relationships
+    representative runtime behavior
+    replay evidence
+
+Then change one architectural boundary at a time.
+
+After each change, verify:
+
+    syntax
+    structural integrity
+    state ownership
+    control flow
+    runtime behavior
+    world-state result
+
+Never use a smaller diff as a substitute for a safer diff.
+
+A ten-line change can be more dangerous than a thousand-line addition if those ten lines alter a jump target or shared state owner.
+
+
+59. HOW TO PROVE A CHANGE WORKED
+
+Verification should be designed before implementation.
+
+For every change write a hypothesis:
+
+    If condition X occurs, state Y should change from A to B.
+
+Then define the observation:
+
+    log
+    state dump
+    runtime marker
+    replay count
+    world-state event
+
+Then define the failure interpretation.
+
+Example:
+
+    Hypothesis:
+    enemy cavalry classification causes anti-cavalry demand to rise.
+
+    Expected trace:
+    cavalry observation > 0
+    → classification active
+    → demand goal increases
+    → producer sees demand
+    → train command issued
+    → completed counter unit observed
+
+If the trace stops between classification and demand, the policy bridge failed.
+
+If demand rises but production does not act, the executor path failed.
+
+If production acts but completion never occurs, the engine/world path failed.
+
+This is causal debugging.
+
+
+60. FROM SYNTAX TO SYSTEMS: THE THREE BOT APPRENTICESHIP
+
+A useful apprenticeship model has three stages.
+
+BOT ONE — FLUENCY
+
+The apprentice learns the language.
+
+They can write rules, use conditions and actions, manipulate goals, understand SNs, use timers, load modules, and avoid common parser mistakes.
+
+The test is:
+
+    Can you write valid .per without constantly consulting a syntax reference?
+
+BOT TWO — SYSTEMS THINKING
+
+The apprentice learns to build interacting subsystems.
+
+They can separate observation, policy, execution, and verification. They can define state ownership and trace data across files.
+
+The test is:
+
+    Can you explain why the bot behaves as a system rather than as a collection of rules?
+
+BOT THREE — ENGINEERING
+
+The apprentice can enter an unfamiliar AI, reconstruct it, change it, and prove the change.
+
+They can recognize idioms, infer hidden contracts, distinguish evidence from assumption, preserve load-bearing behavior, and design new mechanisms from established patterns.
+
+The test is:
+
+    Can you make a significant change without needing someone else to tell you where the architecture is?
+
+That is the graduate standard of this book.
+
+
+61. INTUITION DRILLS
+
+The following questions should become automatic.
+
+SEE THIS:
+
+    (disable-self)
+
+ASK THIS:
+
+    Is this initialization? What must happen before maintenance?
+
+SEE THIS:
+
+    (timer-triggered 7)
+
+ASK THIS:
+
+    Who enabled timer 7? Who re-arms it?
+
+SEE THIS:
+
+    (up-jump-rule 44)
+
+ASK THIS:
+
+    What exactly is being skipped? What happens if I insert a rule?
+
+SEE THIS:
+
+    (up-jump-rule -2)
+
+ASK THIS:
+
+    Where is the loop's progress measure and bound?
+
+SEE THIS:
+
+    (up-modify-goal X c:max Y)
+
+ASK THIS:
+
+    Who owns X? Is this policy demand? Who consumes it?
+
+SEE THIS:
+
+    (count g:X)
+
+ASK THIS:
+
+    Who writes X? When does it expire? Is it really the intended goal?
+
+SEE THIS:
+
+    (up-train ...)
+
+ASK THIS:
+
+    What proves that training actually completed?
+
+SEE THIS:
+
+    two files writing the same goal
+
+ASK THIS:
+
+    Where is authority defined?
+
+SEE THIS:
+
+    a comment saying "temporary"
+
+ASK THIS:
+
+    What actually clears it?
+
+SEE THIS:
+
+    a module called recovery
+
+ASK THIS:
+
+    What state can become invalid, and what evidence triggers recovery?
+
+These questions turn code reading into engineering observation.
+
+
+62. GRADUATION EXAMINATION
+
+The final exercise should not be a syntax quiz.
+
+Give the apprentice an unfamiliar AI.
+
+Do not tell them its architecture.
+Do not tell them which file contains the important mechanism.
+Do not tell them which behavior is broken.
+
+Require the apprentice to produce:
+
+1. root/load graph
+2. module responsibility map
+3. state inventory
+4. writer/reader matrix
+5. timer inventory
+6. jump/control-flow map
+7. evidence classification
+8. one complete observation-to-world trace
+9. identification of competing writers
+10. proposed ownership boundaries
+11. a new requirement
+12. architecture for satisfying it
+13. implementation
+14. verification plan
+15. failure injection
+16. recovery behavior
+17. runtime or replay evidence
+18. explanation of what remains uncertain
+
+The final system should be tested under interference.
+
+Do not test only:
+
+    threat → counter unit
+
+Test:
+
+    threat + low resources
+    threat + technology demand
+    threat + construction demand
+    threat + existing production queue
+    threat + emergency defense
+    threat disappears before production completes
+    authorization expires during execution
+    competing demand appears
+    executor fails to complete
+    stale observation remains
+
+This is where engineering competence becomes visible.
+
+
+63. THE PROFESSIONAL STANDARD
+
+The finished engineer no longer reads .per from left to right and hopes understanding emerges.
+
+They read it through several lenses.
+
+LANGUAGE LENS
+
+What does the engine literally accept?
+
+STATE LENS
+
+Where does information live, who owns it, and how long is it valid?
+
+CONTROL LENS
+
+How does execution move through the rule stream?
+
+DATAFLOW LENS
+
+Where does an observation go next?
+
+AUTHORITY LENS
+
+Who is allowed to make the decision?
+
+RESOURCE LENS
+
+What is desired, committed, reserved, spent, and verified?
+
+TEMPORAL LENS
+
+What happens now, later, periodically, after expiry, or after interruption?
+
+FAILURE LENS
+
+What happens when an assumption becomes false?
+
+EVIDENCE LENS
+
+What do we actually know, and what are we merely inferring?
+
+ARCHITECTURE LENS
+
+Why is the system divided this way?
+
+The mature engineer can move among these lenses without losing the concrete code.
+
+That is the purpose of this book.
+
+======================================================================
+APPENDIX A — DESIGN VOCABULARY
+======================================================================
+
+ACTION — A construct that changes AI or engine state.
+
+AUTHORIZATION — A state indicating that a requested action is permitted to proceed.
+
+CAPABILITY GAP — A difference between required capability and currently available capability.
+
+CENSUS — Aggregation of observations into counts or measurements.
+
+CLASSIFICATION — Transformation of observations into meaningful categories or states.
+
+COMMITMENT — A logical decision that the system intends to honor, distinct from physical execution.
+
+CONSUMER — A rule family that reads state produced by another component.
+
+CONTROL LOOP — Observation followed by decision, action, verification, and reassessment.
+
+COOLDOWN — A temporal guard preventing immediate re-entry after a transition.
+
+DEMAND DIAL — AI state expressing desired production or capacity, consumed by an executor.
+
+DIRECT — Evidence observed directly in a corpus or runtime artifact.
+
+ESCROW — Resource accounting associated with an engine action or execution path.
+
+EXPIRY — Transition that makes previously valid state no longer authoritative.
+
+FACT — A predicate or engine observation used as rule evidence.
+
+HEARTBEAT — A periodically re-triggered control cycle.
+
+HYSTERESIS — Different thresholds for entering and leaving a state.
+
+INFERRED — Reasoned interpretation not directly demonstrated.
+
+INITIALIZATION — One-time establishment of starting state.
+
+LATCH — Persistent copy of volatile information retained beyond the immediate observation.
+
+MAINTENANCE — Ongoing rules that preserve or update established state.
+
+MODULE — A source-level organizational unit with a conceptual responsibility; not automatically an isolated state domain.
+
+OBSERVATION — Evidence about the current or recently observed world.
+
+ONE-SHOT — A rule or operation intended to occur once.
+
+OWNER — Component responsible for the semantic authority and lifecycle of a state value.
+
+POLICY — Rules deciding what should be wanted or preferred.
+
+PRODUCER — A component that creates a state value or physical effect.
+
+REASSESSMENT — Re-evaluation after state or world conditions change.
+
+RECOVERY — Mechanism for restoring coherence after invalidation or interruption.
+
+RE-ENTRY — Returning to an activity after interruption, with guards rechecked.
+
+REQUIREMENT — An actionable statement of needed capability or state.
+
+RESERVATION — Intentional allocation of resources or capacity toward a future action.
+
+STRATEGIC NUMBER — Engine-facing numeric state or reusable AI strategic-number slot.
+
+TEMPORAL GUARD — A condition involving elapsed time, timer state, freshness, or cooldown.
+
+TELEMETRY — Instrumentation exposing internal state for diagnosis or verification.
+
+VERIFICATION — Evidence that the intended state or world effect actually occurred.
+
+======================================================================
+APPENDIX B — THE ENGINEER'S TRACE SHEET
+======================================================================
+
+When investigating any important behavior, write this down.
+
+BEHAVIOR:
+
+WORLD OBSERVATION:
+
+SOURCE OF OBSERVATION:
+
+CLASSIFICATION:
+
+STATE WRITTEN:
+
+STATE OWNER:
+
+STATE WRITERS:
+
+STATE READERS:
+
+STATE LIFETIME:
+
+REQUIREMENT:
+
+POLICY DECISION:
+
+CAPITAL / RESOURCE EFFECT:
+
+AUTHORIZATION:
+
+EXECUTOR:
+
+ENGINE COMMAND:
+
+EXPECTED WORLD EFFECT:
+
+VERIFICATION OBSERVATION:
+
+RECOVERY IF EFFECT FAILS:
+
+REASSESSMENT TRIGGER:
+
+EVIDENCE LEVEL:
+
+KNOWN UNCERTAINTIES:
+
+This sheet is intentionally repetitive. Repetition is useful because it forces the engineer to expose missing links.
+
+======================================================================
+APPENDIX C — EVIDENCE AND VERIFICATION CHECKLISTS
+======================================================================
+
+STATIC CHECK
+
+[ ] root identified
+[ ] loads resolved
+[ ] preprocessing understood
+[ ] parentheses balanced
+[ ] symbols resolved
+[ ] goal/SN prefixes checked
+[ ] duplicate writers identified
+[ ] timers inventoried
+[ ] jumps audited
+[ ] jump regions protected from unsafe edits
+
+SEMANTIC CHECK
+
+[ ] state meaning defined
+[ ] writer identified
+[ ] readers identified
+[ ] lifecycle defined
+[ ] initialization defined
+[ ] expiry defined
+[ ] authority defined
+[ ] competing demands identified
+
+RUNTIME CHECK
+
+[ ] expected rule fires
+[ ] expected state changes
+[ ] command is issued
+[ ] engine accepts command
+[ ] physical/world effect occurs
+[ ] effect is observed
+[ ] state reconciles
+[ ] no stale state remains
+[ ] no competing writer undoes the result
+
+REPLAY CHECK
+
+[ ] relevant event exists in replay
+[ ] timestamp is known
+[ ] expected state transition is observable or inferable
+[ ] production consequence is visible
+[ ] competing event is accounted for
+[ ] conclusion is labeled with appropriate evidence status
+
+======================================================================
+APPENDIX D — RECOMMENDED PRACTICE PROJECTS
+======================================================================
+
+PROJECT 1 — FIRST RULE
+
+Create a minimal AI that initializes one state value, changes it under a condition, and logs the transition.
+
+Goal: learn the rule/pass/state model.
+
+PROJECT 2 — TIMER HEARTBEAT
+
+Build a periodic counter with explicit enable, trigger, and re-arm logic.
+
+Goal: understand temporal control.
+
+PROJECT 3 — LATCHED OBSERVATION
+
+Take a volatile observation, copy it to persistent AI state, timestamp it, and expire it.
+
+Goal: understand state lifetime.
+
+PROJECT 4 — BOUNDED SEARCH
+
+Scan a finite player or index domain with a goal cursor and negative jump.
+
+Goal: understand native looping and prove termination.
+
+PROJECT 5 — DEMAND/EXECUTOR
+
+Create a policy dial and an executor that consumes it only when feasibility conditions hold.
+
+Goal: separate desire from execution.
+
+PROJECT 6 — AUTHORIZATION
+
+Add a competing demand and an arbitration rule that decides which demand receives permission.
+
+Goal: understand authority.
+
+PROJECT 7 — VERIFIED PRODUCTION
+
+Connect policy demand to a real production action and verify completion in runtime or replay evidence.
+
+Goal: close the control loop.
+
+PROJECT 8 — RECOVERY
+
+Interrupt the activity after authorization but before completion. Resume only after rechecking guards.
+
+Goal: distinguish pause, cancel, and re-entry.
+
+PROJECT 9 — FORENSIC RECONSTRUCTION
+
+Take an unfamiliar AI and reconstruct its root, modules, state, timers, jumps, and one complete behavior without changing the source.
+
+Goal: learn to read before editing.
+
+PROJECT 10 — ENGINEERING CHANGE
+
+Add a new capability requirement while preserving existing production, resource, and military behavior. Produce a written state/authority contract and verification evidence.
+
+Goal: demonstrate independent engineering.
+
+======================================================================
+FINAL WORD
+======================================================================
+
+The novice eventually learns what a rule is.
+
+Then they learn what a timer is, what a goal is, what an SN is, what a jump is, what a producer is, what a dial is, what a module is.
+
+Those are necessary discoveries, but they are not the destination.
+
+The destination is a different way of looking.
+
+A line of .per stops being merely a line of .per.
+
+It becomes a state transition.
+
+A state transition becomes part of a lifecycle.
+
+The lifecycle becomes part of a subsystem.
+
+The subsystem becomes one participant in an authority structure.
+
+The authority structure becomes part of a control loop.
+
+The control loop becomes part of the bot's architecture.
+
+And the architecture becomes something the engineer can inspect, question, change, and prove.
+
+That is the progression this apprenticeship is designed to produce:
+
+    from syntax
+    to idiom
+    to pattern
+    to mechanism
+    to state
+    to subsystem
+    to architecture
+    to engineering judgment.
+
+The final skill is not knowing every command.
+
+It is knowing what question to ask when you encounter a command you have never seen before.
+
+It is knowing where a decision came from.
+
+It is knowing who owns it.
+
+It is knowing what happens when reality disagrees with it.
+
+And, most importantly, it is knowing how to prove what the machine actually did.
+
+That is when the reader has stopped merely writing .per.
+
+That is when the reader has become a .per engineer.
