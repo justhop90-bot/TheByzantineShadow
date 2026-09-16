@@ -4,31 +4,28 @@
 ; ============================================================
 ;
 ; Authority: issue engine construction commands only after construction
-; authorization, escrow state, and placement validity are present.
+; authorization, escrow commitment, and placement validity are present.
 ;
-; Shadow-derived engine contract:
-;   up-can-build -> up-build
-; with the escrow-state goal passed as the engine escrow mode.
+; IMPORTANT DISTINCTION:
+;   BYZ-ESCROW-STATE = lifecycle state
+;   BYZ-ESCROW-MODE  = engine command mode
 ;
-; Sources document that up-build takes placement type, escrow-state goal,
-; and building ID; place-point uses the current target point. Each build
-; command below therefore has its corresponding up-can-build guard.
+; The two must never be conflated. Shadow's gl-escrow-state is a command
+; mode passed to up-build; the lifecycle/commitment state is a separate
+; control concept in this Byzantine implementation.
 ; ============================================================
 
-; ------------------------------------------------------------
-; INITIALIZATION
-; ------------------------------------------------------------
 (defrule
     (goal BYZ-EXECUTION-STATE -1)
 =>
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-IDLE)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-IDLE)
+    (set-goal BYZ-ESCROW-MODE BYZ-ESCROW-EXCLUDED)
 )
 
 ; ------------------------------------------------------------
 ; PREPARE ESCROW-INCLUSIVE EXECUTION
 ; ------------------------------------------------------------
-; The escrow mode is a command parameter, not an escrow balance.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
     (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-GRANTED)
@@ -36,25 +33,23 @@
     (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-IDLE)
 =>
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-INCLUDED)
+    (set-goal BYZ-ESCROW-MODE BYZ-ESCROW-INCLUDED)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
 )
 
 ; ------------------------------------------------------------
 ; NORMAL-PLACEMENT EXECUTION
 ; ------------------------------------------------------------
-; Current build item is a goal value; each engine object is therefore
-; dispatched through a target-specific rule rather than pretending that
-; a goal value can be passed as a dynamic object constant.
+; Each engine command has its corresponding up-can-build guard.
 
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM house)
-    (up-can-build BYZ-ESCROW-STATE c:< house)
+    (up-can-build BYZ-ESCROW-MODE c:< house)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< house)
+    (up-build place-normal BYZ-ESCROW-MODE c:< house)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -64,9 +59,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM barracks)
-    (up-can-build BYZ-ESCROW-STATE c:< barracks)
+    (up-can-build BYZ-ESCROW-MODE c:< barracks)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< barracks)
+    (up-build place-normal BYZ-ESCROW-MODE c:< barracks)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -76,9 +71,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM lumber-camp)
-    (up-can-build BYZ-ESCROW-STATE c:< lumber-camp)
+    (up-can-build BYZ-ESCROW-MODE c:< lumber-camp)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< lumber-camp)
+    (up-build place-normal BYZ-ESCROW-MODE c:< lumber-camp)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -88,9 +83,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM mill)
-    (up-can-build BYZ-ESCROW-STATE c:< mill)
+    (up-can-build BYZ-ESCROW-MODE c:< mill)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< mill)
+    (up-build place-normal BYZ-ESCROW-MODE c:< mill)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -100,9 +95,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM farm)
-    (up-can-build BYZ-ESCROW-STATE c:< farm)
+    (up-can-build BYZ-ESCROW-MODE c:< farm)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< farm)
+    (up-build place-normal BYZ-ESCROW-MODE c:< farm)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -112,9 +107,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM mining-camp)
-    (up-can-build BYZ-ESCROW-STATE c:< mining-camp)
+    (up-can-build BYZ-ESCROW-MODE c:< mining-camp)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< mining-camp)
+    (up-build place-normal BYZ-ESCROW-MODE c:< mining-camp)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -124,9 +119,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM archery-range)
-    (up-can-build BYZ-ESCROW-STATE c:< archery-range)
+    (up-can-build BYZ-ESCROW-MODE c:< archery-range)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< archery-range)
+    (up-build place-normal BYZ-ESCROW-MODE c:< archery-range)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -136,9 +131,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM stable)
-    (up-can-build BYZ-ESCROW-STATE c:< stable)
+    (up-can-build BYZ-ESCROW-MODE c:< stable)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< stable)
+    (up-build place-normal BYZ-ESCROW-MODE c:< stable)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -148,9 +143,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM blacksmith)
-    (up-can-build BYZ-ESCROW-STATE c:< blacksmith)
+    (up-can-build BYZ-ESCROW-MODE c:< blacksmith)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< blacksmith)
+    (up-build place-normal BYZ-ESCROW-MODE c:< blacksmith)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -160,9 +155,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM market)
-    (up-can-build BYZ-ESCROW-STATE c:< market)
+    (up-can-build BYZ-ESCROW-MODE c:< market)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< market)
+    (up-build place-normal BYZ-ESCROW-MODE c:< market)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -172,9 +167,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM monastery)
-    (up-can-build BYZ-ESCROW-STATE c:< monastery)
+    (up-can-build BYZ-ESCROW-MODE c:< monastery)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< monastery)
+    (up-build place-normal BYZ-ESCROW-MODE c:< monastery)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -184,9 +179,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM university)
-    (up-can-build BYZ-ESCROW-STATE c:< university)
+    (up-can-build BYZ-ESCROW-MODE c:< university)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< university)
+    (up-build place-normal BYZ-ESCROW-MODE c:< university)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -196,9 +191,9 @@
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
     (goal BYZ-CURRENT-BUILD-ITEM castle)
-    (up-can-build BYZ-ESCROW-STATE c:< castle)
+    (up-can-build BYZ-ESCROW-MODE c:< castle)
 =>
-    (up-build place-normal BYZ-ESCROW-STATE c:< castle)
+    (up-build place-normal BYZ-ESCROW-MODE c:< castle)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -206,18 +201,17 @@
 ; ------------------------------------------------------------
 ; POINT-PLACEMENT EXECUTION
 ; ------------------------------------------------------------
-; The target-point pipeline is owned by Module 07. The third up-build
-; argument remains escrow state; the current target point is supplied by
-; the engine's point-placement state.
+; The target-point pipeline is owned by Module 07. up-build place-point
+; consumes the current target point; its third argument remains escrow mode.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
     (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-POINT)
     (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
     (goal BYZ-CURRENT-BUILD-ITEM mining-camp)
-    (up-can-build BYZ-ESCROW-STATE c:< mining-camp)
+    (up-can-build BYZ-ESCROW-MODE c:< mining-camp)
 =>
-    (up-build place-point BYZ-ESCROW-STATE c:< mining-camp)
+    (up-build place-point BYZ-ESCROW-MODE c:< mining-camp)
     (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
     (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
 )
@@ -235,9 +229,8 @@
 )
 
 ; INVARIANTS:
+; lifecycle state and engine escrow mode are separate goals
 ; every build command has an up-can-build guard
-; execution never chooses the strategic target
-; execution never verifies completion
-; execution never releases escrow
+; execution never verifies completion or releases escrow
 ; builder counts remain policy-unassigned
 ; ============================================================
