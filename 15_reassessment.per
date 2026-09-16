@@ -1,0 +1,87 @@
+```lisp
+; ============================================
+; AEGIS
+; 15_reassessment.per
+; ============================================
+;
+; REASSESSMENT
+;
+; Responsibility:
+;
+;   Close a terminal transaction only after
+;   its result and escrow release are observed.
+;
+; Lifecycle boundary:
+;
+;   TERMINAL RESULT
+;        ↓
+;   ESCROW RELEASED
+;        ↓
+;   RECOVERY CLEARED
+;        ↓
+;   TRANSACTION IDLE
+;        ↓
+;   STRATEGIC CONTROL AVAILABLE
+;
+; This module does NOT:
+;
+;   - execute engine commands
+;   - modify engine escrow
+;   - release engine escrow
+;   - grant authority
+;   - determine execution success
+;   - create a new objective
+;   - select a strategy
+;
+; It establishes the clean boundary at which
+; the next objective cycle may begin.
+;
+; ============================================
+
+
+; ============================================
+; SUCCESSFUL TRANSACTION -> REASSESSMENT
+; ============================================
+;
+; A successful transaction may be closed only
+; after:
+;
+;   - verification succeeded
+;   - engine escrow is actually released
+;
+; ============================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+    (goal AEGIS-VERIFICATION AEGIS-VERIFIED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+=>
+    (set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+    (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+    (set-goal AEGIS-VERIFICATION AEGIS-UNVERIFIED)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+)
+
+
+; ============================================
+; FAILED TRANSACTION -> REASSESSMENT
+; ============================================
+;
+; A failed transaction may be closed only
+; after recovery has observed the release and
+; declared recovery CLEARED.
+;
+; ============================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+    (goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-CLEARED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+=>
+    (set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+    (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+    (set-goal AEGIS-VERIFICATION AEGIS-UNVERIFIED)
+    (set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+)
+```
