@@ -8,7 +8,7 @@
 ; limits, and builder counts remain intentionally unassigned.
 ; ============================================================
 
-; Construction registers
+; Construction
 (defconst BYZ-CONSTRUCTION-STATE 522)
 (defconst BYZ-CURRENT-BUILD-ITEM 523)
 (defconst BYZ-BUILD-PROGRESS 524)
@@ -37,7 +37,7 @@
 (defconst BYZ-REQUEST-INACTIVE 0)
 (defconst BYZ-REQUEST-ACTIVE 1)
 
-; Placement registers and values
+; Placement
 (defconst BYZ-PLACEMENT-STATE 541)
 (defconst BYZ-TARGET-STATE 544)
 (defconst BYZ-PLACE-NORMAL 0)
@@ -51,7 +51,7 @@
 (defconst BYZ-TARGET-VALID 5)
 (defconst BYZ-TARGET-INVALID 6)
 
-; Verification registers and values
+; Verification
 (defconst BYZ-VERIFY-STATE 545)
 (defconst BYZ-VERIFY-NOT-STARTED 0)
 (defconst BYZ-VERIFY-PENDING 1)
@@ -61,7 +61,7 @@
 (defconst BYZ-VERIFY-CONTRADICTED 5)
 (defconst BYZ-VERIFY-RECONCILE 6)
 
-; Recovery register and values
+; Recovery
 (defconst BYZ-RECOVERY-STATE 542)
 (defconst BYZ-RECOVERY-NONE 0)
 (defconst BYZ-RECOVERY-DETECTED 1)
@@ -73,12 +73,16 @@
 (defconst BYZ-RECOVERY-CANCELLED 7)
 (defconst BYZ-RECOVERY-COMPLETE 8)
 
-; Escrow registers and values
+; Escrow
 (defconst BYZ-ESCROW-STATE 534)
 (defconst BYZ-ESCROW-RELEASE-REQUEST 535)
 (defconst BYZ-ESCROW-COMMIT-REQUEST 536)
 (defconst BYZ-ESCROW-RECONCILIATION 537)
 (defconst BYZ-ESCROW-POLICY-VALUE 538)
+(defconst BYZ-ESCROW-POLICY-FOOD 548)
+(defconst BYZ-ESCROW-POLICY-WOOD 549)
+(defconst BYZ-ESCROW-POLICY-GOLD 550)
+(defconst BYZ-ESCROW-POLICY-STONE 551)
 (defconst BYZ-ESCROW-IDLE 0)
 (defconst BYZ-ESCROW-REQUESTED 1)
 (defconst BYZ-ESCROW-RESERVING 2)
@@ -99,12 +103,12 @@
 (defconst BYZ-ESCROW-RECONCILE-CONFIRMED 2)
 (defconst BYZ-ESCROW-RECONCILE-CONTRADICTED 3)
 
-; Authority register and values
+; Authority
 (defconst BYZ-AUTHORITY-STATE 539)
 (defconst BYZ-AUTHORITY-DENIED 0)
 (defconst BYZ-AUTHORITY-GRANTED 1)
 
-; Execution registers and values
+; Execution
 (defconst BYZ-EXECUTION-STATE 546)
 (defconst BYZ-EXECUTION-PENDING 547)
 (defconst BYZ-EXECUTION-IDLE 0)
@@ -113,7 +117,7 @@
 (defconst BYZ-EXECUTION-PENDING-VALUE 3)
 (defconst BYZ-EXECUTION-FAILED 4)
 
-; Requirement readiness values
+; Requirements
 (defconst BYZ-REQUIREMENTS-NOT-READY 0)
 (defconst BYZ-REQUIREMENTS-READY 1)
 
