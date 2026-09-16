@@ -1,4 +1,4 @@
-# Shadow DC7 — Live Control-Flow Graph + Escrow Path Trace v0.1
+# Shadow DC7 — Live Control-Flow Graph + Escrow Path Trace v0.2
 
 ## Forensic basis
 - Historical source commit: `1d9f45b3b9ac03adc24103df2b21c84b92a45fb6`
