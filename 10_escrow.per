@@ -3,23 +3,15 @@
 ; MODULE 10 -- ESCROW
 ; ============================================================
 ;
-; Authority:
-;   Actual engine escrow lifecycle for Byzantine construction.
+; Authority: protected-capital lifecycle for an active obligation.
 ;
-; Escrow protects an active obligation. It does not select strategy,
-; grant execution authority, issue construction commands, or declare
-; construction complete.
+; This module owns escrow state transitions and reconciliation. It does
+; not choose strategy, assign escrow percentages, grant construction
+; authority, issue construction commands, or declare construction done.
 ;
-; Critical invariant:
-;   release command != release completion
-;
-; Numeric escrow percentages/caps and timing policy are supplied by
-; upstream policy. This module never invents them.
+; Numeric escrow policy remains external. Until a policy has supplied
+; engine-valid percentages/caps, this module MUST NOT invent them.
 ; ============================================================
-
-; ------------------------------------------------------------
-; INITIALIZATION
-; ------------------------------------------------------------
 
 (defrule
     (goal BYZ-ESCROW-STATE -1)
@@ -31,12 +23,8 @@
 )
 
 ; ------------------------------------------------------------
-; REQUESTED -> RESERVING
+; RESERVATION REQUEST
 ; ------------------------------------------------------------
-;
-; An upstream construction transaction requests protected capital.
-; No engine mutation occurs merely because the request exists.
-
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
     (goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-YES)
@@ -52,35 +40,21 @@
 )
 
 ; ------------------------------------------------------------
-; RESERVING -> COMMITTED
+; RESERVING
 ; ------------------------------------------------------------
-;
-; The actual percentage policy is external. When the policy has
-; supplied resource-specific percentages, this module applies them.
-; A zero-valued policy is a valid explicit policy and means no escrow
-; is requested for that resource.
-;
-; The engine operation is intentionally isolated here so that strategic
-; policy cannot accidentally become an escrow executor.
-
+; No percentage is synthesized here. A future policy/executor boundary
+; must establish the exact engine-facing escrow policy before any
+; set-escrow-percentage operation is permitted.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RESERVING)
-    (goal BYZ-ESCROW-POLICY-VALUE >= 0)
+    (goal BYZ-ESCROW-POLICY-APPLIED 1)
 =>
-    (set-escrow-percentage food BYZ-ESCROW-POLICY-FOOD)
-    (set-escrow-percentage wood BYZ-ESCROW-POLICY-WOOD)
-    (set-escrow-percentage gold BYZ-ESCROW-POLICY-GOLD)
-    (set-escrow-percentage stone BYZ-ESCROW-POLICY-STONE)
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
 )
 
 ; ------------------------------------------------------------
-; COMMITTED -> RELEASE REQUESTED
+; RELEASE REQUEST
 ; ------------------------------------------------------------
-;
-; Release is an explicit request. It is not implied by construction
-; completion because recovery/cancellation may also require release.
-
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
     (goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-YES)
@@ -89,9 +63,9 @@
 )
 
 ; ------------------------------------------------------------
-; RELEASE REQUESTED -> RELEASING
+; RELEASE COMMAND / IN-FLIGHT STATE
 ; ------------------------------------------------------------
-
+; The engine command is isolated here. It is a request, not proof.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASE-REQUESTED)
 =>
@@ -101,11 +75,8 @@
 )
 
 ; ------------------------------------------------------------
-; RELEASING -> RECONCILING
+; RECONCILIATION
 ; ------------------------------------------------------------
-;
-; Engine state is observed separately from the command above.
-
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASING)
     (goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-PENDING)
@@ -113,13 +84,8 @@
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
 )
 
-; ------------------------------------------------------------
-; RECONCILING -> RELEASED
-; ------------------------------------------------------------
-;
-; escrow-amount is non-negative; < 1 therefore establishes zero.
-; All four resources must independently reconcile.
-
+; escrow-amount is engine-observed and non-negative. All four resources
+; must independently reconcile before release is confirmed.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
     (escrow-amount food < 1)
@@ -131,13 +97,7 @@
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
 )
 
-; ------------------------------------------------------------
-; FAILED RECONCILIATION
-; ------------------------------------------------------------
-;
-; A contradictory observation does not silently become RELEASED.
-; Downstream recovery may reissue the request after diagnosis.
-
+; Contradictory observation is not success.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
     (goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-CONTRADICTED)
@@ -145,13 +105,7 @@
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RECOVERY)
 )
 
-; ------------------------------------------------------------
-; RELEASED -> IDLE
-; ------------------------------------------------------------
-;
-; Preserve RELEASED until the construction lifecycle has left the
-; transaction. This prevents immediate erasure of the observed state.
-
+; Preserve RELEASED until construction leaves the transaction.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
@@ -162,16 +116,9 @@
     (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-NONE)
 )
 
-; ------------------------------------------------------------
-; SAFETY INVARIANTS
-; ------------------------------------------------------------
-;
-; 1. Escrow protects an obligation, not a building category.
-; 2. Commit policy is external to this executor.
-; 3. Release requires an explicit request.
-; 4. Release command is not release confirmation.
-; 5. Four-resource reconciliation is conjunctive.
-; 6. Escrow never grants construction authority.
-; 7. Escrow never declares construction complete.
-; 8. No percentage, cap, timer, or strategic threshold is hard-coded.
+; INVARIANTS:
+; release command != release completion
+; escrow protects an obligation, not a building category
+; no percentage/cap/timer/priority is invented here
+; escrow never grants construction authority or declares completion
 ; ============================================================
