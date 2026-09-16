@@ -149,3 +149,67 @@ ordered donor rule stream
 ```
 
 A conventional controller/orchestrator/transaction-manager replacement is not an acceptable substitute.
+
+## 8. Exact QUNITS closure — authenticated source-order binding
+
+The following interval is now mechanically bound from the authenticated `SHADOW_SOURCE_ORDER_MATRIX_v0.3.md` and the canonical `ShadowSource.per`. These are executable donor ordinals, not conceptual unit categories.
+
+| Ordinal | Source | Donor executable mechanism | ShadowByzantine disposition |
+|---:|---|---|---|
+| 1259 | L15202-L15209 | `can-train monk` + total monk `< 3` → `disable-self` + `train monk` | UNKNOWN / ADAPTED: current Pass-1 has no monk path |
+| 1260 | L15211-L15218 | second independent monk train rule; same world-count admission; self-disabling | UNKNOWN / ADAPTED |
+| 1261 | L15220-L15227 | third independent monk train rule; same world-count admission; self-disabling | UNKNOWN / ADAPTED |
+| 1262 | L15230-L15238 | town-unsafe observation → reset search → target home → distance filter → remote archery search | LOST: no active search machine |
+| 1263 | L15240-L15250 | diagnostic-disabled mangonel escrow-aware train path (`false` predicate) | LOST / NON-EXECUTING donor path |
+| 1264 | L15252-L15260 | SIEGE + scorpion-count condition → direct `train mangonel-line` | UNKNOWN / LOST |
+| 1265 | L15262-L15269 | diagnostic-disabled SIEGE mangonel `can-train-with-escrow` → `up-train` | LOST / NON-EXECUTING donor path |
+| 1266 | L15271-L15282 | diagnostic-disabled mangonel completion threshold → zero/release wood+gold and clear SIEGE | LOST / NON-EXECUTING donor path |
+| 1267 | L15284-L15292 | diagnostic-disabled siege reservation → modify wood/gold escrow | LOST / NON-EXECUTING donor path |
+| 1268 | L15294-L15301 | enemy composition predicate → `up-jump-rule 1`, skipping next siege rule when condition holds | LOST: no current jump topology |
+| 1269 | L15303-L15318 | diagnostic-disabled mangonel admission under SIEGE, workshop, pending-count and enemy-ranged predicates → `SIEGE 3` | LOST / NON-EXECUTING donor path |
+| 1270 | L15321-L15334 | SIEGE + scorpion production admission → direct `train scorpion-line` | UNKNOWN / LOST |
+| 1271 | L15337-L15347 | SIEGE RAMS arbitration → `SPLIT 1` when ram investment should pause | LOST: no donor `SPLIT` topology |
+| 1272 | L15349-L15359 | `SPLIT 1` → release wood/gold; clear SIEGE and SPLIT | LOST |
+| 1273 | L15361-L15368 | SIEGE RAMS + no pending siege units → reserve wood/gold escrow | LOST |
+| 1274 | L15370-L15378 | `can-train-with-escrow battering-ram-line` → release wood/gold → `train battering-ram-line` | UNKNOWN / LOST: exact Byzantine analogue not implemented |
+| 1275 | L15380-L15393 | observed ram count/pending/workshop/army-damage conditions → enter `SIEGE RAMS` | LOST |
+| 1276 | L15397-L15407 | KRUSH + no scout cavalry → `train scout-cavalry-line`, self-disable | ADAPTED / UNKNOWN |
+| 1277 | L15411-L15419 | KRUSH + `can-train knight-line` + food/pending-villager guard → `train knight-line` | UNKNOWN / ADAPTED |
+| 1278 | L15422-L15431 | FLUSH knight direct production gated by progression-pause/current-item exclusions | UNKNOWN / ADAPTED |
+| 1279 | L15433-L15443 | FLUSH + knight count `<4` + `can-train-with-escrow knight-line` → `up-train gl-escrow-state knight-line` | ADAPTED mechanism candidate; current Spearman slice is not equivalent |
+| 1280 | L15446-L15455 | resource shortage predicate → `up-jump-rule 1` | LOST: no current jump topology |
+| 1281 | L15457-L15470 | archer feasibility + count composition + age/progression guard → `up-train gl-escrow-state archer-line` | UNKNOWN / LOST |
+| 1282 | L15474-L15478 | castle age reached → `gl-escrow-state := without-escrow` | LOST / changed carrier |
+| 1283 | L15480-L15490 | FLUSH skirmisher suppression predicate → `up-jump-rule 2` | LOST |
+| 1284 | L15492-L15502 | second skirmisher suppression predicate → `up-jump-rule 1` | LOST |
+| 1285 | L15504-L15518 | GeneralSkirm admission → `SPLIT 1` after housing/worker/blacksmith/time/training guards | LOST |
+| 1286 | L15520-L15530 | `SPLIT 1` → `SPLIT 2` based on superiority/skirm total/castle and elite-skirm state | LOST |
+| 1287 | L15532-L15540 | `SPLIT 2` → increment `gl-skirm-total`, set escrow mode, `up-train skirmisher-line`, clear SPLIT | LOST / current state not equivalent |
+| 1288 | L15542-L15547 | unconditional recovery of escrow mode to `with-escrow` and clear SPLIT | LOST |
+| 1289 | L15550-L15562 | MESO + swordsman tech + target-age + monk-count → direct militia train | UNKNOWN / LOST |
+| 1290 | L15566-L15579 | FLUSH feudal anti-krush/pocket spear admission → direct spear train | ADAPTED candidate; exact current Pass-1 is not topology-equivalent |
+| 1291 | L15581-L15594 | timed FLUSH NORMAL emergency spear → `up-train gl-escrow-state spearman-line` | ADAPTED candidate |
+| 1292 | L15596-L15609 | castle FLUSH stable/camel/knight threat → direct spear train | UNKNOWN / ADAPTED |
+| 1293 | L15611-L15623 | castle FLUSH non-pocket stable threat → direct spear train | UNKNOWN / ADAPTED |
+| 1294 | L15626-L15632 | KRUSH → `up-jump-rule 4`, bypassing four following spear rules | LOST |
+| 1295 | L15634-L15641 | non-pocket MESO with no monk/knight → `up-jump-rule 2` | LOST |
+| 1296 | L15643-L15655 | stable/target-age emergency spear condition → `up-train gl-escrow-state spearman-line` | ADAPTED candidate |
+| 1297 | L15657-L15669 | early military population/time + enemy condition → direct spear train | UNKNOWN / ADAPTED |
+| 1298 | L15671-L15682 | spear count/monk/knight/scout threat → direct spear train | UNKNOWN / ADAPTED |
+
+### QUNITS topology conclusions
+
+1. **1259–1298 is an exact donor production/control interval**, including monks, siege, scout cavalry, knights, archers, skirmishers, militia, and spears.
+2. `can-train-with-escrow` and `up-train` are not isolated executor idioms; they participate in production arbitration, resource fencing, progression exclusions, and jump-based preemption.
+3. The donor uses both direct `train` and escrow-aware `up-train`; the distinction is part of the control machine.
+4. Completion for this interval is generally observed through unit counts/pending state rather than inferred from command issuance. The matrix explicitly records command rules separately from observation/state rules.
+5. `gl-skirm-total` is a donor production-side persistent counter mutated at ordinal 1287; it is not interchangeable with an external transaction status.
+6. `SPLIT` is a donor scratch/control carrier reused to stage production arbitration. It is not evidence for a generic transaction manager.
+7. Ordinals 1263, 1265–1269 contain `false`-guarded diagnostic/dead paths. They are preserved in the donor atlas as source facts but must not be promoted as active Byzantine behavior.
+8. The exact Spearman donor anchors are now known: **1290–1298**, with **1291 and 1296** using `up-train gl-escrow-state c: spearman-line` and **1294–1295** providing explicit preemption jumps.
+
+## 9. QUNITS transplantation gate
+
+The QUNITS donor interval is now closed at static source level. The current ShadowByzantine implementation remains incomplete: only the narrow Spearman Pass-1 vertical slice exists, and it does not reproduce the donor's production arbitration, `SPLIT` staging, distributed escrow, jump topology, or multi-unit production paths. Therefore QUNITS is **not yet runtime-transplanted** merely because its donor ordinals are now known.
+
+The next code gate is to transplant these exact executable paths into the recovered ordered machine, preserving donor rule order and jump topology while replacing only unit/object choices required by the Byzantine roster. Any rule whose donor mechanism has no Byzantine analogue must be explicitly classified rather than silently replaced by a generic controller.
