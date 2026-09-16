@@ -3,16 +3,21 @@
 ; MODULE 10 -- ESCROW
 ; ============================================================
 ;
-; Authority: protected-capital lifecycle for an active obligation.
+; Authority: protected-capital lifecycle for an active construction
+; obligation.
 ;
-; This module owns escrow state transitions and reconciliation. It does
-; not choose strategy, assign escrow percentages, grant construction
-; authority, issue construction commands, or declare construction done.
+; IMPORTANT DISTINCTION:
+;   BYZ-ESCROW-STATE = lifecycle / commitment state
+;   BYZ-ESCROW-MODE  = engine command mode consumed by Module 12
 ;
-; Numeric escrow policy remains external. Until a policy has supplied
-; engine-valid percentages/caps, this module MUST NOT invent them.
+; Numeric escrow percentages/caps remain policy-owned and are NOT
+; synthesized here. A policy provider must establish a valid engine
+; percentage/cap before BYZ-ESCROW-POLICY-APPLIED becomes true.
 ; ============================================================
 
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-ESCROW-STATE -1)
 =>
@@ -20,15 +25,23 @@
     (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-NO)
     (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-NO)
     (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-NONE)
+    (set-goal BYZ-ESCROW-MODE BYZ-ESCROW-EXCLUDED)
 )
 
 ; ------------------------------------------------------------
 ; RESERVATION REQUEST
 ; ------------------------------------------------------------
+; Capital feasibility and requirements are upstream observations. This
+; module converts a qualified construction obligation into a reservation
+; request; it does not invent the economic policy.
 (defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
+    (goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+    (goal BYZ-CAPITAL-STATE BYZ-CAPITAL-SUFFICIENT)
+    (goal BYZ-ESCROW-POLICY-APPLIED 1)
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
-    (goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-YES)
 =>
+    (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-YES)
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-REQUESTED)
 )
 
@@ -40,16 +53,17 @@
 )
 
 ; ------------------------------------------------------------
-; RESERVING
+; COMMITMENT CONFIRMATION
 ; ------------------------------------------------------------
-; No percentage is synthesized here. A future policy/executor boundary
-; must establish the exact engine-facing escrow policy before any
-; set-escrow-percentage operation is permitted.
+; Policy application is an explicit upstream contract. This rule does
+; not assign the percentage; it only records that a policy provider has
+; made one available to the executor.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RESERVING)
     (goal BYZ-ESCROW-POLICY-APPLIED 1)
 =>
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
+    (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-NO)
 )
 
 ; ------------------------------------------------------------
@@ -65,7 +79,7 @@
 ; ------------------------------------------------------------
 ; RELEASE COMMAND / IN-FLIGHT STATE
 ; ------------------------------------------------------------
-; The engine command is isolated here. It is a request, not proof.
+; The engine command is a request, not proof of release.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASE-REQUESTED)
 =>
@@ -84,14 +98,13 @@
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
 )
 
-; escrow-amount is engine-observed and non-negative. All four resources
-; must independently reconcile before release is confirmed.
+; Exact zero is the engine-empty state. This is not a policy threshold.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
-    (escrow-amount food < 1)
-    (escrow-amount wood < 1)
-    (escrow-amount gold < 1)
-    (escrow-amount stone < 1)
+    (escrow-amount food == 0)
+    (escrow-amount wood == 0)
+    (escrow-amount gold == 0)
+    (escrow-amount stone == 0)
 =>
     (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-CONFIRMED)
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
@@ -105,7 +118,8 @@
     (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RECOVERY)
 )
 
-; Preserve RELEASED until construction leaves the transaction.
+; Preserve RELEASED until the construction transaction has actually
+; left the lifecycle. This prevents immediate repeated release requests.
 (defrule
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
@@ -114,11 +128,13 @@
     (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-NO)
     (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-NO)
     (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-NONE)
+    (set-goal BYZ-ESCROW-MODE BYZ-ESCROW-EXCLUDED)
 )
 
 ; INVARIANTS:
 ; release command != release completion
-; escrow protects an obligation, not a building category
+; lifecycle state != engine escrow mode
+; escrow protects an active obligation, not a building category
 ; no percentage/cap/timer/priority is invented here
-; escrow never grants construction authority or declares completion
+; escrow never grants authority or declares construction complete
 ; ============================================================
