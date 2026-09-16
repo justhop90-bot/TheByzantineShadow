@@ -8,20 +8,160 @@
 ; Core invariant:
 ;   command issued != pending != completion
 ;
-; Target-specific observers provide BYZ-VERIFY-OBSERVATION-READY only
-; after collecting admissible world-state evidence. A separate
-; BYZ-VERIFY-CONTRADICTION register carries explicit contradictory
-; evidence. Absence of evidence is never treated as contradiction.
+; For ordinary buildings, verification uses a pre-execution baseline from
+; building-type-count and requires the completed-building count to exceed
+; that baseline. building-type-count-total is deliberately not used as
+; completion evidence because it includes queued construction.
 ; ============================================================
 
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-VERIFY-STATE -1)
 =>
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-NOT-STARTED)
     (set-goal BYZ-VERIFY-OBSERVATION-READY 0)
     (set-goal BYZ-VERIFY-CONTRADICTION 0)
+    (set-goal BYZ-VERIFY-BASELINE 0)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 0)
 )
 
+; ------------------------------------------------------------
+; NEW TRANSACTION BASELINE
+; ------------------------------------------------------------
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-REQUESTED)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 0)
+    (set-goal BYZ-VERIFY-CONTRADICTION 0)
+)
+
+; ------------------------------------------------------------
+; BASELINE CAPTURE -- STATIC OBJECT DISPATCH
+; ------------------------------------------------------------
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM house)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count house BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM barracks)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count barracks BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM lumber-camp)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count lumber-camp BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM mill)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count mill BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM farm)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count farm BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM mining-camp)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count mining-camp BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM archery-range)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count archery-range BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM stable)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count stable BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM blacksmith)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count blacksmith BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM market)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count market BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM monastery)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count monastery BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM university)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count university BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM castle)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 0)
+=>
+    (up-get-fact building-type-count castle BYZ-VERIFY-BASELINE)
+    (set-goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+)
+
+; ------------------------------------------------------------
+; PENDING -> VERIFICATION
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-NOT-STARTED)
@@ -29,6 +169,129 @@
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-PENDING)
 )
 
+; ------------------------------------------------------------
+; WORLD-STATE OBSERVATION -- STATIC OBJECT DISPATCH
+; ------------------------------------------------------------
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM house)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count house g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM barracks)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count barracks g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM lumber-camp)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count lumber-camp g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM mill)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count mill g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM farm)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count farm g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM mining-camp)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count mining-camp g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM archery-range)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count archery-range g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM stable)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count stable g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM blacksmith)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count blacksmith g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM market)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count market g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM monastery)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count monastery g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM university)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count university g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-CURRENT-BUILD-ITEM castle)
+    (goal BYZ-VERIFY-BASELINE-CAPTURED 1)
+    (building-type-count castle g:> BYZ-VERIFY-BASELINE)
+=>
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 1)
+)
+
+; ------------------------------------------------------------
+; OBSERVE -> CONFIRM
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-PENDING)
     (goal BYZ-VERIFY-OBSERVATION-READY 1)
@@ -43,7 +306,9 @@
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
 )
 
-; Verified construction requests escrow release separately.
+; ------------------------------------------------------------
+; VERIFIED CONSTRUCTION -> ESCROW RELEASE REQUEST
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
@@ -52,7 +317,9 @@
     (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-YES)
 )
 
-; Explicit contradictory evidence is the only contradiction path.
+; ------------------------------------------------------------
+; EXPLICIT CONTRADICTION / AUTHORITY LOSS
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
     (goal BYZ-VERIFY-CONTRADICTION 1)
@@ -60,7 +327,6 @@
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-CONTRADICTED)
 )
 
-; Authority loss while verification remains unresolved is failure.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
     (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
@@ -69,9 +335,8 @@
 )
 
 ; INVARIANTS:
-; no command is completion evidence
-; no pending object is completion evidence
-; absence of evidence is not failure
-; contradiction requires explicit evidence
-; verification does not select strategy or execute construction
+; command issuance is not completion evidence
+; pending state is not completion evidence
+; building-type-count-total is not used as completion evidence
+; verification does not select strategy, release escrow directly, or build
 ; ============================================================
