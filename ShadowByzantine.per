@@ -1,0 +1,32 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; RUNTIME ENTRYPOINT
+; ============================================================
+;
+; This file is intentionally kept in the AI root.  Runtime modules
+; live under the ShadowByzantine/ directory, following the established
+; AoE2 multi-file AI layout used by modular AIs such as Kaia/Promisory.
+;
+; Load order is dependency-oriented: constants -> state/economy ->
+; construction policy/state -> placement/requirements/capital ->
+; escrow/authority/execution -> verification/recovery/reassessment.
+; ============================================================
+
+(load "ShadowByzantine/01_constants")
+(load "ShadowByzantine/01b_byz_constants")
+(load "ShadowByzantine/02_state")
+(load "ShadowByzantine/03_economy")
+(load "ShadowByzantine/04_construction")
+(load "ShadowByzantine/05_composition_policy")
+(load "ShadowByzantine/05_production")
+(load "ShadowByzantine/06_military")
+(load "ShadowByzantine/07_placement")
+(load "ShadowByzantine/07_strategic reserve")
+(load "ShadowByzantine/08_requirements")
+(load "ShadowByzantine/09_capital")
+(load "ShadowByzantine/10_escrow")
+(load "ShadowByzantine/11_authority")
+(load "ShadowByzantine/12_execution")
+(load "ShadowByzantine/13_verification")
+(load "ShadowByzantine/14_recovery")
+(load "ShadowByzantine/15_reassessment")
