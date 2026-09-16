@@ -8,23 +8,19 @@
 ; release escrow, issue build commands, verify completion, or recover.
 ; ============================================================
 
-; No active construction transaction => no authority.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
 =>
     (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
 )
 
-; A transaction that has not secured capital cannot execute.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
-    (goal BYZ-ESCROW-STATE != BYZ-ESCROW-COMMITTED)
+    (up-compare-goal BYZ-ESCROW-STATE != BYZ-ESCROW-COMMITTED)
 =>
     (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
 )
 
-; Reserved construction crosses the authority gate only after escrow
-; commitment has been observed by Module 04.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RESERVED)
     (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
@@ -32,8 +28,6 @@
     (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-GRANTED)
 )
 
-; Once execution begins, authority remains granted until explicit failure,
-; contradiction, completion, or cancellation is observed.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
 =>
