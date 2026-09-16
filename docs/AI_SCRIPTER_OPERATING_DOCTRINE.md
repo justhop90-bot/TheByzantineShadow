@@ -61,6 +61,112 @@ REFERENCE → EXTRACT → UNDERSTAND → WRITE → REFERENCE AGAIN
 
 **DELIVER:** provide code, evidence, provenance, qualification status, and remaining uncertainty.
 
+## Drift protocol: prevent the reconstruction from drifting
+
+Long forensic projects drift. The AI starts with a source-backed question, accumulates plausible abstractions, forgets why a state exists, substitutes a familiar architecture for the donor's actual control flow, and eventually writes code that is internally coherent but no longer represents Shadow. **Drift is a defect, not a stylistic difference.**
+
+The AI must periodically stop forward construction and perform a **DRIFT CHECK**. Do this at every major control-region boundary, after a substantial implementation pass, whenever terminology or architecture changes, and whenever a conclusion begins to depend on several layers of inference.
+
+The drift protocol is:
+
+```text
+CURRENT CLAIM / CODE
+        ↓
+CANONICAL SHADOW SOURCE
+        ↓
+SOURCE / RULE / STATE CROSS-REFERENCE
+        ↓
+AI REFERENCE / ENGINE SEMANTICS
+        ↓
+AI ENCYCLOPEDIA / DOCUMENTED MECHANISM
+        ↓
+CURRENT RECONSTRUCTION
+        ↓
+DIFF: PRESERVED / LOST / ADDED / UNKNOWN
+        ↓
+RECLASSIFY EVIDENCE
+        ↓
+CORRECT OR EXPLICITLY ACCEPT DEVIATION
+```
+
+### Mandatory cross-reference hierarchy
+
+For Shadow reconstruction, cross-reference in this order:
+
+1. **`ShadowSource.per`** — canonical donor behavior and control topology.
+2. **`SourceRef` / `SourceShaRef` / preserved donor packages** — provenance, historical package identity, and source authentication.
+3. **AI Reference** — engine/script semantics that explain what the donor primitives mean.
+4. **AI Encyclopedia** — documented engine behavior, command semantics, strategic numbers, searches, state variables, and known constraints.
+5. **Existing forensic documents** — project interpretation and previously established evidence.
+6. **ShadowByzantine implementation** — reconstruction under review.
+
+The cross-reference sources do different jobs. Do not use an encyclopedia description to overwrite direct donor evidence. Do not use a donor pattern to invent an engine semantic that the reference material does not establish. Do not use the current reconstruction as evidence for the historical donor.
+
+### Drift ledger
+
+For each major reconstructed region, maintain a compact mental or documented ledger:
+
+| Item | Required question |
+|---|---|
+| Donor anchor | What exact source/rule range is being reconstructed? |
+| State | Which goals/timers/strategic numbers are read and written? |
+| Control flow | Which jumps, fall-through paths, loops, and disable-self edges matter? |
+| Resources | Where are feasibility, escrow, expenditure, release, and restoration handled? |
+| Completion | What observable world state proves the action actually completed? |
+| Recovery | What happens when the expected action does not complete? |
+| Cross-region edges | Which other regions write/read this state? |
+| Engine basis | Which AI Reference/Encyclopedia material establishes primitive semantics? |
+| Reconstruction | What has actually been transplanted? |
+| Deviation | What differs from Shadow, and why? |
+| Uncertainty | What remains unproven? |
+
+### Drift rules
+
+- **Never let a new module name become evidence for a donor boundary.** The source defines the behavior; architecture follows evidence.
+- **Never cite the same project's implementation as proof of its own correctness.** Re-check the donor and engine references.
+- **Never allow an inference chain to silently become a fact.** If `Shadow → Reference → interpretation → implementation` contains an uncertain link, mark it.
+- **Never expand scope merely because adjacent code is interesting.** Record it as a dependency or future target and return to the locked question.
+- **Never let a clean abstraction erase ugly but executable donor behavior.** If order, jumps, escrow locality, search state, or recovery changes, the abstraction is suspect.
+- **When sources disagree, preserve the disagreement.** Identify the exact conflict, privilege the stronger evidence class, and do not manufacture reconciliation.
+- **When new evidence invalidates an earlier conclusion, revise the conclusion rather than defending the old architecture.**
+- **At every major milestone, ask:** `If ShadowSource.per were the only thing I had, would I still describe the reconstructed behavior this way?`
+- **At every implementation milestone, ask:** `What did we add that Shadow did not demonstrate?` If the answer is anything nontrivial, label it explicitly as Byzantine policy or project improvement.
+
+### Drift alarm conditions
+
+Treat these as automatic reasons to stop and re-reference:
+
+```text
+new abstraction with no donor analogue
+new global state with no source anchor
+new writer for an established goal
+removed or reordered rules
+changed jump destination
+centralized recovery replacing distributed recovery
+escrow moved away from its donor objective
+command treated as completion
+world-state observer removed
+source range cited without dependency closure
+AI Reference or AI Encyclopedia used only after implementation
+architecture language replacing source language
+```
+
+When a drift alarm fires, do not continue polishing the code. Re-enter the forensic loop.
+
+### Anti-drift minimum
+
+A major reconstruction pass is not complete until the AI can state, without hand-waving:
+
+```text
+WHAT SHADOW DOES
+WHY THE ENGINE ALLOWS IT
+WHAT SHADOWBYZANTINE PRESERVES
+WHAT SHADOWBYZANTINE CHANGES
+WHAT IS STILL UNKNOWN
+```
+
+The purpose of cross-reference is not to make the work look scholarly. It is to stop the reconstruction from becoming a plausible AI invention.
+
 ## Lock the operating mode
 
 Identify the mode before acting:
@@ -142,7 +248,7 @@ For `up-jump-rule Δ`:
 next rule = current rule + 1 + Δ
 ```
 
-There is no return stack. Positive jumps skip concrete rule regions; negative jumps can loop. Record exact origin, destination, skipped rules, destination predicates, and downstream effect. Do not call a jump a “return,” “call,” or vague “priority” unless the source supports that meaning.
+There is no return stack. Positive jumps skip concrete rule regions; negative jumps can loop. Record exact origin, destination, skipped rules, and destination predicates, and downstream effect. Do not call a jump a “return,” “call,” or vague “priority” unless the source supports that meaning.
 
 ## Search is a state machine
 
@@ -303,6 +409,8 @@ RECONSTRUCT BEFORE REDESIGN.
 IMPROVE ONLY AGAINST A BASELINE.
 QUALIFY BEFORE CLAIMING.
 DOCUMENT BEFORE FORGETTING.
+DRIFT IS A DEFECT.
+CROSS-REFERENCE BEFORE ARCHITECTURE.
 
 Recover the machine.
 Preserve its shape.
