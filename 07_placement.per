@@ -1,14 +1,13 @@
 ; ============================================================
 ; THE BYZANTINE SHADOW
-; MODULE 07P -- PLACEMENT
+; MODULE 07 -- PLACEMENT
 ; ============================================================
 ;
-; Authority: target selection, placement-mode state, and placement
-; validation handoff.
+; Authority: placement-mode state, target handoff, and validation.
 ;
-; This module deliberately does not choose strategic objectives,
-; grant construction authority, release escrow, or declare completion.
-; Geometry and retry thresholds remain policy-owned.
+; Geometry, search radius, fail policy, and builder counts remain policy
+; inputs. This module does not choose strategic objectives, grant
+; authority, release escrow, execute build commands, or verify completion.
 ; ============================================================
 
 ; ------------------------------------------------------------
@@ -22,24 +21,120 @@
 )
 
 ; ------------------------------------------------------------
-; AUTHORIZED CONSTRUCTION ENTERS PLACEMENT
+; NEW REQUEST RESET
 ; ------------------------------------------------------------
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-REQUESTED)
 =>
-    (set-goal BYZ-TARGET-STATE BYZ-TARGET-SEARCHING)
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-NONE)
 )
 
 ; ------------------------------------------------------------
-; NORMAL PLACEMENT
+; SHADOW-DERIVED MINING-CAMP PLACEMENT CLASS
 ; ------------------------------------------------------------
-; Normal placement can become executable once the target subsystem has
-; established a valid ordinary-placement target. No geometry is invented.
+; Shadow's resource-site construction uses explicit point resolution for
+; mining camps. The target search itself remains policy-owned because its
+; resource choice and geometric constraints are Byzantine strategy inputs.
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM mining-camp)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-POINT)
+    (set-goal BYZ-TARGET-STATE BYZ-TARGET-NONE)
+)
+
+; All other currently supported construction targets use ordinary managed
+; placement unless a future placement policy explicitly changes the mode.
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM house)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM barracks)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM lumber-camp)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM mill)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM farm)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM archery-range)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM stable)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM blacksmith)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM market)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM monastery)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM university)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
+    (goal BYZ-CURRENT-BUILD-ITEM castle)
+=>
+    (set-goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
+)
+
+; ------------------------------------------------------------
+; NORMAL TARGET HANDOFF
+; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
 =>
     (set-goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
 )
@@ -47,18 +142,10 @@
 ; ------------------------------------------------------------
 ; POINT TARGET HANDOFF
 ; ------------------------------------------------------------
-; Upstream policy selects point mode. Search/point extraction belongs to
-; this module, while exact distance/zone/failure values remain external.
+; An upstream target resolver must establish BYZ-TARGET-POINT. This
+; module converts that resolved point into a valid execution target.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-POINT)
-    (goal BYZ-TARGET-STATE BYZ-TARGET-NONE)
-=>
-    (set-goal BYZ-TARGET-STATE BYZ-TARGET-SEARCHING)
-)
-
-; A point candidate is considered ready only after target resolution.
-(defrule
     (goal BYZ-PLACEMENT-STATE BYZ-PLACE-POINT)
     (goal BYZ-TARGET-STATE BYZ-TARGET-POINT)
 =>
@@ -77,20 +164,8 @@
 )
 
 ; ------------------------------------------------------------
-; EXECUTION HANDOFF
-; ------------------------------------------------------------
-; Construction consumes target validity. Placement never issues build.
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PLACEMENT)
-    (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
-=>
-    (set-goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
-)
-
-; ------------------------------------------------------------
 ; INVALIDATION
 ; ------------------------------------------------------------
-; A downstream observer may invalidate a previously prepared target.
 (defrule
     (goal BYZ-TARGET-STATE BYZ-TARGET-INVALID)
 =>
@@ -103,5 +178,5 @@
 ; placement != authority
 ; placement != execution
 ; placement != completion
-; geometry/retry/builder counts remain unassigned policy.
+; mining-camp uses point-placement semantics derived from Shadow
 ; ============================================================
