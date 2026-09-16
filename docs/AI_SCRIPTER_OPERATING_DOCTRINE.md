@@ -167,6 +167,152 @@ WHAT IS STILL UNKNOWN
 
 The purpose of cross-reference is not to make the work look scholarly. It is to stop the reconstruction from becoming a plausible AI invention.
 
+## Architecture integrity: AoE2DE-coder-only rule
+
+**The architecture is subordinate to the donor machine. Never allow generic software architecture to become the project's hidden control model.**
+
+The AI must treat architecture as a hypothesis to be derived from Shadow, not as a design space in which familiar patterns may be selected for convenience.
+
+### Root-entrypoint rule
+
+`ShadowByzantine.per` is the AI's main `.per` entrypoint unless direct source or engine evidence proves otherwise. Do not introduce an orchestrator, loader-of-loaders, controller, dispatcher, manager, service layer, transaction coordinator, event bus, framework layer, or equivalent intermediary merely because it appears cleaner or more maintainable.
+
+The normal structural model is:
+
+```text
+AoE2DE loader
+    ↓
+ShadowByzantine.per
+    ↓
+ordered .per source regions
+```
+
+A module may organize a coherent region; it must not silently become a second brain.
+
+### Distributed-topology preservation rule
+
+When partitioning Shadow into files, preserve the donor's **distributed progression, state coupling, search state, escrow locality, jump topology, interruption, completion observation, and re-entry** even when those relationships cross file boundaries.
+
+A cross-module dependency is not evidence of bad architecture. In this project it may be evidence that the donor topology has been preserved correctly.
+
+Do not replace:
+
+```text
+rule-region A → shared goal/timer/escrow/search state → rule-region B
+```
+
+with:
+
+```text
+A → centralized orchestrator → B
+```
+
+unless Shadow itself demonstrably contains that intermediary.
+
+### Architecture veto
+
+Before accepting any proposed architectural component, the AI must answer:
+
+```text
+1. What exact Shadow control region requires this component?
+2. What donor state/control-flow edge does it preserve?
+3. What engine/reference evidence requires its existence?
+4. Does it introduce a new authority or dispatcher?
+5. Does it centralize behavior that Shadow distributes?
+6. Does it move escrow, search, progression, recovery, or completion away from its donor region?
+7. Does it change rule ordering or jump destinations?
+8. Could the same requirement be satisfied by ordered `.per` regions without the component?
+```
+
+If questions 1–3 cannot be answered, the component is **PROJECT-ARCHITECTURE / HYPOTHESIS**, not a reconstruction requirement, and must not be inserted into the authoritative runtime merely because it is plausible.
+
+If questions 4–7 produce a topology-changing answer, stop and perform a donor/control-flow re-audit before implementation.
+
+### Anti-orchestrator hard stop
+
+The following pattern is an automatic **DRIFT ALARM**:
+
+```text
+root .per
+    ↓
+orchestrator
+    ↓
+modules
+```
+
+unless the donor source contains an equivalent intermediary whose semantics have been directly established.
+
+When this alarm fires:
+
+```text
+STOP
+ ↓
+DO NOT IMPLEMENT
+ ↓
+RE-READ SHADOW CONTROL TOPOLOGY
+ ↓
+TRACE ROOT LOAD / RULE ORDER / JUMPS / STATE / ESCROW / SEARCH / RE-ENTRY
+ ↓
+COMPARE PROPOSED ARCHITECTURE AGAINST DONOR
+ ↓
+REMOVE THE INTERMEDIARY IF UNSUPPORTED
+ ↓
+RESUME FROM SOURCE
+```
+
+The AI must never defend an orchestrator merely because it already exists, because it makes the module graph easier to explain, or because it is conventional software engineering. Existing project code is not evidence of architectural correctness.
+
+### AoE2DE coder persona constraint
+
+When working on The Byzantine Shadow, default to the mental model of an **AoE2DE `.per` control-machine engineer**:
+
+```text
+rules → order → state → jumps → timers → searches → escrow
+→ commands → world observation → reconciliation → re-entry
+```
+
+Do not default to:
+
+```text
+classes → services → controllers → APIs → callbacks → transactions
+```
+
+Those generic concepts may be used descriptively when necessary, but they must never silently determine the implementation architecture.
+
+### Architecture-before-implementation challenge
+
+Whenever the user asks for a module list, architecture, interface, subsystem boundary, or refactor, do **not** immediately optimize the proposed architecture. First perform a **DONOR TOPOLOGY CHALLENGE**:
+
+```text
+PROPOSED ARCHITECTURE
+        ↓
+SHADOW SOURCE / CONTROL ATLAS
+        ↓
+STATE-WRITER GRAPH
+        ↓
+JUMP GRAPH
+        ↓
+ESCROW / SEARCH / PROGRESSION GRAPH
+        ↓
+ENGINE SEMANTICS
+        ↓
+TOPOLOGY DIFF
+        ↓
+ACCEPT / REJECT / MARK HYPOTHESIS
+```
+
+The correct response to an elegant architecture that conflicts with Shadow is to reject or constrain the architecture, not to retrofit Shadow to it.
+
+### Failure-prevention question
+
+At every architecture decision, ask:
+
+> **“If this architecture were implemented completely, would Shadow still be recognizable as the control machine underneath it?”**
+
+If the answer is uncertain, architecture work stops and forensic reconstruction resumes.
+
+This rule has priority over maintainability preferences, conventional modularity, abstraction cleanliness, and the desire to make the repository appear architecturally complete.
+
 ## Lock the operating mode
 
 Identify the mode before acting:
@@ -462,6 +608,10 @@ DRIFT IS A DEFECT.
 CROSS-REFERENCE BEFORE ARCHITECTURE.
 DOCUMENTATION IS NOT PROGRESS BY ITSELF.
 UPDATE THE AUTHORITY BEFORE CREATING ANOTHER ARTIFACT.
+ARCHITECTURE MUST NOT OVERRIDE DONOR TOPOLOGY.
+THE ROOT .PER IS THE AI ENTRYPOINT UNLESS EVIDENCE PROVES OTHERWISE.
+NO ORCHESTRATOR WITHOUT A DIRECT DONOR ANALOGUE.
+DISTRIBUTED SHADOW CONTROL MUST REMAIN DISTRIBUTED.
 
 Recover the machine.
 Preserve its shape.
@@ -472,4 +622,4 @@ Prove every step.
 
 ## Authority
 
-This is the **mandatory AI operating doctrine** for The Byzantine Shadow. It governs repository interpretation, `.per` authoring, Shadow reconstruction, Byzantine adaptation, improvement, qualification, and documentation. When this doctrine conflicts with an unverified convenience, the convenience loses.
+This is the **mandatory AI operating doctrine** for The Byzantine Shadow. It governs repository interpretation, `.per` authoring, Shadow reconstruction, Byzantine adaptation, improvement, qualification, architecture, and documentation. When this doctrine conflicts with an unverified convenience, the convenience loses.
