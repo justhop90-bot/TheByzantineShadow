@@ -9,23 +9,19 @@
 ;   command issued != pending != completion
 ;
 ; Target-specific observers provide BYZ-VERIFY-OBSERVATION-READY only
-; after collecting admissible world-state evidence. This module does not
-; assume that a build command or pending placement proves completion.
+; after collecting admissible world-state evidence. A separate
+; BYZ-VERIFY-CONTRADICTION register carries explicit contradictory
+; evidence. Absence of evidence is never treated as contradiction.
 ; ============================================================
 
-; ------------------------------------------------------------
-; INITIALIZATION
-; ------------------------------------------------------------
 (defrule
     (goal BYZ-VERIFY-STATE -1)
 =>
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-NOT-STARTED)
     (set-goal BYZ-VERIFY-OBSERVATION-READY 0)
+    (set-goal BYZ-VERIFY-CONTRADICTION 0)
 )
 
-; ------------------------------------------------------------
-; EXECUTION -> PENDING VERIFICATION
-; ------------------------------------------------------------
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-NOT-STARTED)
@@ -33,9 +29,6 @@
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-PENDING)
 )
 
-; ------------------------------------------------------------
-; OBSERVATION WINDOW
-; ------------------------------------------------------------
 (defrule
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-PENDING)
     (goal BYZ-VERIFY-OBSERVATION-READY 1)
@@ -43,11 +36,6 @@
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
 )
 
-; ------------------------------------------------------------
-; CONFIRMATION
-; ------------------------------------------------------------
-; The observation-ready marker is an interface from target-specific
-; evidence collectors. It must not be set merely because execution ran.
 (defrule
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
     (goal BYZ-VERIFY-OBSERVATION-READY 1)
@@ -55,10 +43,7 @@
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
 )
 
-; ------------------------------------------------------------
-; VERIFIED CONSTRUCTION -> ESCROW RELEASE REQUEST
-; ------------------------------------------------------------
-; Release remains a separate action owned by Module 10.
+; Verified construction requests escrow release separately.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
@@ -67,20 +52,15 @@
     (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-YES)
 )
 
-; ------------------------------------------------------------
-; CONTRADICTION / FAILURE
-; ------------------------------------------------------------
-; An explicit contradiction from a target observer is failure evidence,
-; not a silent pass.
+; Explicit contradictory evidence is the only contradiction path.
 (defrule
     (goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
-    (goal BYZ-VERIFY-OBSERVATION-READY 0)
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-VERIFY-CONTRADICTION 1)
 =>
     (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-CONTRADICTED)
 )
 
-; Authority loss while pending/observing invalidates the transaction.
+; Authority loss while verification remains unresolved is failure.
 (defrule
     (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
     (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
@@ -91,7 +71,7 @@
 ; INVARIANTS:
 ; no command is completion evidence
 ; no pending object is completion evidence
-; verification does not select strategy
-; verification does not execute construction
-; verification does not itself release escrow
+; absence of evidence is not failure
+; contradiction requires explicit evidence
+; verification does not select strategy or execute construction
 ; ============================================================
