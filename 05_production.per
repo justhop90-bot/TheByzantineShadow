@@ -4,8 +4,7 @@
 ;=============================================
 ;
 ; Production owns the minimum military production path.
-; This module deliberately uses documented engine facts/actions
-; rather than custom command names.
+; The module uses documented engine facts/actions only.
 ;
 ; Barracks prerequisite:
 ;   - reach Feudal Age
@@ -23,13 +22,13 @@
 )
 
 ; Byzantine spear baseline:
-; maintain the declared production target once a barracks exists.
+; maintain three spearmen once a barracks exists.
 ; can-train remains the final engine feasibility gate.
 ;
 (defrule
     (current-age >= feudal-age)
     (building-type-count-total barracks > 0)
-    (unit-type-count-total spearman-line < AEGIS-SPEARMAN-TARGET)
+    (unit-type-count-total spearman-line < 3)
     (can-train spearman-line)
 =>
     (train spearman-line)
