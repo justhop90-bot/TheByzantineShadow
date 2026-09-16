@@ -4,18 +4,17 @@
 ;=============================================================
 ;
 ; Production is an economic commitment consumer, not a teaching
-; example.  The module owns the military production demand below,
-; its production reserve, and the admission of training actions.
+; example. The module owns the military production demand below,
+; its production reserve, and admission of training actions.
 ;
-; Shadow principles used here:
+; Shadow principles:
 ;   - production demand is explicit
 ;   - existing + queued units count toward the target
-;   - resources can be accumulated through escrow
+;   - resources are accumulated through escrow
 ;   - escrow is released only at an executable commitment point
-;   - release is followed by the actual production action
-;   - production feasibility remains an engine decision
-;   - escrow is returned to its production posture after training
-;   - satisfied demand releases only the resources this module owns
+;   - release is followed immediately by execution
+;   - engine feasibility remains the final admission gate
+;   - satisfied demand releases only resources owned here
 ;
 ; Cost profile: goals 500-503 (food, wood, stone, gold).
 ; Production state: goal 507.
@@ -32,15 +31,15 @@
 (defconst SHADOW-PROD-SATISFIED 2)
 (defconst SHADOW-PROD-SPEAR-TARGET 3)
 (defconst SHADOW-PROD-ESCROW-PERCENT 35)
+(defconst SHADOW-PROD-BARRACKS-ESCROW-PERCENT 60)
 
 ;=============================================================
 ; INITIALIZATION
 ;=============================================================
 ;
-; Build the authoritative cost profile once.  The cost-data API
-; stores four consecutive resource goals in FOOD/WOOD/STONE/GOLD
-; order.  The profile is a static production package definition;
-; it is not treated as runtime affordability evidence.
+; The cost-data API stores four consecutive resource goals in
+; FOOD/WOOD/STONE/GOLD order. This is a static package profile,
+; not runtime affordability evidence.
 ;
 (defrule
     (goal SHADOW-PROD-STATE -1)
@@ -52,12 +51,44 @@
 )
 
 ;=============================================================
+; BARRACKS CAPITAL RESERVATION
+;=============================================================
+;
+; Shadow-style saving: protect wood before the prerequisite exists.
+; can-build-with-escrow is the admission test because the reserved
+; wood is intentionally unavailable to ordinary can-build.
+;
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total barracks < 1)
+    (unit-type-count-total spearman-line < SHADOW-PROD-SPEAR-TARGET)
+    (up-pending-objects c: barracks < 1)
+    (goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
+=>
+    (set-escrow-percentage wood SHADOW-PROD-BARRACKS-ESCROW-PERCENT)
+    (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
+)
+
+; Release the reserved wood only when the barracks can actually start.
+;
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total barracks < 1)
+    (unit-type-count-total spearman-line < SHADOW-PROD-SPEAR-TARGET)
+    (up-pending-objects c: barracks < 1)
+    (can-build-with-escrow barracks)
+=>
+    (release-escrow wood)
+    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
+    (build barracks)
+)
+
+;=============================================================
 ; PRODUCTION RESERVE ACQUISITION
 ;=============================================================
 ;
-; Once the Feudal military foundation exists, accumulate food and
-; wood for the spear commitment.  Gold and stone remain untouched:
-; this module does not claim those escrow resources.
+; Once the barracks exists, protect food and wood for the actual
+; military commitment. Gold and stone are deliberately untouched.
 ;
 (defrule
     (current-age >= feudal-age)
@@ -71,31 +102,13 @@
 )
 
 ;=============================================================
-; BARRACKS AUTHORITY
+; TRAINING ADMISSION / EXECUTION
 ;=============================================================
 ;
-; Production owns the barracks prerequisite for its own demand.
-; The total count plus pending-object guard prevents duplicate
-; construction requests.
-;
-(defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks < 1)
-    (unit-type-count-total spearman-line < SHADOW-PROD-SPEAR-TARGET)
-    (up-pending-objects c: barracks < 1)
-    (can-build barracks)
-=>
-    (build barracks)
-)
-
-;=============================================================
-; TRAINING ADMISSION
-;=============================================================
-;
-; up-can-train uses the explicit escrow state.  With
-; escrow-included, the engine evaluates the committed escrow as
-; available capital.  Training is admitted only when the engine
-; itself confirms the unit can actually enter the queue.
+; The explicit escrow state tells the UP training commands to include
+; the committed production reserve in their feasibility calculation.
+; Release occurs immediately before execution, then the reserve
+; posture is restored for the next commitment.
 ;
 (defrule
     (current-age >= feudal-age)
@@ -104,10 +117,8 @@
     (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
     (up-can-train SHADOW-PROD-ESCROW-STATE c: spearman-line)
 =>
-    ; Release the committed production capital into liquid resources.
     (release-escrow food)
     (release-escrow wood)
-    ; Immediately restore the production saving posture for the next unit.
     (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
     (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
     (up-train SHADOW-PROD-ESCROW-STATE c: spearman-line)
@@ -117,10 +128,8 @@
 ; DEMAND COMPLETION / CAPITAL RELEASE
 ;=============================================================
 ;
-; unit-type-count-total includes queued units, so reaching the target
-; means the production commitment is actually represented in the
-; engine queue or completed army.  Release only the resources owned
-; by this production authority.
+; unit-type-count-total includes queued units, so the target is a
+; real production commitment rather than merely completed bodies.
 ;
 (defrule
     (unit-type-count-total spearman-line >= SHADOW-PROD-SPEAR-TARGET)
@@ -133,20 +142,5 @@
     (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
 )
 
-;=============================================================
-; PRODUCTION RECOVERY
-;=============================================================
-;
-; If committed units later fall below the target, production can
-; re-enter accumulation without requiring a separate reset path.
-;
-(defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks > 0)
-    (unit-type-count-total spearman-line < SHADOW-PROD-SPEAR-TARGET)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
-=>
-    (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
-    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
-    (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
-)
+; If the committed army later falls below the target, the reserve
+; acquisition rule above reopens the production commitment.
