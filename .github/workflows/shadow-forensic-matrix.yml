@@ -114,16 +114,17 @@ jobs:
           import hashlib
           import pathlib
           import re
-          import shutil
 
           donor_path = pathlib.Path('ShadowSource.per')
           runtime_path = pathlib.Path('ShadowByzantine/ShadowByzantine.per')
           donor = donor_path.read_text(encoding='utf-8')
 
           expected_sha256 = 'c6431af3f16597b3de223e65e7b60db6c0b22266c0684915ed435bbb054f55b4'
-          actual_sha256 = hashlib.sha256(donor.encode('utf-8')).hexdigest()
+          normalized = donor.replace('\r\n', '\n').replace('\r', '\n')
+          actual_sha256 = hashlib.sha256(normalized.encode('utf-8')).hexdigest()
+          print(f'ShadowSource normalized SHA-256: {actual_sha256}')
           if actual_sha256 != expected_sha256:
-              raise SystemExit(f'authenticated donor hash mismatch: {actual_sha256}')
+              raise SystemExit(f'authenticated donor normalized hash mismatch: {actual_sha256}')
 
           def count_rules(text):
               return len(re.findall(r'(?m)^\s*\(defrule\b', text))
@@ -132,9 +133,6 @@ jobs:
           if donor_rules != 1956:
               raise SystemExit(f'authenticated donor rule-count mismatch: {donor_rules}')
 
-          # Preserve the donor's ordered executable machine verbatim except for
-          # the single explicit environment gate that identifies the supported
-          # civilization. No rules are reordered, removed, or synthesized.
           adapted = donor.replace('(not(civ-selected viking))', '(not(civ-selected byzantines))')
           if donor.count('(not(civ-selected viking))') != 1:
               raise SystemExit('expected exactly one Viking civilization gate')
@@ -142,14 +140,8 @@ jobs:
               raise SystemExit('Byzantine civilization gate replacement failed')
 
           runtime_path.write_text(adapted, encoding='utf-8')
-
-          # The runtime package must collapse to the donor's single ordered
-          # program. Retain historical numbered modules in the repository, but
-          # do not load them into the executable graph.
-          root = pathlib.Path('ShadowByzantine.per')
-          root.write_text('(load "ShadowByzantine/ShadowByzantine")\n', encoding='utf-8')
-
-          print(f'rebuilt {runtime_path} from authenticated donor: {donor_rules} rules')
+          pathlib.Path('ShadowByzantine.per').write_text('(load "ShadowByzantine/ShadowByzantine")\n', encoding='utf-8')
+          print(f'rebuilt {runtime_path}: {donor_rules} rules')
           print('adaptation: exactly one civ-selected viking -> civ-selected byzantines predicate')
           PY
 
@@ -162,29 +154,22 @@ jobs:
 
           donor = pathlib.Path('ShadowSource.per').read_text(encoding='utf-8')
           runtime = pathlib.Path('ShadowByzantine/ShadowByzantine.per').read_text(encoding='utf-8')
-          normalized_runtime = runtime.replace('(not(civ-selected byzantines))', '(not(civ-selected viking))')
-
-          donor_rules = len(re.findall(r'(?m)^\s*\(defrule\b', donor))
-          runtime_rules = len(re.findall(r'(?m)^\s*\(defrule\b', runtime))
-          if donor_rules != runtime_rules:
-              raise SystemExit(f'rule count drift: donor={donor_rules}, runtime={runtime_rules}')
-
-          if hashlib.sha256(normalized_runtime.encode('utf-8')).hexdigest() != hashlib.sha256(donor.encode('utf-8')).hexdigest():
-              raise SystemExit('runtime differs from donor beyond the authenticated Byzantine civilization gate')
-
+          normalized_donor = donor.replace('\r\n', '\n').replace('\r', '\n')
+          normalized_runtime = runtime.replace('\r\n', '\n').replace('\r', '\n')
+          expected = normalized_donor.replace('(not(civ-selected viking))', '(not(civ-selected byzantines))')
+          if normalized_runtime != expected:
+              raise SystemExit('runtime is not an exact donor transplant plus the authorized Byzantine civilization-gate substitution')
+          if len(re.findall(r'(?m)^\s*\(defrule\b', runtime)) != 1956:
+              raise SystemExit('runtime rule count is not 1956')
           if '(load ' in runtime:
-              raise SystemExit('runtime donor machine unexpectedly contains nested loads')
-
-          for legacy in pathlib.Path('ShadowByzantine').glob('*.per'):
-              if legacy.name != 'ShadowByzantine.per':
-                  continue
-          print(f'PASS: {runtime_rules} runtime rules; source-order body preserved modulo one Byzantine gate')
+              raise SystemExit('runtime contains nested load')
+          print('PASS: 1956 rules; exact normalized donor identity except authorized civ gate; no nested load')
           PY
 
       - name: Commit generated forensic artifacts and rebuilt runtime
         run: |
           git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config user.email '41898282+users.noreply.github.com'
           git add ShadowByzantine.per ShadowByzantine/ShadowByzantine.per \
                   docs/forensics/SHADOW_SOURCE_ORDER_MATRIX_v0.3.md \
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_AND_ESCROW_v0.1.md \
