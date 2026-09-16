@@ -6,6 +6,7 @@ on:
       - 'tools/forensics_shadow_source_matrix.py'
       - 'tools/forensics_shadow_cfg_escrow.py'
       - 'tools/forensics_shadow_cfg_escrow_v02.py'
+      - 'tools/forensics_shadow_transplantation_atlas.py'
       - '.github/workflows/shadow-forensic-matrix.yml'
       - 'Shadow DC7.per'
   workflow_dispatch:
@@ -31,6 +32,9 @@ jobs:
       - name: Generate corrected live CFG and escrow path trace v0.2
         run: python3 tools/forensics_shadow_cfg_escrow_v02.py
 
+      - name: Generate rule-level transplantation atlas
+        run: python3 tools/forensics_shadow_transplantation_atlas.py
+
       - name: Commit generated forensic artifacts
         run: |
           git config user.name 'github-actions[bot]'
@@ -39,10 +43,11 @@ jobs:
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_AND_ESCROW_v0.1.md \
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_v0.1.svg \
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_AND_ESCROW_v0.2.md \
-                  docs/forensics/SHADOW_LIVE_CONTROL_FLOW_v0.2.svg
+                  docs/forensics/SHADOW_LIVE_CONTROL_FLOW_v0.2.svg \
+                  docs/forensics/SHADOW_RULE_TRANSPLANTATION_MAP_v0.1.md
           if git diff --cached --quiet; then
             echo 'Forensic artifacts unchanged.'
             exit 0
           fi
-          git commit -m 'forensics: generate corrected Shadow live CFG and escrow trace'
+          git commit -m 'forensics: generate rule-level transplantation atlas'
           git push
