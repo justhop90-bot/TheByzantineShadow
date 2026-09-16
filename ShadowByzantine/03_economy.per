@@ -1,28 +1,29 @@
 ;======================================
-;BASIC BYZANTINE AI
-; MODULE 03 -- ECONOMY
+; THE BYZANTINE SHADOW
+; MODULE 03 -- ECONOMY FOUNDATION
+;======================================
+;
+; Pass 1 responsibility:
+;   Establish a deterministic baseline gatherer allocation.
+;
+; Transactional production is NOT implemented here. The Pass 1
+; transaction kernel owns capital feasibility, escrow, authority,
+; execution, verification, and release.
+;
 ;======================================
 
-(defrule    
+(defrule
     (can-train villager)
-=> 
+=>
     (train villager)
-) 
-
-;======================================
-; BASIC BYZANTINE AI
-; MODULE 03 -- ECONOMY  
-;======================================
+)
 
 (defrule
     (true)
 =>
-    (set-strategic -number sn-food-gatherer-percentage 60)
+    (set-strategic-number sn-food-gatherer-percentage 60)
     (set-strategic-number sn-wood-gatherer-percentage 40)
     (set-strategic-number sn-gold-gatherer-percentage 0)
     (set-strategic-number sn-stone-gatherer-percentage 0)
     (disable-self)
-
 )
-
-
