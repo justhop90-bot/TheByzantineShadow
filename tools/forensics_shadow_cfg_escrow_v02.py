@@ -54,7 +54,12 @@ if __name__ == '__main__':
     if len(rules) != 1956:
         raise SystemExit(f'Historical baseline changed: expected 1956 rules, got {len(rules)}')
     base.MD_OUT.parent.mkdir(parents=True, exist_ok=True)
-    base.MD_OUT.write_text(base.build_report(src, rules), encoding='utf-8')
+    report = base.build_report(src, rules).replace(
+        '# Shadow DC7 — Live Control-Flow Graph + Escrow Path Trace v0.1',
+        '# Shadow DC7 — Live Control-Flow Graph + Escrow Path Trace v0.2',
+        1,
+    )
+    base.MD_OUT.write_text(report, encoding='utf-8')
     base.SVG_OUT.write_text(base.make_svg(rules), encoding='utf-8')
     print(f'generated {base.MD_OUT}')
     print(f'generated {base.SVG_OUT}')
