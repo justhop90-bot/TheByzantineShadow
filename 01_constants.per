@@ -157,3 +157,40 @@
 (defconst place-forward 1)
 
 (defconst AEGIS-SPEARMAN-TARGET 3)
+
+; ============================================================
+; THE BYZANTINE SHADOW -- MODULE 06 MILITARY REGISTRY
+; ============================================================
+;
+; Observation/decision interface only. Military execution remains
+; outside this module. These goals are separate from production
+; transaction state so threat state cannot collide with execution state.
+;
+(defconst SHADOW-MIL-POPULATION 540)
+(defconst SHADOW-MIL-ENEMY-POPULATION 541)
+(defconst SHADOW-MIL-POSTURE 542)
+(defconst SHADOW-MIL-CAPABILITY 543)
+(defconst SHADOW-MIL-THREAT-TIME 544)
+(defconst SHADOW-MIL-THREAT-PLAYER 545)
+(defconst SHADOW-MIL-THREAT-SOURCE 546)
+(defconst SHADOW-MIL-THREAT-TARGET 547)
+(defconst SHADOW-MIL-SUPERIORITY 548)
+(defconst SHADOW-MIL-INITIALIZED 549)
+
+(defconst SHADOW-MIL-POSTURE-BUILDUP 0)
+(defconst SHADOW-MIL-POSTURE-DEFENSIVE 1)
+(defconst SHADOW-MIL-POSTURE-ATTACK-READY 2)
+(defconst SHADOW-MIL-POSTURE-EMERGENCY 3)
+
+(defconst SHADOW-MIL-CAPABILITY-NONE 0)
+(defconst SHADOW-MIL-CAPABILITY-ANTI-CAVALRY 1)
+(defconst SHADOW-MIL-CAPABILITY-ANTI-RANGED 2)
+(defconst SHADOW-MIL-CAPABILITY-ANTI-SIEGE 3)
+(defconst SHADOW-MIL-CAPABILITY-ANTI-INFANTRY 4)
+(defconst SHADOW-MIL-CAPABILITY-ANTI-NAVAL 5)
+
+(defconst SHADOW-MIL-INFERIOR 0)
+(defconst SHADOW-MIL-SUPERIOR 1)
+
+; Policy parameter, not an engine fact.
+(defconst SHADOW-MIL-ATTACK-READY-MIN-POP 10)
