@@ -3,83 +3,48 @@
 ; RUNTIME MODULE ORCHESTRATOR
 ; ============================================================
 ;
-; Purpose:
-;   Canonical module loader for the Byzantine Shadow runtime package.
+; Pass 1 runtime graph.
 ;
-; Runtime layout:
-;   /ai/ShadowByzantine.per              root runtime entrypoint
-;   /ai/ShadowByzantine/ShadowByzantine.per  module orchestrator
-;   /ai/ShadowByzantine/*.per            runtime modules
+; The historical 15-module architecture remains scaffolding. Pass 1
+; intentionally installs one executable vertical slice rather than
+; loading incomplete parallel transaction implementations.
 ;
-; Design:
-;   This file contains no behavioral rules. Its sole authority is
-;   deterministic module inclusion and dependency ordering.
+; Dependency order:
+;   constants -> observation/foundation -> basic infrastructure
+;   -> Pass 1 transaction kernel
 ;
-; Load-order contract:
-;   01  Shadow constants / engine vocabulary
-;   01b Byzantine ABI constants / state vocabulary
-;   02  state observers
-;   03  economy observers
-;   04  construction lifecycle
-;   05  composition policy
-;   05  production policy / execution-facing production logic
-;   06  military subsystem
-;   07  placement subsystem
-;   07  strategic reserve policy
-;   08  construction requirements
-;   09  capital feasibility
-;   10  escrow lifecycle
-;   11  construction authority
-;   12  construction execution
-;   13  world-state verification
-;   14  recovery / reconciliation
-;   15  reassessment
+; Pass 1 transaction contract:
+;   objective
+;      -> progression
+;      -> capital feasibility
+;      -> escrow mutation
+;      -> escrow observation
+;      -> authority
+;      -> baseline
+;      -> execution
+;      -> world-state verification
+;      -> release request
+;      -> release observation
+;      -> idle/reassessment
 ;
-; The loader intentionally uses local module names. Because this file
-; resides inside ShadowByzantine/, each load resolves against the same
-; module directory rather than duplicating the directory prefix.
-;
-; Shadow-derived principle:
-;   declarations precede consumers; observations precede policy gates;
-;   feasibility precedes escrow; escrow precedes authority; authority
-;   precedes execution; execution precedes verification; verification
-;   precedes release/recovery and reassessment.
 ; ============================================================
 
-; ------------------------------------------------------------
-; FOUNDATION
-; ------------------------------------------------------------
 (load "01_constants")
 (load "01b_byz_constants")
 (load "02_state")
 (load "03_economy")
-
-; ------------------------------------------------------------
-; STRATEGIC / CONSTRUCTION POLICY
-; ------------------------------------------------------------
 (load "04_construction")
 (load "05_composition_policy")
 (load "05_production")
 (load "06_military")
-
-; ------------------------------------------------------------
-; PLACEMENT / RESOURCE / FEASIBILITY
-; ------------------------------------------------------------
 (load "07_placement")
 (load "07_strategic reserve")
-(load "08_requirements")
-(load "09_capital")
 
 ; ------------------------------------------------------------
-; TRANSACTION / EXECUTION PIPELINE
+; PASS 1 -- COMPLETE ECONOMIC TRANSACTION VERTICAL SLICE
 ; ------------------------------------------------------------
-(load "10_escrow")
-(load "11_authority")
-(load "12_execution")
-(load "13_verification")
-(load "14_recovery")
-(load "15_reassessment")
+(load "16_pass1_transaction")
 
 ; ============================================================
-; END OF MODULE GRAPH
+; END PASS 1 RUNTIME GRAPH
 ; ============================================================
