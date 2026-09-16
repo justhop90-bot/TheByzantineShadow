@@ -75,15 +75,17 @@ jobs:
           atlas.classify = conservative_classify
           atlas.main()
 
-          # Add exact declaration blocks. These are state-carrier namespaces,
-          # not defrule ordinals. Each block ends immediately before the next
-          # Q-heading, preserving the source's interleaved declaration layout.
+          # Add exact declaration blocks. The donor contains some header-copy
+          # references to these names near the top of the file; those are not
+          # declaration blocks. Real declarations begin in the 1300+ line
+          # constant namespace, so only headings at/after that boundary are
+          # eligible here. Each block ends immediately before the next Q-heading.
           donor = pathlib.Path('ShadowSource.per').read_text(encoding='utf-8').splitlines()
           target_names = {"QID'S", 'QGENERAL', 'QPOSITION', 'QECONOMY'}
           all_headings = []
           for i, line in enumerate(donor, 1):
               m = re.match(r'^\s*;[^\n]*?\b(Q[A-Z0-9][A-Z0-9_ \'()/-]*)\b', line)
-              if m:
+              if m and i >= 1300:
                   all_headings.append((i, m.group(1).strip()))
           targets = [(i, n) for i, n in all_headings if n in target_names]
           rows = []
@@ -97,7 +99,6 @@ jobs:
           if marker in text:
               pre = text.split(marker, 1)[0].rstrip()
               post = text.split(marker, 1)[1]
-              # Remove only the prior declaration table up to the generated marker.
               gen = post.split('<!-- BEGIN GENERATED RULE-LEVEL ATLAS -->', 1)
               post = ('<!-- BEGIN GENERATED RULE-LEVEL ATLAS -->' + gen[1]) if len(gen) == 2 else post
               text = pre + '\n\n' + post.lstrip()
