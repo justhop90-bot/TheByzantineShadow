@@ -217,6 +217,16 @@
 ; THE BYZANTINE SHADOW -- MODULE 09 CAPITAL REGISTRY
 ; ============================================================
 
+; UserPatch cost-data commands require their four-goal vectors to
+; begin in the legal extended-goal range 41-508. 594-597 are the
+; public Shadow capital outputs, so the engine cost-delta action uses
+; this separate scratch vector and Module 09 then copies it into
+; the public output slots.
+(defconst SHADOW-CAPITAL-COST-DELTA-FOOD 504)
+(defconst SHADOW-CAPITAL-COST-DELTA-WOOD 505)
+(defconst SHADOW-CAPITAL-COST-DELTA-STONE 506)
+(defconst SHADOW-CAPITAL-COST-DELTA-GOLD 507)
+
 (defconst SHADOW-CAPITAL-SLACK-FOOD 594)
 (defconst SHADOW-CAPITAL-SLACK-WOOD 595)
 (defconst SHADOW-CAPITAL-SLACK-STONE 596)
