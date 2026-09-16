@@ -112,139 +112,142 @@ This artifact records **DIRECT** source evidence recovered from the canonical `S
 )
 ```
 
-## Critical ordinal correction: rules 1890–1896
+## Canonical placement/search anchor: rules 1890–1896
 
-The earlier navigation hypothesis that identified **rule 1890** as the principal `up-find` placement/search control point is **not supported by the direct `ShadowSource.per` line-addressed extraction**. The canonical source places the placement/search sequence later in the local construction stream.
+The direct `.per` extraction confirms the earlier construction index's identification of rule 1890 as the placement/search control point. The sequence is a GOLDMC2 search/placement transaction followed by the STONEMC1 search/placement transaction.
 
-### Rule 1890 — lines 21966–21970
-
-```lisp
-(defrule
-    (true)
-=>
-    (up-jump-rule 5)
-)
-```
-
-### Rule 1891 — lines 21972–21985
+### Rule 1890 — lines 21969–21987
 
 ```lisp
 (defrule
-    (nand (goal gl-strategy FLUSH)
-    (up-compare-goal pause >= 1)
-    (can-build-with-escrow gold)
-    (up-compare-goal gl-current-build-item == GOLD))
+    (false)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC2)
+    (up-set-target-object search-remote c: 0)
+    ;	(up-timer-status t-build-delay != timer-running)
 =>
-    (set-goal pause 0)
-    (up-set-target-object c: gold 1)
-    (up-modify-goal gl-escrow-state c: gold 1)
-    (up-get-point gold)
-    (up-modify-goal gl-current-build-item c: GOLD2)
-    (up-modify-goal gl-escrow-state c: gold -1)
-    (up-remove-target-object c: gold)
-)
-```
-
-### Rule 1892 — lines 21987–22005
-
-```lisp
-(defrule
-    (nand (goal gl-strategy FLUSH)
-    (up-compare-goal pause >= 1)
-    (can-build-with-escrow gold)
-    (up-compare-goal gl-current-build-item == GOLD)
-    (up-target-object c: gold)
-    ; (up-compare-goal lumber-timer >= 200))
-=>
-    (up-get-point gold)
-    (up-set-target-point c: gold)
-    ; (chat-to-player me "Gold3")
-    (set-strategic-number sn-placement-zone-size 1)
-    (set-strategic-number sn-placement-fail-delta 0)
-    (set-strategic-number sn-allow-adjacent-dropsites 1)
-    (set-strategic-number sn-dropsite-separation-distance 1)
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    (chat-to-player me "Second Gold Mining Camp")
+    (set-strategic-number sn-placement-zone-size 15)
+    (set-strategic-number sn-placement-fail-delta 2)
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-dropsite-separation-distance 25)
     (release-escrow wood)
-    (build gold)
-    ; (set-strategic-number sn-lumber-camp-max-distance 0)
+    (up-build place-point 0 c: mining-camp)
+    ;	(enable-timer t-build-delay 3)
 )
 ```
 
-### Rule 1893 — lines 22007–22021
+### Rule 1891 — lines 21989–21995
+
+```lisp
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (building-type-count-total mining-camp < 3)
+    (up-compare-goal gl-build-progress > GoldMC2Number)
+=>
+    (set-goal gl-build-progress GoldMC2Number)
+)
+```
+
+### Rule 1892 — lines 21997–22005
 
 ```lisp
 (defrule
     (goal gl-strategy FLUSH)
-    (up-compare-goal pause >= 1)
-    (can-build-with-escrow stone)
-    (up-compare-goal gl-current-build-item == STONE)
+    (up-compare-goal gl-current-build-item != GOLDMC2)
+    (up-compare-goal gl-build-progress == GoldMC2Number)
 =>
-    (up-set-target-object c: stone 1)
-    (up-modify-goal gl-escrow-state c: stone 1)
-    (up-get-point stone)
-    (up-modify-goal gl-current-build-item c: STONE2)
-    (up-modify-goal gl-escrow-state c: stone -1)
-    (up-remove-target-object c: stone)
+    ;	(chat-to-player me "Setting current build item to GOLDMC2")
+    (set-goal gl-current-build-item GOLDMC2)
+    (set-escrow-percentage wood LOW-ESCROW)
 )
 ```
 
-### Rule 1894 — lines 22023–22042
+### Rule 1893 — lines 22007–22013
 
 ```lisp
 (defrule
-    (goal gl-strategy FLUSH)
-    (up-compare-goal pause >= 1)
-    (can-build-with-escrow stone)
-    (up-compare-goal gl-current-build-item == STONE)
-    ; (goal gl-current-build-item STONE)
-    (up-target-object c: stone)
+    (goal gl-current-build-item GOLDMC2)
+    (building-type-count-total mining-camp >= 3)
 =>
-    ; (chat-to-player me "Stone2")
-    (up-get-point stone)
-    (up-set-target-point c: stone)
-    ; (chat-to-player me "Stone3")
-    (set-strategic-number sn-placement-zone-size 1)
-    (set-strategic-number sn-placement-fail-delta 0)
-    (set-strategic-number sn-allow-adjacent-dropsites 1)
-    (set-strategic-number sn-dropsite-separation-distance 1)
-    (release-escrow wood)
-    (build stone)
-)
-```
-
-### Rule 1895 — lines 22044–22050
-
-```lisp
-(defrule
-    (goal gl-strategy FLUSH)
-    (up-compare-goal pause >= 1)
-    (up-compare-goal gl-current-build-item == STONE2)
-=>
-    (set-goal pause 0)
-)
-```
-
-### Rule 1896 — lines 22052–22060
-
-```lisp
-(defrule
-    (goal gl-strategy FLUSH)
-    (up-compare-goal gl-current-build-item == STONE2)
-    (up-compare-goal gl-build-progress < StoneNumber)
-=>
-    ; (chat-to-player me "Stone4")
     (up-modify-goal gl-build-progress c:+ 1)
-    (set-goal gl-escrow-state with-escrow)
+    ;	(chat-to-player me "Second Gold Mining Camp Built")
 )
 ```
 
-## Consequence for the construction-source audit
+### Rule 1894 — lines 22016–22030
 
-1. `ShadowSource.per` is now the authoritative line-addressable forensic source for this extraction.
-2. Rules 1794–1800 are directly verified at the previously identified offsets.
-3. Rules 1890–1896 are directly verified and demonstrate that the earlier navigation index assigned the wrong semantic role to rule 1890.
-4. The `up-find` / placement-search construction sequence must therefore be re-indexed from the canonical `.per` source rather than inherited from the prior offset hypothesis.
-5. Any AEGIS transplant specification must preserve the distinction between **state transition**, **placement search**, **placement configuration**, **resource/escrow mutation**, and **engine build command**.
-6. No `build` command in this artifact is treated as proof of completed construction. Completion remains a separate runtime/world-state verification question.
+```lisp
+(defrule
+    (goal gl-fifth-turn 1)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item STONEMC1)
+=>
+    (set-strategic-number sn-focus-player-number 0)
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 30)
+    (up-find-remote c: stone-mine c: 40)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-clean-search search-remote object-data-distance search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+)
+```
+
+### Rule 1895 — lines 22032–22050
+
+```lisp
+(defrule
+    (goal gl-fifth-turn 1)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item STONEMC1)
+    ;	(building-type-count-total farm >= 12)
+    (up-set-target-object search-remote c: 0)
+=>
+    ;	(chat-to-player me "First Stone Mining Camp")
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    ;	(up-send-flare point-x)
+    (set-strategic-number sn-placement-zone-size 5)
+    (set-strategic-number sn-placement-fail-delta 10)
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-dropsite-separation-distance 10)
+    (release-escrow wood)
+    (set-escrow-percentage wood 0)
+    (up-build place-point 0 c: mining-camp)
+)
+```
+
+### Rule 1896 — lines 22052–22058
+
+```lisp
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (dropsite-min-distance stone >= 5)
+    (up-compare-goal gl-build-progress > StoneMC1Number)
+=>
+    (set-goal gl-build-progress StoneMC1Number)
+)
+```
+
+## Directly observed construction architecture
+
+The canonical sequence now gives a clean source-level decomposition:
+
+1. **Search state:** `gl-current-build-item` selects a transaction; `up-full-reset-search`, `up-set-target-point`, `up-filter-distance`, and `up-find-remote` establish candidate geometry.
+2. **Candidate selection:** `up-set-target-object search-remote c: 0` selects the search result.
+3. **Placement point:** `up-get-point position-object point-x` and `up-set-target-point point-x` transfer the selected object into placement state.
+4. **Placement policy:** strategic numbers explicitly control zone size, failure delta, adjacency, and dropsite separation.
+5. **Resource boundary:** `release-escrow wood`, and in the STONEMC1 path `set-escrow-percentage wood 0`, mutate resource/escrow state before the engine-facing build operation.
+6. **Engine-facing execution:** `up-build place-point 0 c: mining-camp` issues the placement/build operation.
+7. **Verification/recovery:** subsequent rules use building counts, dropsite distance, and `gl-build-progress` to advance or rewind the construction state.
+
+These are source-level facts. They do **not** establish that the engine accepted the command, that a building was actually placed, or that the resulting world state persisted. Runtime verification remains separate evidence.
 
 ## Next forensic pass
 
@@ -256,6 +259,7 @@ Continue the canonical source extraction by enumerating every rule between 1801 
 - `up-pending-placement`
 - `up-pending-objects`
 - `up-find`
+- `up-find-remote`
 - `up-get-point`
 - `up-set-target-point`
 - `up-set-target-object`
@@ -266,4 +270,4 @@ Continue the canonical source extraction by enumerating every rule between 1801 
 - `set-escrow-percentage`
 - construction timers and strategic preemption.
 
-The source extraction must remain DIRECT evidence; semantic transplantation and AEGIS improvements are separate analytical layers.
+The source extraction remains **DIRECT** evidence; semantic transplantation and AEGIS improvements are separate analytical layers.
