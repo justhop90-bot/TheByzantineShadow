@@ -1,37 +1,10 @@
 ;=============================================================
-; THE BYZANTINE SHADOW
-; MODULE 05R -- PRODUCTION REGISTRY
+; THE BYZANTINE SHADOW -- MODULE 05R PRODUCTION REGISTRY
 ;=============================================================
 ;
-; Complete Byzantine production-domain registry.
-; Goals 400-424 are reserved for this production authority.
-; Goals 500-503 are the four-goal engine cost vector.
-;
-; 400 infantry             militia-line
-; 401 anti-cavalry         spearman-line
-; 402 ranged               archer-line
-; 403 anti-ranged          skirmisher-line
-; 404 light cavalry        scout-line
-; 405 heavy cavalry        knight-line
-; 406 mobile ranged        cavalry-archer-line
-; 407 unique cavalry       cataphract-line
-; 408 ram siege             battering-ram-line
-; 409 area siege            mangonel-line
-; 410 anti-mass siege       scorpion-line
-; 411 gunpowder siege       bombard-cannon
-; 412 castle siege          trebuchet-set
-; 413 monastery             monk-set
-; 414 galley navy            galley-line
-; 415 fire navy              fire-ship-line
-; 416 demolition navy       demolition-ship-line
-; 417 imperial navy         dromon
-; 418 production state
-; 419 escrow state
-; 420 site state
-; 421 admission domain
-; 422 pass lock
-; 423 reassessment flag
-; 424 petard / structure assault
+; Absolute composition targets. 400-429 are reserved for policy /
+; production-domain state. 430-451 are runtime count mirrors.
+; 500-503 remain the four-goal cost vector.
 ;
 (defconst SHADOW-PROD-INFANTRY 400)
 (defconst SHADOW-PROD-ANTI-CAVALRY 401)
@@ -39,25 +12,54 @@
 (defconst SHADOW-PROD-ANTI-RANGED 403)
 (defconst SHADOW-PROD-LIGHT-CAVALRY 404)
 (defconst SHADOW-PROD-HEAVY-CAVALRY 405)
-(defconst SHADOW-PROD-MOBILE-RANGED 406)
-(defconst SHADOW-PROD-UNIQUE-CAVALRY 407)
-(defconst SHADOW-PROD-RAM-SIEGE 408)
-(defconst SHADOW-PROD-AREA-SIEGE 409)
-(defconst SHADOW-PROD-ANTI-MASS-SIEGE 410)
-(defconst SHADOW-PROD-GUNPOWDER-SIEGE 411)
-(defconst SHADOW-PROD-CASTLE-SIEGE 412)
-(defconst SHADOW-PROD-MONK 413)
-(defconst SHADOW-PROD-GALLEY-NAVY 414)
-(defconst SHADOW-PROD-FIRE-NAVY 415)
-(defconst SHADOW-PROD-DEMO-NAVY 416)
-(defconst SHADOW-PROD-IMPERIAL-NAVY 417)
-(defconst SHADOW-PROD-STATE 418)
-(defconst SHADOW-PROD-ESCROW-STATE 419)
-(defconst SHADOW-PROD-SITE-STATE 420)
-(defconst SHADOW-PROD-ADMISSION 421)
-(defconst SHADOW-PROD-LOCK 422)
-(defconst SHADOW-PROD-REASSESS 423)
-(defconst SHADOW-PROD-PETARD 424)
+(defconst SHADOW-PROD-CAMEL 406)
+(defconst SHADOW-PROD-MOBILE-RANGED 407)
+(defconst SHADOW-PROD-UNIQUE-CAVALRY 408)
+(defconst SHADOW-PROD-RAM-SIEGE 409)
+(defconst SHADOW-PROD-AREA-SIEGE 410)
+(defconst SHADOW-PROD-ANTI-MASS-SIEGE 411)
+(defconst SHADOW-PROD-SIEGE-TOWER 412)
+(defconst SHADOW-PROD-GUNPOWDER-SIEGE 413)
+(defconst SHADOW-PROD-CASTLE-SIEGE 414)
+(defconst SHADOW-PROD-MONK 415)
+(defconst SHADOW-PROD-HAND-CANNONEER 416)
+(defconst SHADOW-PROD-GALLEY-NAVY 417)
+(defconst SHADOW-PROD-FIRE-NAVY 418)
+(defconst SHADOW-PROD-DEMO-NAVY 419)
+(defconst SHADOW-PROD-IMPERIAL-NAVY 420)
+(defconst SHADOW-PROD-PETARD 421)
+
+(defconst SHADOW-PROD-STATE 422)
+(defconst SHADOW-PROD-ESCROW-STATE 423)
+(defconst SHADOW-PROD-SITE-STATE 424)
+(defconst SHADOW-PROD-ADMISSION 425)
+(defconst SHADOW-PROD-LOCK 426)
+(defconst SHADOW-PROD-REASSESS 427)
+
+; Runtime observed counts. These deliberately live outside the 450-496
+; historical AEGIS archaeology range preserved elsewhere in the project.
+(defconst SHADOW-PROD-COUNT-INFANTRY 430)
+(defconst SHADOW-PROD-COUNT-ANTI-CAVALRY 431)
+(defconst SHADOW-PROD-COUNT-RANGED 432)
+(defconst SHADOW-PROD-COUNT-ANTI-RANGED 433)
+(defconst SHADOW-PROD-COUNT-LIGHT-CAVALRY 434)
+(defconst SHADOW-PROD-COUNT-HEAVY-CAVALRY 435)
+(defconst SHADOW-PROD-COUNT-CAMEL 436)
+(defconst SHADOW-PROD-COUNT-MOBILE-RANGED 437)
+(defconst SHADOW-PROD-COUNT-UNIQUE-CAVALRY 438)
+(defconst SHADOW-PROD-COUNT-RAM-SIEGE 439)
+(defconst SHADOW-PROD-COUNT-AREA-SIEGE 440)
+(defconst SHADOW-PROD-COUNT-ANTI-MASS-SIEGE 441)
+(defconst SHADOW-PROD-COUNT-SIEGE-TOWER 442)
+(defconst SHADOW-PROD-COUNT-GUNPOWDER-SIEGE 443)
+(defconst SHADOW-PROD-COUNT-CASTLE-SIEGE 444)
+(defconst SHADOW-PROD-COUNT-MONK 445)
+(defconst SHADOW-PROD-COUNT-HAND-CANNONEER 446)
+(defconst SHADOW-PROD-COUNT-GALLEY-NAVY 447)
+(defconst SHADOW-PROD-COUNT-FIRE-NAVY 448)
+(defconst SHADOW-PROD-COUNT-DEMO-NAVY 520)
+(defconst SHADOW-PROD-COUNT-IMPERIAL-NAVY 521)
+(defconst SHADOW-PROD-COUNT-PETARD 522)
 
 (defconst SHADOW-PROD-SATISFIED 0)
 (defconst SHADOW-PROD-ACCUMULATING 1)
