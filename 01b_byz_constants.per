@@ -1,18 +1,14 @@
 ; ============================================================
 ; THE BYZANTINE SHADOW
-; MODULE 01B -- BYZANTINE CONSTRUCTION ABI NAMESPACE
+; MODULE 01B -- BYZANTINE ABI NAMESPACE
 ; ============================================================
 ;
-; Isolated implementation namespace for the new construction ABI.
-; This file intentionally does not alter the existing Shadow/legacy
-; constants registry. All allocations here are above the current
-; migration range.
-;
-; Strategic thresholds, timers, escrow percentages/caps, placement
-; geometry, and builder counts are deliberately NOT defined here.
+; Isolated implementation namespace. Strategic thresholds, timers,
+; escrow percentages/caps, placement geometry, priorities, retry
+; limits, and builder counts remain intentionally unassigned.
 ; ============================================================
 
-; Goal registers
+; Construction goal registers
 (defconst BYZ-CONSTRUCTION-STATE 522)
 (defconst BYZ-CURRENT-BUILD-ITEM 523)
 (defconst BYZ-BUILD-PROGRESS 524)
@@ -41,16 +37,13 @@
 (defconst BYZ-CONSTRUCTION-EXPIRED 11)
 (defconst BYZ-CONSTRUCTION-RECOVERY 12)
 
-; Construction request values
 (defconst BYZ-REQUEST-INACTIVE 0)
 (defconst BYZ-REQUEST-ACTIVE 1)
 
-; Symbolic placement modes
+; Placement values
 (defconst BYZ-PLACE-NORMAL 0)
 (defconst BYZ-PLACE-POINT 1)
 (defconst BYZ-PLACE-CONTROL 2)
-
-; Symbolic target state values
 (defconst BYZ-TARGET-NONE 0)
 (defconst BYZ-TARGET-SEARCHING 1)
 (defconst BYZ-TARGET-OBJECT 2)
@@ -59,7 +52,7 @@
 (defconst BYZ-TARGET-VALID 5)
 (defconst BYZ-TARGET-INVALID 6)
 
-; Symbolic verification values
+; Verification values
 (defconst BYZ-VERIFY-NOT-STARTED 0)
 (defconst BYZ-VERIFY-PENDING 1)
 (defconst BYZ-VERIFY-OBSERVING 2)
@@ -68,7 +61,7 @@
 (defconst BYZ-VERIFY-CONTRADICTED 5)
 (defconst BYZ-VERIFY-RECONCILE 6)
 
-; Symbolic recovery values
+; Recovery values
 (defconst BYZ-RECOVERY-NONE 0)
 (defconst BYZ-RECOVERY-DETECTED 1)
 (defconst BYZ-RECOVERY-DIAGNOSING 2)
@@ -79,6 +72,37 @@
 (defconst BYZ-RECOVERY-CANCELLED 7)
 (defconst BYZ-RECOVERY-COMPLETE 8)
 
-; No numeric strategic threshold, timer, escrow percentage/cap,
-; placement geometry, priority, retry count, or builder count is
-; assigned by this namespace.
+; Escrow goal registers
+(defconst BYZ-ESCROW-STATE 534)
+(defconst BYZ-ESCROW-RELEASE-REQUEST 535)
+(defconst BYZ-ESCROW-COMMIT-REQUEST 536)
+(defconst BYZ-ESCROW-RECONCILIATION 537)
+(defconst BYZ-ESCROW-POLICY-VALUE 538)
+
+; Escrow lifecycle values
+(defconst BYZ-ESCROW-IDLE 0)
+(defconst BYZ-ESCROW-REQUESTED 1)
+(defconst BYZ-ESCROW-RESERVING 2)
+(defconst BYZ-ESCROW-COMMITTED 3)
+(defconst BYZ-ESCROW-RELEASE-REQUESTED 4)
+(defconst BYZ-ESCROW-RELEASING 5)
+(defconst BYZ-ESCROW-RECONCILING 6)
+(defconst BYZ-ESCROW-RELEASED 7)
+(defconst BYZ-ESCROW-CANCELLED 8)
+(defconst BYZ-ESCROW-EXPIRED 9)
+(defconst BYZ-ESCROW-RECOVERY 10)
+
+(defconst BYZ-ESCROW-RELEASE-NO 0)
+(defconst BYZ-ESCROW-RELEASE-YES 1)
+(defconst BYZ-ESCROW-COMMIT-NO 0)
+(defconst BYZ-ESCROW-COMMIT-YES 1)
+
+; Escrow reconciliation values
+(defconst BYZ-ESCROW-RECONCILE-NONE 0)
+(defconst BYZ-ESCROW-RECONCILE-PENDING 1)
+(defconst BYZ-ESCROW-RECONCILE-CONFIRMED 2)
+(defconst BYZ-ESCROW-RECONCILE-CONTRADICTED 3)
+
+; No strategic thresholds, timers, escrow percentages/caps,
+; placement geometry, priority, retry count, or builder count
+; is defined in this namespace.
