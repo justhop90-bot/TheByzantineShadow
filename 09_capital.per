@@ -1,254 +1,183 @@
-; ============================================
-; AEGIS
-; 09_capital.per
-; ============================================
+; =============================================================
+; THE BYZANTINE SHADOW -- MODULE 09 CAPITAL
+; =============================================================
 ;
-; CAPITAL MODEL
+; CAPITAL FEASIBILITY
 ;
-; Gross
-;   = resources currently held by the AI.
+; Module 08 owns the engine-derived transaction cost vector:
+;   500 food
+;   501 wood
+;   502 stone
+;   503 gold
 ;
-; Committed
-;   = resources currently held in engine escrow.
+; Module 07 owns protected reserve floors:
+;   561 food
+;   562 wood
+;   563 gold
+;   564 stone
 ;
-; Liquid
-;   = gross - committed.
+; Module 09 derives capital slack as:
 ;
-; Reserve
-;   = strategically protected liquid capital,
-;     produced by 07_strategic reserve.per.
+;   current resources
+;   - Module 08 transaction cost
+;   - Module 07 protected reserve
 ;
-; Discretionary
-;   = liquid - reserve.
-;
-; Transaction demand
-;   = engine-defined capital required by the
-;     active transaction, produced by 08_requirements.per.
-;
-; Capital feasibility
-;   = discretionary capital >= transaction demand
-;     across all four resource dimensions.
-;
-; ============================================
-;
-; RESPONSIBILITY
-; --------------
-; This module calculates capital state.
+; Feasibility is true only when all four resulting slack values
+; are non-negative while Module 08 reports an active requirement.
 ;
 ; This module does NOT:
 ;   - choose reserve policy
-;   - set resource reserve values
-;   - choose the strategic objective
+;   - change reserve floors
 ;   - construct cost data
-;   - modify engine escrow
+;   - modify escrow
 ;   - release escrow
+;   - execute production
 ;   - grant authority
-;   - execute the transaction
-;   - verify completion
+;   - alter production demand
 ;
-; Reserve policy belongs to 07.
-; Requirement cost construction belongs to 08.
-;
-; ============================================
+; =============================================================
 
 
-; ============================================
-; GROSS RESOURCE OBSERVATION
-; ============================================
+; =============================================================
+; INITIALIZATION
+; =============================================================
 
 (defrule
     (true)
 =>
-    (up-get-fact food-amount 0 AEGIS-GROSS-FOOD)
-    (up-get-fact wood-amount 0 AEGIS-GROSS-WOOD)
-    (up-get-fact gold-amount 0 AEGIS-GROSS-GOLD)
-    (up-get-fact stone-amount 0 AEGIS-GROSS-STONE)
+    (set-goal SHADOW-CAPITAL-SLACK-FOOD 0)
+    (set-goal SHADOW-CAPITAL-SLACK-WOOD 0)
+    (set-goal SHADOW-CAPITAL-SLACK-STONE 0)
+    (set-goal SHADOW-CAPITAL-SLACK-GOLD 0)
+    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
+    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-INACTIVE)
+    (set-goal SHADOW-CAPITAL-INITIALIZED 1)
 )
 
 
-; ============================================
-; ENGINE ESCROW OBSERVATION
-; ============================================
-
-(defrule
-    (true)
-=>
-    (up-get-fact escrow-amount food AEGIS-COMMITTED-FOOD)
-    (up-get-fact escrow-amount wood AEGIS-COMMITTED-WOOD)
-    (up-get-fact escrow-amount gold AEGIS-COMMITTED-GOLD)
-    (up-get-fact escrow-amount stone AEGIS-COMMITTED-STONE)
-)
-
-
-; ============================================
-; LIQUID CAPITAL
-; ============================================
+; =============================================================
+; COST-DATA SELECTION
+; =============================================================
 ;
-; UserPatch math semantics: c:min stores the lesser
-; of the current value and the supplied value; c:max
-; stores the greater. Therefore c:max 0 is the floor.
+; up-get-cost-delta reads the current engine resource stockpile
+; against the cost data selected by the most recent
+; up-setup-cost-data command. Explicitly select the Shadow
+; production cost vector here rather than depending on another
+; module's most recent cost-data selection.
 ;
-; ============================================
-
-(defrule
-    (true)
-=>
-    (up-modify-goal AEGIS-LIQUID-FOOD c:= AEGIS-GROSS-FOOD)
-    (up-modify-goal AEGIS-LIQUID-FOOD c:- AEGIS-COMMITTED-FOOD)
-    (up-modify-goal AEGIS-LIQUID-FOOD c:max 0)
-)
-
-(defrule
-    (true)
-=>
-    (up-modify-goal AEGIS-LIQUID-WOOD c:= AEGIS-GROSS-WOOD)
-    (up-modify-goal AEGIS-LIQUID-WOOD c:- AEGIS-COMMITTED-WOOD)
-    (up-modify-goal AEGIS-LIQUID-WOOD c:max 0)
-)
-
-(defrule
-    (true)
-=>
-    (up-modify-goal AEGIS-LIQUID-GOLD c:= AEGIS-GROSS-GOLD)
-    (up-modify-goal AEGIS-LIQUID-GOLD c:- AEGIS-COMMITTED-GOLD)
-    (up-modify-goal AEGIS-LIQUID-GOLD c:max 0)
-)
-
-(defrule
-    (true)
-=>
-    (up-modify-goal AEGIS-LIQUID-STONE c:= AEGIS-GROSS-STONE)
-    (up-modify-goal AEGIS-LIQUID-STONE c:- AEGIS-COMMITTED-STONE)
-    (up-modify-goal AEGIS-LIQUID-STONE c:max 0)
-)
-
-
-; ============================================
-; DISCRETIONARY CAPITAL
-; ============================================
-;
-; Reserve policy and resource-specific reserve
-; values are supplied by Module 07.
-;
-; ============================================
-
-(defrule
-    (true)
-=>
-    (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:= AEGIS-LIQUID-FOOD)
-    (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:- AEGIS-RESERVE-FOOD)
-    (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:max 0)
-)
-
-(defrule
-    (true)
-=>
-    (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:= AEGIS-LIQUID-WOOD)
-    (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:- AEGIS-RESERVE-WOOD)
-    (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:max 0)
-)
-
-(defrule
-    (true)
-=>
-    (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:= AEGIS-LIQUID-GOLD)
-    (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:- AEGIS-RESERVE-GOLD)
-    (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:max 0)
-)
-
-(defrule
-    (true)
-=>
-    (up-modify-goal AEGIS-DISCRETIONARY-STONE c:= AEGIS-LIQUID-STONE)
-    (up-modify-goal AEGIS-DISCRETIONARY-STONE c:- AEGIS-RESERVE-STONE)
-    (up-modify-goal AEGIS-DISCRETIONARY-STONE c:max 0)
-)
-
-
-; ============================================
-; DEMAND ACTIVE STATE
-; ============================================
-;
-; Cost demand is relevant while a transaction
-; is being reserved, prepared, or executed.
-;
-; ============================================
-
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
-=>
-    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
-)
-
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
-=>
-    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
-)
-
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
-=>
-    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
-)
-
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
-=>
-    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-INACTIVE)
-)
-
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
-=>
-    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-INACTIVE)
-)
-
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
-=>
-    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-INACTIVE)
-)
-
-
-; ============================================
-; CAPITAL FEASIBILITY
-; ============================================
-;
-; IMPORTANT:
-; (goal GoalId Value) performs equality only.
-; Comparisons against another goal use
-; up-compare-goal.
-;
-; Demand goals follow UserPatch cost-data order:
+; The command writes four consecutive goals in the order:
 ; FOOD, WOOD, STONE, GOLD.
 ;
-; ============================================
+; 594-597 are the Shadow Module 09 slack vector.
+; =============================================================
 
 (defrule
-    (goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
-    (up-compare-goal AEGIS-DISCRETIONARY-FOOD >= AEGIS-DEMAND-FOOD)
-    (up-compare-goal AEGIS-DISCRETIONARY-WOOD >= AEGIS-DEMAND-WOOD)
-    (up-compare-goal AEGIS-DISCRETIONARY-STONE >= AEGIS-DEMAND-STONE)
-    (up-compare-goal AEGIS-DISCRETIONARY-GOLD >= AEGIS-DEMAND-GOLD)
+    (goal SHADOW-CAPITAL-INITIALIZED 1)
 =>
-    (set-goal AEGIS-CAPITAL-FEASIBILITY AEGIS-CAPITAL-SUFFICIENT)
+    (up-setup-cost-data 0 SHADOW-PROD-COST-FOOD)
+    (up-get-cost-delta SHADOW-CAPITAL-SLACK-FOOD)
+)
+
+
+; =============================================================
+; PROTECTED-RESERVE DEDUCTION
+; =============================================================
+;
+; up-get-cost-delta gives:
+;
+;   current resources - transaction cost
+;
+; Subtract the Module 07 protected reserve from each resource.
+;
+; Do NOT clamp these values to zero. Negative slack is the
+; evidence required by the feasibility gate.
+; =============================================================
+
+(defrule
+    (goal SHADOW-CAPITAL-INITIALIZED 1)
+=>
+    (up-modify-goal SHADOW-CAPITAL-SLACK-FOOD c:- SHADOW-RESERVE-FOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-WOOD c:- SHADOW-RESERVE-WOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-STONE c:- SHADOW-RESERVE-STONE)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-GOLD c:- SHADOW-RESERVE-GOLD)
+)
+
+
+; =============================================================
+; ACTIVE STATE
+; =============================================================
+;
+; Capital feasibility is meaningful only while Module 08 has an
+; active production requirement. Capital does not invent demand.
+; =============================================================
+
+(defrule
+    (up-compare-goal SHADOW-REQ-ACTIVE g:= SHADOW-REQ-ACTIVE-VALUE)
+=>
+    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-ACTIVE-VALUE)
 )
 
 (defrule
-    (goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
+    (up-compare-goal SHADOW-REQ-ACTIVE g:= SHADOW-REQ-INACTIVE)
+=>
+    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-INACTIVE)
+)
+
+
+; =============================================================
+; CAPITAL FEASIBILITY -- SUFFICIENT
+; =============================================================
+;
+; Goal-to-goal comparison uses g:<op> syntax.
+; =============================================================
+
+(defrule
+    (up-compare-goal SHADOW-CAPITAL-ACTIVE g:= SHADOW-CAPITAL-ACTIVE-VALUE)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD g:>= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD g:>= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-STONE g:>= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD g:>= 0)
+=>
+    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-SUFFICIENT)
+)
+
+
+; =============================================================
+; CAPITAL FEASIBILITY -- INSUFFICIENT
+; =============================================================
+;
+; OR is binary in the UserPatch grammar, so the four resource
+; predicates are explicitly nested.
+; =============================================================
+
+(defrule
+    (up-compare-goal SHADOW-CAPITAL-ACTIVE g:= SHADOW-CAPITAL-ACTIVE-VALUE)
     (or
-        (up-compare-goal AEGIS-DISCRETIONARY-FOOD < AEGIS-DEMAND-FOOD)
-        (up-compare-goal AEGIS-DISCRETIONARY-WOOD < AEGIS-DEMAND-WOOD)
-        (up-compare-goal AEGIS-DISCRETIONARY-STONE < AEGIS-DEMAND-STONE)
-        (up-compare-goal AEGIS-DISCRETIONARY-GOLD < AEGIS-DEMAND-GOLD)
+        (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD g:< 0)
+        (or
+            (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD g:< 0)
+            (or
+                (up-compare-goal SHADOW-CAPITAL-SLACK-STONE g:< 0)
+                (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD g:< 0)
+            )
+        )
     )
 =>
-    (set-goal AEGIS-CAPITAL-FEASIBILITY AEGIS-CAPITAL-INSUFFICIENT)
+    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
 )
 
+
+; =============================================================
+; INACTIVE REQUIREMENT STATE
+; =============================================================
+;
+; No active production requirement means no capital feasibility
+; admission exists. The module therefore reports INSUFFICIENT,
+; not SUCCESS, when there is no demand to evaluate.
+; =============================================================
+
 (defrule
-    (goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-INACTIVE)
+    (up-compare-goal SHADOW-CAPITAL-ACTIVE g:= SHADOW-CAPITAL-INACTIVE)
 =>
-    (set-goal AEGIS-CAPITAL-FEASIBILITY AEGIS-CAPITAL-INSUFFICIENT)
+    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
 )
