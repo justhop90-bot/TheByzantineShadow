@@ -1,54 +1,122 @@
-; ============================================================
-; THE BYZANTINE SHADOW
-; MODULE 11 -- AUTHORITY
-; ============================================================
+; ============================================
+; AEGIS
+; 11_authority.per
+; ============================================
 ;
-; Authority owns the gate between a prepared construction transaction
-; and engine execution. It does not select strategy, calculate capital,
-; release escrow, issue build commands, verify completion, or recover.
-; ============================================================
+; AUTHORITY
+;
+; Responsibility:
+;
+;   Determine whether the current transaction
+;   is authorized to cross from preparation
+;   into execution.
+;
+; Authority is a gate between:
+;
+;   TRANSACTION + ESCROW
+;          ↓
+;      AUTHORITY
+;          ↓
+;      EXECUTION
+;
+; This module does NOT:
+;
+;   - choose the objective
+;   - create the requirement
+;   - calculate capital
+;   - create escrow
+;   - release escrow
+;   - issue an engine command
+;   - verify execution
+;   - perform recovery
+;
+; Authority is therefore an authorization state,
+; not an execution mechanism.
+;
+; ============================================
+
+; ============================================
+; IDLE -> DENIED
+; ============================================
+;
+; No active transaction exists.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
 =>
-    (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
 )
+
+; ============================================
+; RESERVING -> DENIED
+; ============================================
+;
+; Capital is still being prepared.
+;
+; A transaction cannot execute merely because
+; it exists. It must first reach READY with
+; its required escrow commitment established.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
-    (up-compare-goal BYZ-ESCROW-STATE != BYZ-ESCROW-COMMITTED)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
 =>
-    (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
 )
+
+; ============================================
+; READY + COMMITTED -> GRANTED
+; ============================================
+;
+; READY means the transaction has completed
+; its preparation phase.
+;
+; COMMITTED means the escrow subsystem has
+; established the required economic commitment.
+;
+; Authority therefore opens only when both
+; conditions are true.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RESERVED)
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
 =>
-    (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-GRANTED)
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
 )
+
+; ============================================
+; COMPLETE -> DENIED
+; ============================================
+;
+; A completed transaction no longer possesses
+; execution authority.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
 =>
-    (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
 )
+
+; ============================================
+; FAILED -> DENIED
+; ============================================
+;
+; A failed transaction no longer possesses
+; execution authority.
+;
+; Recovery owns the subsequent failure path.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-FAILED)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
 =>
-    (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
+(set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
 )
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RECOVERY)
-=>
-    (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
-)
-
-; INVARIANTS:
-; authority is a gate, not execution
-; escrow commitment is necessary but does not imply completion
-; authority does not issue build commands
-; authority never releases escrow
-; ============================================================

@@ -3,165 +3,206 @@
 ; MODULE 05 -- PRODUCTION AUTHORITY
 ;=============================================================
 ;
-; Production is an economic commitment consumer.
+; Required load order:
 ;
-; AUTHORITY BOUNDARY
-;   Composition Policy -> desired Spearman target
-;   Production Authority -> reservation / admission / execution /
-;                           completion / release
+;   05_production_registry.per
+;   05_composition_policy.per
+;   05_production.per
 ;
-; Production Authority MUST NOT declare or write the demand target.
-; SHADOW-PROD-DEMAND-SPEAR is declared by 05_composition_policy.per,
-; which must load before this module.
+; POLICY:
+;   owns absolute desired composition.
 ;
-; A target of 0 means no Spearman demand.
+; AUTHORITY:
+;   owns production-site acquisition, escrow, admission,
+;   execution, completion observation, and withdrawal.
 ;
-; Cost profile: goals 500-503 (food, wood, stone, gold).
-; Production state: goal 507.
-; Training escrow state: goal 508.
+; Runtime counts are first materialized with up-get-fact.
+; Dynamic targets are then compared with up-compare-goal.
 ;
-(defconst SHADOW-PROD-COST-FOOD 500)
-(defconst SHADOW-PROD-COST-WOOD 501)
-(defconst SHADOW-PROD-COST-STONE 502)
-(defconst SHADOW-PROD-COST-GOLD 503)
-(defconst SHADOW-PROD-STATE 507)
-(defconst SHADOW-PROD-ESCROW-STATE 508)
-
-(defconst SHADOW-PROD-ACCUMULATING 1)
-(defconst SHADOW-PROD-SATISFIED 2)
-(defconst SHADOW-PROD-ESCROW-PERCENT 35)
-(defconst SHADOW-PROD-BARRACKS-ESCROW-PERCENT 60)
-
 ;=============================================================
-; INITIALIZATION
-;=============================================================
-;
-; Cost data remains an engine-defined one-Spearman reference
-; profile. Runtime affordability is established by up-can-train.
-; The demand target is deliberately NOT initialized here: policy
-; owns that goal.
-;
 (defrule
     (goal SHADOW-PROD-STATE -1)
 =>
-    (up-setup-cost-data 1 SHADOW-PROD-COST-FOOD)
-    (up-add-object-cost c: spearman c: 1)
+    (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
     (set-goal SHADOW-PROD-ESCROW-STATE escrow-included)
+    (set-goal SHADOW-PROD-SITE-STATE 0)
+    (set-goal SHADOW-PROD-ADMISSION 0)
+    (set-goal SHADOW-PROD-LOCK 0)
+)
+
+;-------------------------------------------------------------
+; PASS INITIALIZATION
+;-------------------------------------------------------------
+(defrule
+    (true)
+=>
     (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
+    (set-goal SHADOW-PROD-LOCK 0)
+    (set-goal SHADOW-PROD-ADMISSION 0)
 )
 
-;=============================================================
-; NO ACTIVE SPEARMAN DEMAND
-;=============================================================
+```lisp
+;-------------------------------------------------------------
+; OBSERVED PRODUCTION TOTALS
 ;
-; A zero target is a policy withdrawal. Production Authority does
-; not create a transaction and releases only production-owned food/
-; wood escrow that is no longer required.
+; up-get-fact syntax:
+;   (up-get-fact <FactId> <FactParameter> <OutputGoalId>)
 ;
+; unit-type-count-total includes trained + queued units.
+; Therefore these cached goals represent the actual production
+; commitment already visible to the engine.
+;-------------------------------------------------------------
 (defrule
-    (goal SHADOW-PROD-DEMAND-SPEAR 0)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
+    (true)
 =>
-    (release-escrow food)
-    (release-escrow wood)
-    (set-escrow-percentage food 0)
-    (set-escrow-percentage wood 0)
-    (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
+    (up-get-fact unit-type-count-total militia-line
+    SHADOW-PROD-COUNT-INFANTRY)
 )
 
-;=============================================================
-; BARRACKS CAPITAL RESERVATION
-;=============================================================
-;
-; Production Authority derives prerequisite demand from the policy
-; target. Composition policy does not issue the build.
-;
 (defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks < 1)
-    (unit-type-count-total spearman-line g:< SHADOW-PROD-DEMAND-SPEAR)
-    (up-pending-objects c: barracks < 1)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
+    (true)
 =>
-    (set-escrow-percentage wood SHADOW-PROD-BARRACKS-ESCROW-PERCENT)
-    (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
+    (up-get-fact unit-type-count-total spearman-line
+    SHADOW-PROD-COUNT-ANTI-CAVALRY)
 )
 
-; Release the reserved wood only when this authority commitment is
-; active and the engine says the barracks is executable.
-;
 (defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks < 1)
-    (unit-type-count-total spearman-line g:< SHADOW-PROD-DEMAND-SPEAR)
-    (up-pending-objects c: barracks < 1)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
-    (can-build-with-escrow barracks)
+    (true)
 =>
-    (release-escrow wood)
-    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
-    (build barracks)
+    (up-get-fact unit-type-count-total archer-line
+    SHADOW-PROD-COUNT-RANGED)
 )
 
-;=============================================================
-; PRODUCTION RESERVE ACQUISITION
-;=============================================================
-;
-; Once the barracks exists, protect food and wood for the requested
-; military commitment. Gold and stone remain outside this executor.
-;
 (defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks > 0)
-    (unit-type-count-total spearman-line g:< SHADOW-PROD-DEMAND-SPEAR)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
+    (true)
 =>
-    (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
-    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
-    (set-goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
+    (up-get-fact unit-type-count-total skirmisher-line
+    SHADOW-PROD-COUNT-ANTI-RANGED)
 )
 
-;=============================================================
-; TRAINING ADMISSION / EXECUTION
-;=============================================================
-;
-; Site readiness and affordability remain separate gates.
-; up-train-site-ready uses the root Spearman object.
-; up-can-train uses escrow-included through goal 508.
-;
 (defrule
-    (current-age >= feudal-age)
-    (building-type-count-total barracks > 0)
-    (unit-type-count-total spearman-line g:< SHADOW-PROD-DEMAND-SPEAR)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
-    (up-train-site-ready spearman)
-    (up-can-train SHADOW-PROD-ESCROW-STATE c: spearman)
+    (true)
 =>
-    (release-escrow food)
-    (release-escrow wood)
-    (set-escrow-percentage food SHADOW-PROD-ESCROW-PERCENT)
-    (set-escrow-percentage wood SHADOW-PROD-ESCROW-PERCENT)
-    (up-train SHADOW-PROD-ESCROW-STATE c: spearman)
+    (up-get-fact unit-type-count-total scout-cavalry-line
+    SHADOW-PROD-COUNT-LIGHT-CAVALRY)
 )
 
-;=============================================================
-; DEMAND COMPLETION / CAPITAL RELEASE
-;=============================================================
-;
-; Composition policy owns the target. Production Authority observes
-; the engine's current + queued total and declares the commitment
-; satisfied only when the requested target is reached.
-;
 (defrule
-    (unit-type-count-total spearman-line g:>= SHADOW-PROD-DEMAND-SPEAR)
-    (goal SHADOW-PROD-STATE SHADOW-PROD-ACCUMULATING)
+    (true)
 =>
-    (release-escrow food)
-    (release-escrow wood)
-    (set-escrow-percentage food 0)
-    (set-escrow-percentage wood 0)
-    (set-goal SHADOW-PROD-STATE SHADOW-PROD-SATISFIED)
+    (up-get-fact unit-type-count-total knight-line
+    SHADOW-PROD-COUNT-HEAVY-CAVALRY)
 )
 
-; A reduced target is handled as desired-state convergence, not
-; implicit cancellation. Existing queue orders are not cancelled.
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total camel-line
+    SHADOW-PROD-COUNT-CAMEL)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total cavalry-archer-line
+    SHADOW-PROD-COUNT-MOBILE-RANGED)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total cataphract-line
+    SHADOW-PROD-COUNT-UNIQUE-CAVALRY)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total battering-ram-line
+    SHADOW-PROD-COUNT-RAM-SIEGE)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total mangonel-line
+    SHADOW-PROD-COUNT-AREA-SIEGE)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total scorpion-line
+    SHADOW-PROD-COUNT-ANTI-MASS-SIEGE)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total siege-tower
+    SHADOW-PROD-COUNT-SIEGE-TOWER)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total bombard-cannon
+    SHADOW-PROD-COUNT-GUNPOWDER-SIEGE)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total trebuchet-set
+    SHADOW-PROD-COUNT-CASTLE-SIEGE)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total monk-set
+    SHADOW-PROD-COUNT-MONK)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total hand-cannoneer
+    SHADOW-PROD-COUNT-HAND-CANNONEER)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total galley-line
+    SHADOW-PROD-COUNT-GALLEY-NAVY)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total fire-ship-line
+    SHADOW-PROD-COUNT-FIRE-NAVY)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total demolition-ship-line
+    SHADOW-PROD-COUNT-DEMO-NAVY)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total dromon
+    SHADOW-PROD-COUNT-IMPERIAL-NAVY)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-fact unit-type-count-total petard
+    SHADOW-PROD-COUNT-PETARD)
+)
+

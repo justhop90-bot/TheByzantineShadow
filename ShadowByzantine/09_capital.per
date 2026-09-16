@@ -1,89 +1,235 @@
-; ============================================================
-; THE BYZANTINE SHADOW
-; MODULE 09 -- CAPITAL FEASIBILITY
-; ============================================================
-;
-; Authority: reserve-adjusted construction capital feasibility.
-;
-; This module answers whether the currently requested construction
-; package is fundable from current stockpile state. It does not choose
-; strategy, set escrow percentages, release escrow, grant authority,
-; execute construction, or verify completion.
-;
-; Engine escrow remains a separate protected-capital lifecycle owned by
-; Module 10. This module therefore measures liquid affordability only;
-; escrow-inclusive execution remains guarded by up-can-build in Module 12.
-; ============================================================
+*; ============================================================*
 
-; ------------------------------------------------------------
-; INITIALIZATION
-; ------------------------------------------------------------
+*; THE BYZANTINE SHADOW*
+
+*; MODULE 09 -- CAPITAL FEASIBILITY*
+
+*; ============================================================*
+
+*;*
+
+*; PURPOSE*
+*; -------*
+*; Determine whether the active Module 08 production requirement*
+*; can be financed while preserving the protected strategic reserve*
+*; established by Module 07.*
+
+*;*
+
+*; ARCHITECTURE*
+*; ------------*
+*;*
+*; MODULE 08*
+*;   ENGINE-DERIVED REQUIREMENT VECTOR*
+*;              |*
+*;              v*
+*;      up-get-cost-delta*
+*;              |*
+*;              v*
+*;   GROSS CAPITAL SLACK*
+*;              |*
+*;              v*
+*;   SUBTRACT PROTECTED RESERVE*
+*;              |*
+*;              v*
+*;   RESERVE-ADJUSTED CAPITAL SLACK*
+*;              |*
+*;              v*
+*;      FEASIBILITY STATE*
+*;*
+*; CAPITAL FEASIBILITY DOES NOT:*
+*;   - change composition targets*
+*;   - change production deficits*
+*;   - change reserve policy*
+*;   - modify escrow*
+*;   - release escrow*
+*;   - train units*
+*;   - build infrastructure*
+*;   - execute market trades*
+*;   - authorize execution*
+*;   - claim that a future income stream exists*
+*;*
+*; It answers one question only:*
+*;*
+*;   "Can the currently requested production package be funded*
+*;    from the current stockpile without consuming the protected*
+*;    strategic reserve?"*
+
+*; ============================================================*
+
+*; INITIALIZATION*
+*; ============================================================*
+
 (defrule
-    (goal BYZ-CAPITAL-STATE -1)
+    (goal SHADOW-CAPITAL-INITIALIZED -1)
 =>
-    (set-goal BYZ-CAPITAL-STATE BYZ-CAPITAL-INACTIVE)
-    (set-goal BYZ-CAPITAL-SLACK-FOOD 0)
-    (set-goal BYZ-CAPITAL-SLACK-WOOD 0)
-    (set-goal BYZ-CAPITAL-SLACK-GOLD 0)
-    (set-goal BYZ-CAPITAL-SLACK-STONE 0)
+    (set-goal SHADOW-CAPITAL-INITIALIZED 1)
+    (set-goal SHADOW-CAPITAL-SLACK-FOOD 0)
+    (set-goal SHADOW-CAPITAL-SLACK-WOOD 0)
+    (set-goal SHADOW-CAPITAL-SLACK-STONE 0)
+    (set-goal SHADOW-CAPITAL-SLACK-GOLD 0)
+    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
+    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-INACTIVE)
 )
 
-; ------------------------------------------------------------
-; SNAPSHOT CURRENT COST DELTA
-; ------------------------------------------------------------
-; Module 08 establishes the active four-resource cost vector. The
-; engine writes current stockpile minus that cost into four consecutive
-; goals starting at BYZ-CAPITAL-SLACK-FOOD.
+*; ============================================================*
+*; CAPITAL SNAPSHOT*
+*; ============================================================*
+
+*;*
+*; Module 08 owns the current four-resource cost vector:*
+*;*
+*;   SHADOW-PROD-COST-FOOD*
+*;   SHADOW-PROD-COST-WOOD*
+*;   SHADOW-PROD-COST-STONE*
+*;   SHADOW-PROD-COST-GOLD*
+*;*
+*; These are 500-503.*
+*;*
+*; up-get-cost-delta returns:*
+*;*
+*;   current stockpile - current cost vector*
+*;*
+*; into four consecutive goals.*
+*;*
+*; Because the engine requires the cost-delta output to occupy*
+*; extended goals in the 41-508 range, the calculation uses the*
+*; existing 500-503 cost vector as the temporary engine output.*
+*; The resulting values are immediately copied into the Module 09*
+*; capital goals below.*
+*;*
+*; ============================================================*
+
 (defrule
-    (goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+    (true)
 =>
-    (up-get-cost-delta BYZ-CAPITAL-SLACK-FOOD)
+    (up-get-cost-delta SHADOW-PROD-COST-FOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-FOOD g:= SHADOW-PROD-COST-FOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-WOOD g:= SHADOW-PROD-COST-WOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-STONE g:= SHADOW-PROD-COST-STONE)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-GOLD g:= SHADOW-PROD-COST-GOLD)
 )
 
-; ------------------------------------------------------------
-; INACTIVE WHEN NO REQUIREMENT EXISTS
-; ------------------------------------------------------------
+*; ============================================================*
+*; RESERVE PROTECTION*
+*; ============================================================*
+
+*;*
+*; The raw cost delta answers:*
+*;*
+*;   stockpile - production requirement*
+*;*
+*; Capital feasibility must answer the stricter question:*
+*;*
+*;   stockpile - production requirement - protected reserve*
+*;*
+*; Module 07's reserve goals are therefore subtracted here.*
+*;*
+*; The reserve goals are policy outputs, not escrow balances.*
+*; This module deliberately does not touch escrow.*
+*;*
+*; ============================================================*
+
 (defrule
-    (goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-NOT-READY)
+    (true)
 =>
-    (set-goal BYZ-CAPITAL-STATE BYZ-CAPITAL-INACTIVE)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-FOOD c:- SHADOW-RESERVE-FOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-WOOD c:- SHADOW-RESERVE-WOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-STONE c:- SHADOW-RESERVE-STONE)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-GOLD c:- SHADOW-RESERVE-GOLD)
 )
 
-; ------------------------------------------------------------
-; SUFFICIENT LIQUID CAPITAL
-; ------------------------------------------------------------
+*; ============================================================*
+*; CAPITAL ACTIVITY*
+*; ============================================================*
+
+*;*
+*; No production requirement means there is nothing to finance.*
+*; Capital feasibility is therefore inactive when Module 08 has*
+*; no positive deficit.*
+*;*
+*; ============================================================*
+
 (defrule
-    (goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
-    (up-compare-goal BYZ-CAPITAL-SLACK-FOOD >= 0)
-    (up-compare-goal BYZ-CAPITAL-SLACK-WOOD >= 0)
-    (up-compare-goal BYZ-CAPITAL-SLACK-GOLD >= 0)
-    (up-compare-goal BYZ-CAPITAL-SLACK-STONE >= 0)
+    (true)
 =>
-    (set-goal BYZ-CAPITAL-STATE BYZ-CAPITAL-SUFFICIENT)
+    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-INACTIVE)
+    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
 )
 
-; ------------------------------------------------------------
-; INSUFFICIENT LIQUID CAPITAL
-; ------------------------------------------------------------
 (defrule
-    (goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+    (goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE)
+=>
+    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-ACTIVE-VALUE)
+)
+
+*; ============================================================*
+*; CAPITAL FEASIBILITY*
+*; ============================================================*
+
+*;*
+*; Every protected resource must remain non-negative after paying*
+*; the complete Module 08 requirement.*
+*;*
+*; This is intentionally conjunctive:*
+*;*
+*;   FOOD >= 0*
+*;   AND WOOD >= 0*
+*;   AND STONE >= 0*
+*;   AND GOLD >= 0*
+*;*
+*; A surplus in one resource cannot compensate for a deficit in*
+*; another. Market conversion is a later/subordinate decision.*
+*;*
+*; IMPORTANT: up-compare-goal takes exactly three arguments here:*
+*;   goal, comparator, value.*
+*; The literal zero is therefore written as 0, not c: 0.*
+*;*
+*; ============================================================*
+
+(defrule
+    (goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-ACTIVE-VALUE)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD >= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD >= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-STONE >= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD >= 0)
+=>
+    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-SUFFICIENT)
+)
+
+*; ============================================================*
+*; EXPLICIT INSUFFICIENT STATE*
+*; ============================================================*
+
+*;*
+*; This rule is intentionally explicit rather than relying on the*
+*; initialization value. A capital deficit in ANY protected resource*
+*; makes the current package infeasible.*
+*;*
+*; The engine/parser requires binary OR. The four-resource condition*
+*; is therefore represented as a nested binary tree without changing*
+*; the intended truth table:*
+*;*
+*;   FOOD deficit OR WOOD deficit OR STONE deficit OR GOLD deficit*
+*;*
+*; ============================================================*
+
+(defrule
+    (goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-ACTIVE-VALUE)
     (or
         (or
-            (up-compare-goal BYZ-CAPITAL-SLACK-FOOD < 0)
-            (up-compare-goal BYZ-CAPITAL-SLACK-WOOD < 0)
+            (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD < 0)
+            (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD < 0)
         )
         (or
-            (up-compare-goal BYZ-CAPITAL-SLACK-GOLD < 0)
-            (up-compare-goal BYZ-CAPITAL-SLACK-STONE < 0)
+            (up-compare-goal SHADOW-CAPITAL-SLACK-STONE < 0)
+            (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD < 0)
         )
     )
 =>
-    (set-goal BYZ-CAPITAL-STATE BYZ-CAPITAL-INSUFFICIENT)
+    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
 )
 
-; INVARIANTS:
-; capital feasibility is an observation, not an authority grant
-; capital feasibility does not consume escrow
-; no strategic reserve number is invented here
-; engine escrow-inclusive feasibility remains an execution guard
-; ============================================================
+*; ============================================================*
+*; END MODULE 09*
+*; ============================================================*

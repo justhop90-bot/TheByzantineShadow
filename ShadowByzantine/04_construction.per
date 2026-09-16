@@ -3,155 +3,221 @@
 ; MODULE 04 -- CONSTRUCTION
 ; ============================================================
 ;
-; Authority: construction state and progression only.
-; Contract: request -> qualify -> reserve -> authorize -> placement
-;           -> execution -> pending -> verification -> complete/recover.
-; Namespace: 01b_byz_constants.per
+; Construction authority / executor v0.1
+;
+; PURPOSE
+;   Own basic building construction decisions and execution.
+;
+; CURRENT SCOPE
+;   - Housing maintenance
+;   - Barracks establishment
+;   - Basic construction verification
+;
+; SHADOW-DERIVED PRINCIPLES
+;   1. A build predicate is not completion evidence.
+;   2. Pending construction must suppress duplicate commands.
+;   3. Existing world state is authoritative for completion.
+;   4. Construction execution is distinct from strategic intent.
+;   5. This module must not manufacture strategic objectives.
+;
+; CURRENT LIMITATION
+;   The complete Shadow construction state machine has not yet
+;   been transplanted. In particular, the canonical ABI for:
+;
+;       gl-current-build-item
+;       gl-progression-pause
+;       up-assign-builders
+;       place-control
+;
+;   remains pending canonical-source extraction.
+;
+;   Therefore this module deliberately implements only the
+;   construction behavior whose predicates and executor forms
+;   are already established in the current project.
+;
+; EXECUTION MODEL
+;
+;       WORLD OBSERVATION
+;              |
+;              v
+;       CONSTRUCTION NEED
+;              |
+;              v
+;       FEASIBILITY
+;              |
+;              v
+;       PENDING GUARD
+;              |
+;              v
+;       BUILD COMMAND
+;              |
+;              v
+;       WORLD-STATE VERIFICATION
+;
+; IMPORTANT
+;   Issuing (build X) is NOT proof that X exists.
+;
 ; ============================================================
 
-; ------------------------------------------------------------
-; INITIALIZATION
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE -1)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
-    (set-goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-INACTIVE)
-    (set-goal BYZ-CURRENT-BUILD-ITEM -1)
-    (set-goal BYZ-BUILD-PROGRESS 0)
-    (set-goal BYZ-PROGRESSION-PAUSE 0)
-)
 
-; ------------------------------------------------------------
-; REQUEST -> QUALIFY
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
-    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-REQUESTED)
-)
+; ============================================================
+; HOUSING
+; ============================================================
+;
+; Maintain housing before the population reaches a hard stop.
+;
+; Shadow-compatible guards:
+;   - house headroom
+;   - population headroom
+;   - can-build
+;   - pending-object suppression
+;
+; The pending-object guard prevents repeated house commands
+; while an existing house foundation is already pending.
+;
+; ============================================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-REQUESTED)
-    (goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-ACTIVE)
-    (goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
+    (house-headroom < 5)
+    (population-headroom != 0)
+    (can-build house)
+    (up-pending-objects c: house < 1)
 =>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
+    (build house)
 )
 
-; ------------------------------------------------------------
-; QUALIFY -> RESERVE
-; ------------------------------------------------------------
-; Module 10 owns the economic commitment. Construction only observes
-; that the commitment exists.
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RESERVED)
-)
 
-; ------------------------------------------------------------
-; RESERVE -> AUTHORIZATION
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RESERVED)
-    (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-GRANTED)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
-)
-
-; ------------------------------------------------------------
-; AUTHORIZATION -> PLACEMENT
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-AUTHORIZED)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PLACEMENT)
-)
-
-; ------------------------------------------------------------
-; PLACEMENT -> EXECUTION
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PLACEMENT)
-    (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-)
-
-; ------------------------------------------------------------
-; EXECUTION -> PENDING
-; ------------------------------------------------------------
-; Engine-visible pending is an intermediate state, never completion.
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
-)
-
-; ------------------------------------------------------------
-; PENDING -> VERIFYING
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
-    (goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-VERIFYING)
-)
-
-; ------------------------------------------------------------
-; VERIFYING -> COMPLETE
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-VERIFYING)
-    (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
-)
-
-; ------------------------------------------------------------
-; VERIFIED COMPLETION -> PROGRESSION ADVANCE
-; ------------------------------------------------------------
-; The world-state verifier, not the execution command, authorizes this
-; progression advance.
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
-    (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
-=>
-    (up-modify-goal BYZ-BUILD-PROGRESS c:+ 1)
-    (set-goal BYZ-CONSTRUCTION-REQUEST BYZ-REQUEST-INACTIVE)
-    (set-goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
-)
-
-; ------------------------------------------------------------
-; FAILURE -> RECOVERY
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-VERIFY-STATE BYZ-VERIFY-FAILED)
-=>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-FAILED)
-)
+; ============================================================
+; BARRACKS -- INITIAL ESTABLISHMENT
+; ============================================================
+;
+; A barracks is required before the basic military layer can
+; become operational.
+;
+; BASIC-BARRACKS-READY is produced by Module 02 from observed
+; barracks world state.
+;
+; Construction therefore consumes the state rather than
+; independently declaring the barracks ready.
+;
+; ============================================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
-    (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONTRADICTED)
+    (goal BASIC-BARRACKS-READY 0)
+    (can-build barracks)
+    (up-pending-objects c: barracks < 1)
 =>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-FAILED)
+    (build barracks)
 )
+
+
+; ============================================================
+; BARRACKS -- DUPLICATE COMMAND SUPPRESSION
+; ============================================================
+;
+; If a barracks already exists, no construction command is
+; necessary.
+;
+; This rule intentionally has no action.
+;
+; World-state observation remains owned by Module 02.
+;
+; ============================================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-FAILED)
+    (building-type-count-total barracks > 0)
 =>
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-RECOVERY)
+    (disable-self)
 )
 
-; INVARIANTS:
-; command != pending != complete
-; construction does not choose strategy, set escrow policy, release escrow,
-; resolve placement, grant authority, execute commands, or verify completion.
+
+; ============================================================
+; BASIC CONSTRUCTION SAFETY
+; ============================================================
+;
+; Do not issue another barracks command while a barracks
+; foundation/object is already pending.
+;
+; This is deliberately kept separate from completion.
+;
+; up-pending-objects answers whether the engine reports a
+; pending object; building-type-count-total answers whether
+; the completed/recognized building population exists.
+;
+; They must not be treated as interchangeable.
+;
+; ============================================================
+
+(defrule
+    (building-type-count-total barracks < 1)
+    (up-pending-objects c: barracks >= 1)
+=>
+    (disable-self)
+)
+
+
+; ============================================================
+; FARM CONSTRUCTION -- BASIC FOOD INFRASTRUCTURE
+; ============================================================
+;
+; Conservative Shadow-derived farm rule.
+;
+; This is intentionally NOT the complete Shadow farm state
+; machine. The canonical source contains substantially richer
+; farm arbitration involving:
+;
+;   gl-current-build-item
+;   gl-build-progress
+;   SPLIT
+;   escrow state
+;   pending objects
+;   strategic conditions
+;   normal placement
+;
+; Until that ABI is fully recovered and registered, only the
+; basic pending-object / world-state relationship is installed.
+;
+; ============================================================
+
+(defrule
+    (can-build farm)
+    (up-pending-objects c: farm < 1)
+    (building-type-count-total farm < 50)
+    (wood-amount >= 60)
+=>
+    (build farm)
+)
+
+
+; ============================================================
+; CONSTRUCTION TERMINAL OBSERVATION
+; ============================================================
+;
+; These rules do not issue construction commands.
+;
+; They exist to expose basic world-state consequences to the
+; already-existing state layer.
+;
+; Module 02 remains responsible for BASIC-BARRACKS-READY.
+;
+; ============================================================
+
+(defrule
+    (building-type-count-total barracks > 0)
+=>
+    (set-goal BASIC-BARRACKS-READY 1)
+    (set-goal BASIC-ATTACK-READY 1)
+)
+
+
+(defrule
+    (building-type-count-total barracks < 1)
+=>
+    (set-goal BASIC-BARRACKS-READY 0)
+    (set-goal BASIC-ATTACK-READY 0)
+)
+
+
+; ============================================================
+; END MODULE 04
 ; ============================================================

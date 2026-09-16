@@ -1,236 +1,121 @@
-; ============================================================
-; THE BYZANTINE SHADOW
-; MODULE 12 -- EXECUTION
-; ============================================================
+; ============================================
+; AEGIS
+; 12_execution.per
+; ============================================
 ;
-; Authority: issue engine construction commands only after construction
-; authorization, escrow commitment, and placement validity are present.
+; EXECUTION
 ;
-; IMPORTANT DISTINCTION:
-;   BYZ-ESCROW-STATE = lifecycle state
-;   BYZ-ESCROW-MODE  = engine command mode
+; Responsibility:
 ;
-; The two must never be conflated. Shadow's gl-escrow-state is a command
-; mode passed to up-build; the lifecycle/commitment state is a separate
-; control concept in this Byzantine implementation.
-; ============================================================
+;   Convert an already-authorized and baselined
+;   transaction into one engine execution request.
+;
+; Execution authority chain:
+;
+;   READY
+;      +
+;   AUTHORITY-GRANTED
+;      +
+;   ESCROW-COMMITTED
+;      +
+;   EXECUTION-BASELINED
+;      +
+;   ESCROW-INCLUDED
+;      +
+;   UP-CAN-TRAIN
+;          ↓
+;      UP-TRAIN
+;          ↓
+;   EXECUTING / ISSUED
+;
+; This module does NOT:
+;
+;   - choose the objective
+;   - calculate capital
+;   - create escrow
+;   - grant authority
+;   - verify completion
+;   - declare transaction success
+;   - perform recovery
+;
+; ============================================
+
+; ============================================
+; PREPARE ESCROW-AWARE EXECUTION
+; ============================================
+;
+; The transaction must already be READY,
+; authorized, and economically committed.
+;
+; This establishes the UserPatch escrow mode
+; used by the subsequent up-can-train/up-train
+; pair.
+;
+; No execution command is issued here.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-EXECUTION-STATE -1)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
 =>
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-IDLE)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-IDLE)
-    (set-goal BYZ-ESCROW-MODE BYZ-ESCROW-EXCLUDED)
+(set-goal AEGIS-ESCROW-STATE escrow-included)
 )
 
-; ------------------------------------------------------------
-; PREPARE ESCROW-INCLUSIVE EXECUTION
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-GRANTED)
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
-    (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-IDLE)
-=>
-    (set-goal BYZ-ESCROW-MODE BYZ-ESCROW-INCLUDED)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-)
-
-; ------------------------------------------------------------
-; NORMAL-PLACEMENT EXECUTION
-; ------------------------------------------------------------
-; Each engine command has its corresponding up-can-build guard.
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM house)
-    (up-can-build BYZ-ESCROW-MODE c:< house)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< house)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
+; ============================================
+; ISSUE SPEARMAN TRAINING
+; ============================================
+;
+; Execution requires:
+;
+;   - READY transaction
+;   - granted authority
+;   - committed escrow
+;   - captured pre-execution baseline
+;   - escrow-inclusive execution state
+;   - documented up-can-train feasibility
+;
+; The can condition directly guards the
+; corresponding up-train action.
+;
+; The transaction becomes EXECUTING and the
+; execution state becomes ISSUED only when the
+; training command is actually issued.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM barracks)
-    (up-can-build BYZ-ESCROW-MODE c:< barracks)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
+(goal AEGIS-ESCROW-STATE escrow-included)
+(up-can-train AEGIS-ESCROW-STATE c:< spearman-line)
 =>
-    (up-build place-normal BYZ-ESCROW-MODE c:< barracks)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
+(up-train AEGIS-ESCROW-STATE c:< spearman-line)
+(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
 )
+
+; ============================================
+; AUTHORITY LOST BEFORE EXECUTION
+; ============================================
+;
+; No execution command is issued when authority
+; is denied.
+;
+; A transaction that loses authority before
+; execution is classified as failed and passed
+; downstream to recovery.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM lumber-camp)
-    (up-can-build BYZ-ESCROW-MODE c:< lumber-camp)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
 =>
-    (up-build place-normal BYZ-ESCROW-MODE c:< lumber-camp)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
+(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-FAILED)
+(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
 )
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM mill)
-    (up-can-build BYZ-ESCROW-MODE c:< mill)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< mill)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM farm)
-    (up-can-build BYZ-ESCROW-MODE c:< farm)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< farm)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM mining-camp)
-    (up-can-build BYZ-ESCROW-MODE c:< mining-camp)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< mining-camp)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM archery-range)
-    (up-can-build BYZ-ESCROW-MODE c:< archery-range)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< archery-range)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM stable)
-    (up-can-build BYZ-ESCROW-MODE c:< stable)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< stable)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM blacksmith)
-    (up-can-build BYZ-ESCROW-MODE c:< blacksmith)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< blacksmith)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM market)
-    (up-can-build BYZ-ESCROW-MODE c:< market)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< market)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM monastery)
-    (up-can-build BYZ-ESCROW-MODE c:< monastery)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< monastery)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM university)
-    (up-can-build BYZ-ESCROW-MODE c:< university)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< university)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-NORMAL)
-    (goal BYZ-CURRENT-BUILD-ITEM castle)
-    (up-can-build BYZ-ESCROW-MODE c:< castle)
-=>
-    (up-build place-normal BYZ-ESCROW-MODE c:< castle)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-; ------------------------------------------------------------
-; POINT-PLACEMENT EXECUTION
-; ------------------------------------------------------------
-; The target-point pipeline is owned by Module 07. up-build place-point
-; consumes the current target point; its third argument remains escrow mode.
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-    (goal BYZ-PLACEMENT-STATE BYZ-PLACE-POINT)
-    (goal BYZ-TARGET-STATE BYZ-TARGET-VALID)
-    (goal BYZ-CURRENT-BUILD-ITEM mining-camp)
-    (up-can-build BYZ-ESCROW-MODE c:< mining-camp)
-=>
-    (up-build place-point BYZ-ESCROW-MODE c:< mining-camp)
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-ISSUED)
-    (set-goal BYZ-EXECUTION-PENDING BYZ-EXECUTION-PENDING-VALUE)
-)
-
-; ------------------------------------------------------------
-; AUTHORITY LOSS BEFORE COMMAND
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-EXECUTING)
-    (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
-    (goal BYZ-EXECUTION-STATE BYZ-EXECUTION-READY)
-=>
-    (set-goal BYZ-EXECUTION-STATE BYZ-EXECUTION-FAILED)
-    (set-goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-FAILED)
-)
-
-; INVARIANTS:
-; lifecycle state and engine escrow mode are separate goals
-; every build command has an up-can-build guard
-; execution never verifies completion or releases escrow
-; builder counts remain policy-unassigned
-; ============================================================

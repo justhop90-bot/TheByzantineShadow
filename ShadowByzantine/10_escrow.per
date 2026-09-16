@@ -1,140 +1,121 @@
-; ============================================================
-; THE BYZANTINE SHADOW
-; MODULE 10 -- ESCROW
-; ============================================================
+; ============================================
+; AEGIS
+; 10_escrow.per
+; ============================================
 ;
-; Authority: protected-capital lifecycle for an active construction
-; obligation.
+; ESCROW
 ;
-; IMPORTANT DISTINCTION:
-;   BYZ-ESCROW-STATE = lifecycle / commitment state
-;   BYZ-ESCROW-MODE  = engine command mode consumed by Module 12
+; Responsibility:
 ;
-; Numeric escrow percentages/caps remain policy-owned and are NOT
-; synthesized here. A policy provider must establish a valid engine
-; percentage/cap before BYZ-ESCROW-POLICY-APPLIED becomes true.
-; ============================================================
+;   Own the lifecycle of actual engine escrow.
+;
+; This module:
+;
+;   - observes escrow
+;   - executes escrow release
+;   - verifies escrow release
+;   - maintains escrow lifecycle state
+;
+; This module does NOT:
+;
+;   - choose the objective
+;   - determine transaction success
+;   - determine transaction failure
+;   - request strategic release
+;   - perform recovery
+;
+; Release authority chain:
+;
+;   TERMINAL TRANSACTION
+;          ↓
+;   RELEASE REQUEST
+;          ↓
+;   COMMITTED
+;          ↓
+;   RELEASING
+;          ↓
+;   up-release-escrow
+;          ↓
+;   OBSERVE FOUR ESCROW FACTS = 0
+;          ↓
+;   RELEASED
+;
+; IMPORTANT:
+;
+;   Issuing up-release-escrow is NOT proof
+;   that release completed.
+;
+;   RELEASED requires observed engine state.
+;
+; ============================================
 
-; ------------------------------------------------------------
-; INITIALIZATION
-; ------------------------------------------------------------
+; ============================================
+; COMMITTED -> RELEASING
+; ============================================
+;
+; Explicit release request is mandatory.
+;
+; Terminal transaction state alone cannot
+; authorize engine escrow release.
+;
+; ============================================
+
 (defrule
-    (goal BYZ-ESCROW-STATE -1)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+(goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+(or
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+)
 =>
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
-    (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-NO)
-    (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-NO)
-    (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-NONE)
-    (set-goal BYZ-ESCROW-MODE BYZ-ESCROW-EXCLUDED)
+(up-release-escrow)
+(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
 )
 
-; ------------------------------------------------------------
-; RESERVATION REQUEST
-; ------------------------------------------------------------
-; Capital feasibility and requirements are upstream observations. This
-; module converts a qualified construction obligation into a reservation
-; request; it does not invent the economic policy.
-(defrule
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-QUALIFIED)
-    (goal BYZ-CONSTRUCTION-REQUIREMENTS BYZ-REQUIREMENTS-READY)
-    (goal BYZ-CAPITAL-STATE BYZ-CAPITAL-SUFFICIENT)
-    (goal BYZ-ESCROW-POLICY-APPLIED 1)
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
-=>
-    (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-YES)
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-REQUESTED)
-)
+; ============================================
+; RELEASING -> RELEASED
+; ============================================
+;
+; Verify actual engine escrow state.
+;
+; Escrow amounts are non-negative. Therefore
+; a documented relational test of < 1 establishes
+; that each escrow balance has reached zero,
+; without relying on an undocumented '='
+; compareOp for escrow-amount.
+;
+; All four resource escrow balances must
+; independently report zero.
+;
+; ============================================
 
 (defrule
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-REQUESTED)
-    (goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-YES)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+(escrow-amount food < 1)
+(escrow-amount wood < 1)
+(escrow-amount gold < 1)
+(escrow-amount stone < 1)
 =>
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RESERVING)
+(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
 )
 
-; ------------------------------------------------------------
-; COMMITMENT CONFIRMATION
-; ------------------------------------------------------------
-; Policy application is an explicit upstream contract. This rule does
-; not assign the percentage; it only records that a policy provider has
-; made one available to the executor.
+; ============================================
+; RELEASED -> UNCOMMITTED
+; ============================================
+;
+; RELEASED is intentionally preserved until
+; the transaction lifecycle has returned to IDLE.
+;
+; This prevents Module 10 from erasing the
+; verified release state before recovery or
+; downstream lifecycle logic can observe it.
+;
+; ============================================
+
 (defrule
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RESERVING)
-    (goal BYZ-ESCROW-POLICY-APPLIED 1)
+(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
 =>
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
-    (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-NO)
+(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-UNCOMMITTED)
+(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
 )
-
-; ------------------------------------------------------------
-; RELEASE REQUEST
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
-    (goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-YES)
-=>
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASE-REQUESTED)
-)
-
-; ------------------------------------------------------------
-; RELEASE COMMAND / IN-FLIGHT STATE
-; ------------------------------------------------------------
-; The engine command is a request, not proof of release.
-(defrule
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASE-REQUESTED)
-=>
-    (up-release-escrow)
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASING)
-    (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-PENDING)
-)
-
-; ------------------------------------------------------------
-; RECONCILIATION
-; ------------------------------------------------------------
-(defrule
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASING)
-    (goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-PENDING)
-=>
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
-)
-
-; Exact zero is the engine-empty state. This is not a policy threshold.
-(defrule
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
-    (escrow-amount food == 0)
-    (escrow-amount wood == 0)
-    (escrow-amount gold == 0)
-    (escrow-amount stone == 0)
-=>
-    (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-CONFIRMED)
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
-)
-
-; Contradictory observation is not success.
-(defrule
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
-    (goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-CONTRADICTED)
-=>
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RECOVERY)
-)
-
-; Preserve RELEASED until the construction transaction has actually
-; left the lifecycle. This prevents immediate repeated release requests.
-(defrule
-    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
-    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
-=>
-    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
-    (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-NO)
-    (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-NO)
-    (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-NONE)
-    (set-goal BYZ-ESCROW-MODE BYZ-ESCROW-EXCLUDED)
-)
-
-; INVARIANTS:
-; release command != release completion
-; lifecycle state != engine escrow mode
-; escrow protects an active obligation, not a building category
-; no percentage/cap/timer/priority is invented here
-; escrow never grants authority or declares construction complete
-; ============================================================
