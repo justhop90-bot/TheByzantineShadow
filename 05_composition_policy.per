@@ -7,127 +7,28 @@
 ; Production Authority owns HOW that desired state becomes an
 ; engine transaction.
 ;
-; This file intentionally contains no build, train, escrow, or
-; execution action. The complete production registry is loaded
-; before this module.
+; No build, train, escrow, admission, or execution action belongs here.
+; Strategic modules may replace these absolute targets later.
 ;
-; Default values are deliberately conservative. They establish a
-; complete executable domain model without pretending that a static
-; doctrine is equivalent to Shadow's strategic reasoning. Strategic
-; modules may replace these absolute targets later.
-;
-;=============================================================
-; ABSOLUTE DOMAIN TARGETS
-;=============================================================
-;
-(defrule
-    (goal SHADOW-PROD-INFANTRY -1)
-=>
-    (set-goal SHADOW-PROD-INFANTRY 0)
-)
+(defrule (goal SHADOW-PROD-INFANTRY -1) => (set-goal SHADOW-PROD-INFANTRY 0))
+(defrule (goal SHADOW-PROD-ANTI-CAVALRY -1) => (set-goal SHADOW-PROD-ANTI-CAVALRY 3))
+(defrule (goal SHADOW-PROD-RANGED -1) => (set-goal SHADOW-PROD-RANGED 0))
+(defrule (goal SHADOW-PROD-ANTI-RANGED -1) => (set-goal SHADOW-PROD-ANTI-RANGED 0))
+(defrule (goal SHADOW-PROD-LIGHT-CAVALRY -1) => (set-goal SHADOW-PROD-LIGHT-CAVALRY 0))
+(defrule (goal SHADOW-PROD-HEAVY-CAVALRY -1) => (set-goal SHADOW-PROD-HEAVY-CAVALRY 0))
+(defrule (goal SHADOW-PROD-MOBILE-RANGED -1) => (set-goal SHADOW-PROD-MOBILE-RANGED 0))
+(defrule (goal SHADOW-PROD-UNIQUE-CAVALRY -1) => (set-goal SHADOW-PROD-UNIQUE-CAVALRY 0))
+(defrule (goal SHADOW-PROD-RAM-SIEGE -1) => (set-goal SHADOW-PROD-RAM-SIEGE 0))
+(defrule (goal SHADOW-PROD-AREA-SIEGE -1) => (set-goal SHADOW-PROD-AREA-SIEGE 0))
+(defrule (goal SHADOW-PROD-ANTI-MASS-SIEGE -1) => (set-goal SHADOW-PROD-ANTI-MASS-SIEGE 0))
+(defrule (goal SHADOW-PROD-GUNPOWDER-SIEGE -1) => (set-goal SHADOW-PROD-GUNPOWDER-SIEGE 0))
+(defrule (goal SHADOW-PROD-CASTLE-SIEGE -1) => (set-goal SHADOW-PROD-CASTLE-SIEGE 0))
+(defrule (goal SHADOW-PROD-MONK -1) => (set-goal SHADOW-PROD-MONK 0))
+(defrule (goal SHADOW-PROD-GALLEY-NAVY -1) => (set-goal SHADOW-PROD-GALLEY-NAVY 0))
+(defrule (goal SHADOW-PROD-FIRE-NAVY -1) => (set-goal SHADOW-PROD-FIRE-NAVY 0))
+(defrule (goal SHADOW-PROD-DEMO-NAVY -1) => (set-goal SHADOW-PROD-DEMO-NAVY 0))
+(defrule (goal SHADOW-PROD-IMPERIAL-NAVY -1) => (set-goal SHADOW-PROD-IMPERIAL-NAVY 0))
+(defrule (goal SHADOW-PROD-PETARD -1) => (set-goal SHADOW-PROD-PETARD 0))
 
-(defrule
-    (goal SHADOW-PROD-ANTI-CAVALRY -1)
-=>
-    (set-goal SHADOW-PROD-ANTI-CAVALRY 3)
-)
-
-(defrule
-    (goal SHADOW-PROD-RANGED -1)
-=>
-    (set-goal SHADOW-PROD-RANGED 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-ANTI-RANGED -1)
-=>
-    (set-goal SHADOW-PROD-ANTI-RANGED 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-LIGHT-CAVALRY -1)
-=>
-    (set-goal SHADOW-PROD-LIGHT-CAVALRY 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-HEAVY-CAVALRY -1)
-=>
-    (set-goal SHADOW-PROD-HEAVY-CAVALRY 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-MOBILE-RANGED -1)
-=>
-    (set-goal SHADOW-PROD-MOBILE-RANGED 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-UNIQUE-CAVALRY -1)
-=>
-    (set-goal SHADOW-PROD-UNIQUE-CAVALRY 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-RAM-SIEGE -1)
-=>
-    (set-goal SHADOW-PROD-RAM-SIEGE 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-AREA-SIEGE -1)
-=>
-    (set-goal SHADOW-PROD-AREA-SIEGE 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-ANTI-MASS-SIEGE -1)
-=>
-    (set-goal SHADOW-PROD-ANTI-MASS-SIEGE 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-GUNPOWDER-SIEGE -1)
-=>
-    (set-goal SHADOW-PROD-GUNPOWDER-SIEGE 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-CASTLE-SIEGE -1)
-=>
-    (set-goal SHADOW-PROD-CASTLE-SIEGE 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-MONK -1)
-=>
-    (set-goal SHADOW-PROD-MONK 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-GALLEY-NAVY -1)
-=>
-    (set-goal SHADOW-PROD-GALLEY-NAVY 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-FIRE-NAVY -1)
-=>
-    (set-goal SHADOW-PROD-FIRE-NAVY 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-DEMO-NAVY -1)
-=>
-    (set-goal SHADOW-PROD-DEMO-NAVY 0)
-)
-
-(defrule
-    (goal SHADOW-PROD-IMPERIAL-NAVY -1)
-=>
-    (set-goal SHADOW-PROD-IMPERIAL-NAVY 0)
-)
-
-; Production Authority state is not policy-owned.
 ; Policy never writes SHADOW-PROD-STATE, escrow, site, admission,
-; lock, or reassessment goals.
+; lock, or reassessment state.
