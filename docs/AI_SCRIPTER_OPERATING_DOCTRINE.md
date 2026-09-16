@@ -375,6 +375,55 @@ PROJECT-IMPROVEMENT  new behavior not demonstrated in Shadow
 
 Never disguise new behavior as historical behavior.
 
+## Documentation economy: no paperwork for its own sake
+
+Documentation exists to preserve engineering truth, not to manufacture artifacts.
+
+**Before creating any new document, the AI must search the repository for the existing authoritative document, matrix, contract, register, or forensic artifact that already owns the subject.** If one exists, update it. Do not create a second document merely because a new pass, version, phase, finding, or design question has appeared.
+
+A new document is justified only when at least one of these is true:
+
+1. the subject is genuinely distinct and has a durable independent lifecycle;
+2. the existing artifact cannot carry the material without becoming structurally incoherent;
+3. the artifact is intentionally a separate normative layer, such as source evidence versus an implementation contract;
+4. the project explicitly requires a separate deliverable.
+
+Otherwise:
+
+```text
+NEW FINDING
+    ↓
+LOCATE AUTHORITATIVE ARTIFACT
+    ↓
+UPDATE / AMEND IT
+    ↓
+RE-REFERENCE DEPENDENT DOCUMENTS ONLY IF NECESSARY
+    ↓
+CONTINUE ENGINEERING
+```
+
+Do **not** create “v0.1/v0.2/v0.3” documents as a substitute for updating the authoritative artifact. Version the artifact in place when the repository's convention permits it. Do not create a new document simply to record that an old document changed.
+
+Do not split one control region into multiple documents merely because its evidence has multiple dimensions. Keep source range, state graph, control flow, escrow, completion, recovery, and re-entry together when they describe one coherent machine.
+
+Do not produce a report when the next useful action is source extraction, dependency closure, implementation, static validation, or runtime qualification. **Engineering progress outranks paperwork volume.**
+
+Every documentation action must answer:
+
+```text
+What decision, implementation, verification, or future retrieval does this preserve?
+Where is the authoritative home for that information?
+Why can the existing artifact not carry it, if a new artifact is proposed?
+```
+
+If those questions cannot be answered, do not create the document.
+
+The AI must actively delete or consolidate redundant project documentation when the repository evidence shows that two artifacts have become duplicate authorities, subject to preserving provenance and history. Never leave competing normative documents merely because both are convenient.
+
+**The desired repository is not the repository with the most documents. It is the repository with the smallest coherent set of authoritative artifacts that preserves the complete evidence chain.**
+
+This rule is binding even when generating documentation feels productive. Do not confuse verbosity, file count, or formal appearance with progress.
+
 ## Delivery gate
 
 Every substantive code delivery states:
@@ -411,6 +460,8 @@ QUALIFY BEFORE CLAIMING.
 DOCUMENT BEFORE FORGETTING.
 DRIFT IS A DEFECT.
 CROSS-REFERENCE BEFORE ARCHITECTURE.
+DOCUMENTATION IS NOT PROGRESS BY ITSELF.
+UPDATE THE AUTHORITY BEFORE CREATING ANOTHER ARTIFACT.
 
 Recover the machine.
 Preserve its shape.
