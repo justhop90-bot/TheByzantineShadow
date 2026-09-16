@@ -11,21 +11,18 @@
 ; tactical execution.
 ;
 ; Documented interfaces:
-;   up-get-fact unit-type-count-total <unit-type> <goal>
-;   up-get-fact military-population 0 <goal>
-;   up-get-fact-sum every-enemy military-population 0 <goal>
+;   up-get-fact <fact-id> <fact-parameter> <goal>
+;   up-get-fact-sum <players> <fact-id> <parameter> <goal>
 ;   up-get-threat-data <time> <player> <source-class> <target-class>
 ;   up-attacker-class <compare-op> <class>
 ;   up-enemy-units-in-town <compare-op> <value>
 ;   up-defender-count <compare-op> <value>
 ;   up-compare-goal <goal> <compare-op> <goal>
 ;
-; AIRef documents unit-type-count-total as including trained and queued
-; units. UserPatch documents military-population and the threat facts.
-;
-; IMPORTANT: up-get-fact is the three-argument local-player form when
-; the fact parameter is the unit type itself. A literal 0 is therefore
-; NOT inserted between unit type and output goal for unit-type-count-total.
+; For unit-type-count-total, the unit type is the fact parameter, so
+; the local read is exactly three arguments after the command name:
+;   (up-get-fact unit-type-count-total militia-line OUTPUT-GOAL)
+; A literal 0 is NOT inserted between the unit type and output goal.
 ;
 ;-------------------------------------------------------------
 ; INITIALIZATION
@@ -43,8 +40,6 @@
     (set-goal SHADOW-MIL-THREAT-SOURCE -1)
     (set-goal SHADOW-MIL-THREAT-TARGET -1)
     (set-goal SHADOW-MIL-SUPERIORITY SHADOW-MIL-INFERIOR)
-    (set-goal SHADOW-MIL-ENEMY-IN-TOWN 0)
-    (set-goal SHADOW-MIL-DEFENDER-COUNT 0)
 )
 
 ;-------------------------------------------------------------
@@ -61,15 +56,6 @@
         SHADOW-MIL-THREAT-PLAYER
         SHADOW-MIL-THREAT-SOURCE
         SHADOW-MIL-THREAT-TARGET)
-)
-
-; Cache town threat facts once per pass. These facts are cheaper and
-; more stable to consume repeatedly than re-querying them in policy rules.
-(defrule
-    (true)
-=>
-    (up-get-fact up-enemy-units-in-town 0 SHADOW-MIL-ENEMY-IN-TOWN)
-    (up-get-fact up-defender-count 0 SHADOW-MIL-DEFENDER-COUNT)
 )
 
 ;-------------------------------------------------------------
@@ -96,9 +82,11 @@
 ;-------------------------------------------------------------
 ; POSTURE
 ;-------------------------------------------------------------
-; Reset first, then apply increasingly specific states. Because the
-; rules are ordered, the intended precedence is:
-; EMERGENCY > ATTACK-READY > DEFENSIVE > BUILDUP.
+; Deterministic precedence:
+;   EMERGENCY > ATTACK-READY > DEFENSIVE > BUILDUP.
+;
+; The direct town facts remain direct facts. They are not incorrectly
+; routed through up-get-fact: AIRef documents them as their own facts.
 (defrule
     (true)
 =>
@@ -135,7 +123,7 @@
 (defrule
     (or
         (town-under-attack)
-        (up-compare-goal SHADOW-MIL-ENEMY-IN-TOWN > 0))
+        (up-enemy-units-in-town > 0))
 =>
     (set-goal SHADOW-MIL-POSTURE SHADOW-MIL-POSTURE-EMERGENCY)
 )
@@ -143,9 +131,9 @@
 ;-------------------------------------------------------------
 ; CAPABILITY CLASSIFICATION
 ;-------------------------------------------------------------
-; up-attacker-class is only semantically current inside a
-; town-under-attack event. We therefore never classify an old retained
-; attacker class as a new threat by itself.
+; up-attacker-class is explicitly documented as the class of the last
+; enemy object that triggered town-under-attack. The fact persists, so
+; it is only consumed under a current town-under-attack fact here.
 (defrule
     (true)
 =>
@@ -190,17 +178,6 @@
 ;-------------------------------------------------------------
 ; EXECUTION BOUNDARY
 ;-------------------------------------------------------------
-; Deliberately no attack-now, up-train, build, escrow mutation,
-; retreat, or target execution occurs here.
-;
-; Consumers may use:
-;   SHADOW-MIL-POSTURE
-;   SHADOW-MIL-CAPABILITY
-;   SHADOW-MIL-SUPERIORITY
-;   SHADOW-MIL-THREAT-PLAYER
-;   SHADOW-MIL-THREAT-SOURCE
-;   SHADOW-MIL-THREAT-TARGET
-;   SHADOW-MIL-ENEMY-IN-TOWN
-;   SHADOW-MIL-DEFENDER-COUNT
-;
-; to authorize composition changes or later tactical execution.
+; No attack-now, up-train, build, escrow mutation, retreat, or direct
+; targeting occurs here. Later authority layers may consume the emitted
+; strategic state and decide whether an executable response is justified.
