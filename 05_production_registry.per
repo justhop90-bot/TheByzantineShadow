@@ -3,37 +3,35 @@
 ; MODULE 05R -- PRODUCTION REGISTRY
 ;=============================================================
 ;
-; Canonical production-domain registry.
+; Complete Byzantine production-domain registry.
+; Goals 400-424 are reserved for this production authority.
+; Goals 500-503 are the four-goal engine cost vector.
 ;
-; This registry is deliberately separate from composition policy and
-; execution. It describes the complete Byzantine military production
-; surface using static, engine-qualified unit-line symbols.
-;
-; GOAL BAND 400-423 is reserved for Shadow production authority.
-; 500-503 remain the four-goal UserPatch cost vector.
-;
-; Domain / root production symbol / site:
-;
-; 400 infantry          militia-line       barracks
-; 401 anti-cavalry      spearman-line      barracks
-; 402 ranged            archer-line        archery-range
-; 403 anti-ranged       skirmisher-line    archery-range
-; 404 light cavalry     scout-line         stable
-; 405 heavy cavalry     knight-line        stable
-; 406 mobile ranged     cavalry-archer-line archery-range
-; 407 unique cavalry    cataphract          castle
-; 408 ram siege         battering-ram-line siege-workshop
-; 409 area siege        mangonel-line      siege-workshop
-; 410 anti-mass siege   scorpion-line      siege-workshop
-; 411 gunpowder siege   bombard-cannon     siege-workshop
-; 412 castle siege      trebuchet          castle
-; 413 monastery         monk               monastery
-; 414 galley navy       galley-line        dock
-; 415 fire navy         fire-ship-line     dock
-; 416 demolition navy   demolition-ship-line dock
-; 417 imperial navy     dromon             dock
-;
-; 418-423 are lifecycle/control goals.
+; 400 infantry             militia-line
+; 401 anti-cavalry         spearman-line
+; 402 ranged               archer-line
+; 403 anti-ranged          skirmisher-line
+; 404 light cavalry        scout-line
+; 405 heavy cavalry        knight-line
+; 406 mobile ranged        cavalry-archer-line
+; 407 unique cavalry       cataphract-line
+; 408 ram siege             battering-ram-line
+; 409 area siege            mangonel-line
+; 410 anti-mass siege       scorpion-line
+; 411 gunpowder siege       bombard-cannon
+; 412 castle siege          trebuchet-set
+; 413 monastery             monk-set
+; 414 galley navy            galley-line
+; 415 fire navy              fire-ship-line
+; 416 demolition navy       demolition-ship-line
+; 417 imperial navy         dromon
+; 418 production state
+; 419 escrow state
+; 420 site state
+; 421 admission domain
+; 422 pass lock
+; 423 reassessment flag
+; 424 petard / structure assault
 ;
 (defconst SHADOW-PROD-INFANTRY 400)
 (defconst SHADOW-PROD-ANTI-CAVALRY 401)
@@ -53,20 +51,19 @@
 (defconst SHADOW-PROD-FIRE-NAVY 415)
 (defconst SHADOW-PROD-DEMO-NAVY 416)
 (defconst SHADOW-PROD-IMPERIAL-NAVY 417)
-
 (defconst SHADOW-PROD-STATE 418)
 (defconst SHADOW-PROD-ESCROW-STATE 419)
 (defconst SHADOW-PROD-SITE-STATE 420)
 (defconst SHADOW-PROD-ADMISSION 421)
 (defconst SHADOW-PROD-LOCK 422)
 (defconst SHADOW-PROD-REASSESS 423)
+(defconst SHADOW-PROD-PETARD 424)
 
 (defconst SHADOW-PROD-SATISFIED 0)
 (defconst SHADOW-PROD-ACCUMULATING 1)
 (defconst SHADOW-PROD-ESCROW-PERCENT 35)
 (defconst SHADOW-PROD-SITE-ESCROW-PERCENT 60)
 
-; Engine-defined cost vector. These four goals must remain consecutive.
 (defconst SHADOW-PROD-COST-FOOD 500)
 (defconst SHADOW-PROD-COST-WOOD 501)
 (defconst SHADOW-PROD-COST-STONE 502)
