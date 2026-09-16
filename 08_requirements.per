@@ -1,0 +1,109 @@
+```lisp
+; ============================================
+; AEGIS
+; 08_requirements.per
+; ============================================
+;
+; REQUIREMENT MODEL
+;
+; Responsibility:
+;
+;   Translate an AEGIS requirement into the
+;   engine-defined economic demand required
+;   to satisfy that requirement.
+;
+; REQUIREMENT
+;     ↓
+; ENGINE COST DATA
+;     ↓
+; FOOD / WOOD / STONE / GOLD DEMAND
+;
+; This module does NOT:
+;
+;   - choose the strategic objective
+;   - determine capital feasibility
+;   - modify engine escrow
+;   - release escrow
+;   - grant authority
+;   - execute the transaction
+;   - verify completion
+;
+; The engine supplies the actual object and
+; technology costs.
+;
+; ============================================
+
+
+; ============================================
+; NO ACTIVE REQUIREMENT
+; ============================================
+;
+; Clear the current demand when no transaction
+; is active.
+;
+; ============================================
+
+```lisp
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+=>
+    (up-reset-cost-data AEGIS-DEMAND-FOOD)
+)
+
+; ============================================
+; FEUDAL AGE REQUIREMENT
+; ============================================
+;
+; UserPatch cost data:
+;
+;     AEGIS-DEMAND-FOOD
+;     AEGIS-DEMAND-WOOD
+;     AEGIS-DEMAND-STONE
+;     AEGIS-DEMAND-GOLD
+;
+; are one consecutive four-goal cost-data set.
+;
+; ============================================
+
+(defrule
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-FEUDAL)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+=>
+    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
+    (up-add-research-cost c: feudal-age c: 1)
+)
+```
+
+
+
+; ============================================
+; BARRACKS REQUIREMENT
+; ============================================
+
+(defrule
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-BARRACKS)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+=>
+    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
+    (up-add-object-cost c: barracks c: 1)
+)
+
+
+; ============================================
+; SPEARMAN REQUIREMENT
+; ============================================
+;
+; The cost is taken from the engine's root
+; Spearman object definition rather than from
+; a manually maintained AEGIS price.
+;
+; ============================================
+
+(defrule
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+=>
+    (up-setup-cost-data 1 AEGIS-DEMAND-FOOD)
+    (up-add-object-cost c: spearman c: 1)
+)
+```
