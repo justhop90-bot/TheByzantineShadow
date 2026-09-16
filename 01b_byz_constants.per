@@ -3,12 +3,13 @@
 ; MODULE 01B -- BYZANTINE ABI NAMESPACE
 ; ============================================================
 ;
-; Isolated implementation namespace. Strategic thresholds, timers,
-; escrow percentages/caps, placement geometry, priorities, retry
-; limits, and builder counts remain intentionally unassigned.
+; Isolated implementation namespace for the construction transaction
+; ABI. Numeric storage identifiers are allocated here; strategic
+; thresholds, timers, escrow percentages/caps, placement geometry,
+; priorities, retry limits, and builder counts remain UNASSIGNED.
 ; ============================================================
 
-; Construction
+; Construction state/data
 (defconst BYZ-CONSTRUCTION-STATE 522)
 (defconst BYZ-CURRENT-BUILD-ITEM 523)
 (defconst BYZ-BUILD-PROGRESS 524)
@@ -36,6 +37,40 @@
 (defconst BYZ-CONSTRUCTION-RECOVERY 12)
 (defconst BYZ-REQUEST-INACTIVE 0)
 (defconst BYZ-REQUEST-ACTIVE 1)
+
+; Escrow
+(defconst BYZ-ESCROW-STATE 534)
+(defconst BYZ-ESCROW-RELEASE-REQUEST 535)
+(defconst BYZ-ESCROW-COMMIT-REQUEST 536)
+(defconst BYZ-ESCROW-RECONCILIATION 537)
+(defconst BYZ-ESCROW-POLICY-VALUE 538)
+(defconst BYZ-ESCROW-POLICY-FOOD 548)
+(defconst BYZ-ESCROW-POLICY-WOOD 549)
+(defconst BYZ-ESCROW-POLICY-GOLD 550)
+(defconst BYZ-ESCROW-POLICY-STONE 551)
+(defconst BYZ-ESCROW-POLICY-APPLIED 552)
+(defconst BYZ-ESCROW-MODE 556)
+(defconst BYZ-ESCROW-INCLUDED 0)
+(defconst BYZ-ESCROW-EXCLUDED 1)
+(defconst BYZ-ESCROW-IDLE 0)
+(defconst BYZ-ESCROW-REQUESTED 1)
+(defconst BYZ-ESCROW-RESERVING 2)
+(defconst BYZ-ESCROW-COMMITTED 3)
+(defconst BYZ-ESCROW-RELEASE-REQUESTED 4)
+(defconst BYZ-ESCROW-RELEASING 5)
+(defconst BYZ-ESCROW-RECONCILING 6)
+(defconst BYZ-ESCROW-RELEASED 7)
+(defconst BYZ-ESCROW-CANCELLED 8)
+(defconst BYZ-ESCROW-EXPIRED 9)
+(defconst BYZ-ESCROW-RECOVERY 10)
+(defconst BYZ-ESCROW-RELEASE-NO 0)
+(defconst BYZ-ESCROW-RELEASE-YES 1)
+(defconst BYZ-ESCROW-COMMIT-NO 0)
+(defconst BYZ-ESCROW-COMMIT-YES 1)
+(defconst BYZ-ESCROW-RECONCILE-NONE 0)
+(defconst BYZ-ESCROW-RECONCILE-PENDING 1)
+(defconst BYZ-ESCROW-RECONCILE-CONFIRMED 2)
+(defconst BYZ-ESCROW-RECONCILE-CONTRADICTED 3)
 
 ; Placement
 (defconst BYZ-PLACEMENT-STATE 541)
@@ -85,46 +120,10 @@
 (defconst BYZ-RECOVERY-CAPITAL-CONFLICT 8)
 (defconst BYZ-RECOVERY-STRATEGIC-SUPERSEDED 9)
 
-; Escrow lifecycle and separate engine command mode
-(defconst BYZ-ESCROW-STATE 534)
-(defconst BYZ-ESCROW-MODE 556)
-(defconst BYZ-ESCROW-RELEASE-REQUEST 535)
-(defconst BYZ-ESCROW-COMMIT-REQUEST 536)
-(defconst BYZ-ESCROW-RECONCILIATION 537)
-(defconst BYZ-ESCROW-POLICY-VALUE 538)
-(defconst BYZ-ESCROW-POLICY-FOOD 548)
-(defconst BYZ-ESCROW-POLICY-WOOD 549)
-(defconst BYZ-ESCROW-POLICY-GOLD 550)
-(defconst BYZ-ESCROW-POLICY-STONE 551)
-(defconst BYZ-ESCROW-POLICY-APPLIED 552)
-(defconst BYZ-ESCROW-INCLUDED 0)
-(defconst BYZ-ESCROW-EXCLUDED 1)
-(defconst BYZ-ESCROW-IDLE 0)
-(defconst BYZ-ESCROW-REQUESTED 1)
-(defconst BYZ-ESCROW-RESERVING 2)
-(defconst BYZ-ESCROW-COMMITTED 3)
-(defconst BYZ-ESCROW-RELEASE-REQUESTED 4)
-(defconst BYZ-ESCROW-RELEASING 5)
-(defconst BYZ-ESCROW-RECONCILING 6)
-(defconst BYZ-ESCROW-RELEASED 7)
-(defconst BYZ-ESCROW-CANCELLED 8)
-(defconst BYZ-ESCROW-EXPIRED 9)
-(defconst BYZ-ESCROW-RECOVERY 10)
-(defconst BYZ-ESCROW-RELEASE-NO 0)
-(defconst BYZ-ESCROW-RELEASE-YES 1)
-(defconst BYZ-ESCROW-COMMIT-NO 0)
-(defconst BYZ-ESCROW-COMMIT-YES 1)
-(defconst BYZ-ESCROW-RECONCILE-NONE 0)
-(defconst BYZ-ESCROW-RECONCILE-PENDING 1)
-(defconst BYZ-ESCROW-RECONCILE-CONFIRMED 2)
-(defconst BYZ-ESCROW-RECONCILE-CONTRADICTED 3)
-
-; Authority
+; Authority / execution
 (defconst BYZ-AUTHORITY-STATE 539)
 (defconst BYZ-AUTHORITY-DENIED 0)
 (defconst BYZ-AUTHORITY-GRANTED 1)
-
-; Execution
 (defconst BYZ-EXECUTION-STATE 546)
 (defconst BYZ-EXECUTION-PENDING 547)
 (defconst BYZ-EXECUTION-IDLE 0)
@@ -133,10 +132,32 @@
 (defconst BYZ-EXECUTION-PENDING-VALUE 3)
 (defconst BYZ-EXECUTION-FAILED 4)
 
-; Requirements
+; Requirements / engine-derived cost vector
 (defconst BYZ-REQUIREMENTS-NOT-READY 0)
 (defconst BYZ-REQUIREMENTS-READY 1)
+(defconst BYZ-REQUIREMENT-KIND 557)
+(defconst BYZ-REQUIREMENT-FOOD 558)
+(defconst BYZ-REQUIREMENT-WOOD 559)
+(defconst BYZ-REQUIREMENT-GOLD 560)
+(defconst BYZ-REQUIREMENT-STONE 561)
+(defconst BYZ-REQUIREMENT-ACTIVE 562)
 
-; No strategic thresholds, timers, escrow percentages/caps,
-; placement geometry, priority, retry count, or builder count
-; is defined in this namespace.
+; Capital feasibility / reserve-adjusted slack
+(defconst BYZ-CAPITAL-STATE 563)
+(defconst BYZ-CAPITAL-SLACK-FOOD 564)
+(defconst BYZ-CAPITAL-SLACK-WOOD 565)
+(defconst BYZ-CAPITAL-SLACK-GOLD 566)
+(defconst BYZ-CAPITAL-SLACK-STONE 567)
+(defconst BYZ-CAPITAL-SUFFICIENT 1)
+(defconst BYZ-CAPITAL-INSUFFICIENT 0)
+(defconst BYZ-CAPITAL-INACTIVE 0)
+(defconst BYZ-CAPITAL-ACTIVE 1)
+
+; Construction evidence / request control
+(defconst BYZ-REQUEST-BUILDING 568)
+(defconst BYZ-REQUEST-PRIORITY 569)
+(defconst BYZ-REQUEST-ACTIVE-FLAG 570)
+(defconst BYZ-EXECUTION-COMMAND-ISSUED 571)
+
+; No strategic threshold, timer, escrow percentage/cap, placement
+; geometry, retry count, priority value, or builder count is defined.
