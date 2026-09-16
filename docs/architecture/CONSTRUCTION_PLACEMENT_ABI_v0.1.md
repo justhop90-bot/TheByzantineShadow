@@ -2,327 +2,317 @@
 
 ## Status
 
-**DESIGN DRAFT — donor-derived boundary, not yet runtime-qualified.**
+**DESIGN-READY / ENGINE-SEMANTICS-TRIANGULATED / NOT RUNTIME-QUALIFIED.**
 
-This contract is derived from the canonical `ShadowSource.per` construction/placement mechanisms and the construction/placement state-machine reconstruction. It follows `docs/AI_SCRIPTER_OPERATING_DOCTRINE.md` and the repository Drift Protocol.
+This artifact is the authoritative Construction↔Placement contract. It consolidates the prior contract and its interface questions rather than creating a new ABI document.
 
-The contract intentionally isolates unresolved engine semantics rather than inventing them.
+Evidence hierarchy: canonical `ShadowSource.per` → preserved provenance → AI Reference / engine patch semantics → project reconstruction. Architectural ownership below is **COMPOSED/INFERRED** unless explicitly marked DIRECT.
 
 ## 1. Boundary
 
 ```text
+Strategy/Policy
+    ↓ WHY
 Construction
-  owns WHAT is currently authorized and WHERE the progression machine is
-  ↓
+    ↓ WHAT / WHEN / progression / authorization
 Placement
-  owns HOW an authorized construction target is spatially resolved
-  ↓
+    ↓ WHERE / placement mode / target / placement configuration
 Execution
-  owns HOW the engine build operation is issued
-  ↓
-Verification
-  owns WHETHER world state actually changed
+    ↓ HOW the engine command is issued
+World / Verification
+    ↓ WHETHER the requested world state exists
+Construction
+    ↓ reconcile / advance / recover / re-enter
 ```
 
-Construction therefore does not delegate strategic intent to Placement, and Placement does not manufacture construction intent.
+The boundary is architectural. Shadow itself is a rule machine, not a set of source-level modules.
 
-## 2. Request Contract
+## 2. Authoritative State
 
-A Construction→Placement request contains the minimum semantic fields needed to reproduce observed Shadow dispatch:
+### Construction owns
 
-| Field | Meaning | Authority |
-|---|---|---|
-| object type | structure to construct | Construction |
-| placement mode | `normal`, `point`, or `control` | Construction/Placement boundary |
-| escrow context | resource-accounting state required by dispatch | Escrow |
-| builder requirement | requested builder assignment | Construction/Execution boundary |
-| target requirement | object/point/control target requirement | Placement |
-| placement configuration | zone/failure/separation parameters | Placement/policy boundary |
-| progression identity | current build item/milestone | Construction |
+- current build item (`gl-current-build-item` family);
+- progression cursor (`gl-build-progress` family);
+- progression pause/interruption state (`gl-progression-pause` family);
+- construction-local arbitration (`SPLIT` and equivalent local state);
+- milestone selection, rollback/reconciliation, and advancement;
+- dispatch eligibility.
 
-No request field constitutes completion.
+### Placement owns
 
-## 3. Placement Modes
+- placement mode selection at the dispatch boundary;
+- target-object / target-point handoff state;
+- search state used to resolve targets;
+- placement-data configuration required by the selected placement mode;
+- placement retry/re-entry state.
+
+### Execution owns
+
+- `build` / `up-build` invocation;
+- `up-assign-builders` invocation;
+- engine-side construction dispatch.
+
+### Verification owns
+
+- observation of pending state;
+- observation of actual world objects/counts/properties;
+- classification of completion versus non-completion;
+- completion evidence returned to Construction.
+
+### Escrow owns
+
+- resource reservation/accounting and release operations.
+
+Placement and Construction must not silently absorb Escrow or Verification authority.
+
+## 3. Engine-Semantics Resolution Matrix
+
+| Former OPEN question | Resolution | Evidence | Status |
+|---|---|---|---|
+| `up-build` ABI | `up-build PlacementType EscrowState BuildingId` is an **action** that adds a building to the construction queue. Placement type selects the engine placement mechanism; escrow state selects resource accounting. It is not a synchronous completion return. | Shadow + AI Reference/UP notes | **RESOLVED** |
+| `up-assign-builders` ABI | `(up-assign-builders type/class number)` assigns **at least the specified number of builders** to a building type/class; it is an action/configuration operation, not completion. | AI Reference/UP notes + Shadow invocation | **RESOLVED** |
+| empty search | `up-find-local` / `up-find-remote` return **false when used as Facts if the search produces zero results**. Search lists and counts are separate engine state; `up-get-search-state` exposes local/remote result counts and additions. | AI Reference/UP notes | **RESOLVED** |
+| target-object selection | `up-set-target-object` selects an object from the current search list; as a Fact it returns false if the requested index cannot be set. Target state is engine search/target state, not completion state. | AI Reference/UP notes | **RESOLVED** |
+| target lifetime | The engine maintains search/target state until it is changed/reset by subsequent search/target operations. Shadow explicitly rebuilds this state through reset → search → clean/remove → target selection. No donor evidence supports treating the target as a one-shot return value. | Shadow + AI Reference | **RESOLVED-CONDITIONAL** |
+| `place-control` | `up-set-placement-data(player, object-type-or -1, distance)` supplies placement reference data for subsequent `up-build place-control`; the reference is the latest specified object for the player, with `-1` meaning home TC, and relative distance may be positive/negative. Relative placement uses the target player's location or map center if the target reference is unavailable. | Shadow + AI Reference/UP notes | **RESOLVED** |
+| placement zone/failure | `sn-placement-zone-size` controls the initial placement zone stored with a successful build call; controlled placement can expand on failed placement attempts. `sn-placement-fail-delta` modifies placement distance on failure for control placement. | AI Reference/UP notes | **RESOLVED** |
+| point placement | `place-point` uses the point established by `up-set-target-point`; its stored zone size controls initial placement zone and it expands on failed attempts. It does not use `up-set-placement-data` or `sn-placement-fail-delta`. | AI Reference/UP notes | **RESOLVED** |
+| pending placement | `up-pending-placement` reports while the managed placement system is trying to place a building; documentation explicitly warns that mills/camps use a different placement system. | AI Reference/UP notes | **RESOLVED-CONDITIONAL** |
+| pending objects | `up-pending-objects` compares pending train/build count. It is an observation of work not yet completed, not completion evidence. | AI Reference/UP notes | **RESOLVED** |
+| placement failure | The engine retries managed placement internally across passes, expanding the relevant placement zone according to its placement mode/configuration. AI-side rules must not equate a dispatch call with success. | AI Reference/UP notes | **RESOLVED** |
+| builder lifecycle | `up-assign-builders` sets an assignment policy (“at least N builders” for a type/class); it does not expose a donor-specific completion acknowledgement. Actual building completion remains world-state observation. | AI Reference/UP notes + Shadow | **RESOLVED** |
+
+## 4. Placement Modes
 
 ### NORMAL
 
-Used when the donor invokes `up-build place-normal`.
-
-Required state:
-
-```text
-construction authorized
-object type known
-normal placement configuration available
-```
-
-Target-object or target-point state is not presumed unless the source path explicitly establishes it.
+`up-build place-normal ...` invokes ordinary building placement. No target point or placement-data reference is implied by the command itself.
 
 ### POINT
 
-Used when the donor invokes `up-build place-point`.
-
-Required state:
-
-```text
-construction authorized
-valid target point established
-placement configuration established
-```
-
-Representative donor pattern:
+`up-build place-point ...` uses the target point previously established with `up-set-target-point`. Shadow's mining-camp paths demonstrate the stateful sequence:
 
 ```text
 search resource
 → select target object
-→ obtain target point
+→ obtain point
 → set target point
-→ configure placement
-→ up-build place-point
+→ set placement parameters where required
+→ dispatch place-point
 ```
 
 ### CONTROL
 
-Used when the donor invokes `up-build place-control`.
+`up-build place-control ...` uses placement data established by `up-set-placement-data`.
 
-Required state:
-
-```text
-construction authorized
-control-placement data established
-```
-
-The exact engine semantics of control placement remain an ABI item to qualify.
-
-## 4. Target State
-
-Placement owns the lifecycle:
+Shadow provides direct examples for towers and extra stables:
 
 ```text
-NONE
- ↓
-SEARCHING
- ↓
-CANDIDATE-FOUND
- ↓
-TARGET-VALID
- ↓
-TARGET-HANDOFF
- ↓
-PLACEMENT-READY
- ↓
-DISPATCHED
+up-set-placement-data ...
+set sn-placement-zone-size
+up-build place-control ...
 ```
 
-Failure paths do not imply completion:
+The target/reference data therefore belongs to the placement dispatch state, not to a generic search-result abstraction.
+
+## 5. Placement Configuration Ownership
+
+Shadow directly writes placement configuration immediately before dispatch, including:
+
+- `sn-placement-zone-size`;
+- `sn-placement-fail-delta`;
+- `sn-allow-adjacent-dropsites`;
+- `sn-dropsite-separation-distance`.
+
+Therefore the earlier assumption that all geometry/failure policy is merely external input is **rejected**.
+
+The safer contract is:
 
 ```text
-SEARCHING → NO-TARGET → SEARCHING / WAIT
-TARGET-VALID → INVALID → SEARCHING
-PLACEMENT-READY → FAILURE → REASSESS
+Construction selects the construction milestone.
+Placement materializes the placement state/configuration required by that donor path.
+Execution consumes that prepared state.
 ```
 
-The exact engine representation of empty-search and placement failure remains UNKNOWN.
+Some placement strategic numbers may remain shared policy inputs, but their mutation at the dispatch boundary is Placement-side behavior and must not be hidden from the ABI.
 
-## 5. Search Contract
+## 6. Search Contract
 
-For point-placement paths, Placement may execute the donor search sequence:
+The direct-targeting/search engine is stateful:
 
 ```text
 up-full-reset-search
-→ up-set-target-point
-→ up-filter-distance
-→ up-find-remote/local
-→ inspect candidate state
-→ up-clean-search
-→ up-remove-objects
+→ configure filters
+→ up-find-local / up-find-remote
+→ inspect result/search state
+→ up-clean-search / up-remove-objects
 → up-set-target-object
-→ up-get-point
+→ up-get-point position-object
 → up-set-target-point
 ```
 
-Search state is persistent control state. It must not be reduced to a pure function that loses the donor's stateful re-entry behavior.
+Reference semantics establish that filters configure state for later `find-*` calls; `find-*` can be used as Facts/Actions; zero-result searches return false when used as Facts; and `up-get-search-state` exposes search-result counts. citeturn2search0turn0search1
 
-## 6. Placement Configuration
-
-Observed Shadow paths directly mutate placement parameters immediately before build dispatch, including:
-
-- `sn-placement-zone-size`
-- `sn-placement-fail-delta`
-- `sn-allow-adjacent-dropsites`
-- `sn-dropsite-separation-distance`
-
-Therefore the previous assumption that geometry/failure policy is necessarily external to Placement is not established by the donor. Ownership remains a design boundary requiring further triangulation.
-
-Contract:
+Therefore:
 
 ```text
-Construction supplies policy inputs when required
-Placement materializes the configuration needed by the selected mode
-Execution consumes the resulting configuration
+NO TARGET
+≠
+PLACEMENT FAILURE
+≠
+CONSTRUCTION FAILURE
+≠
+COMPLETION
 ```
 
-## 7. Handoff
+Search failure is a Placement state that causes re-entry/reassessment. It must not advance the Construction cursor.
 
-Construction→Placement occurs only after Construction has established:
+## 7. Construction → Placement Entry Contract
+
+Construction may enter Placement only after the donor path has established the applicable construction authorization, including its feasibility/pending/escrow conditions.
+
+The conceptual request is:
 
 ```text
-current build item
-AND
-construction feasibility
-AND
-pending guard
-AND
-construction authorization
+(object type,
+ placement mode,
+ progression identity,
+ target requirement,
+ placement configuration,
+ escrow context,
+ builder requirement)
 ```
 
-Placement must return one of the following architectural outcomes:
+This is an architectural representation of distributed Shadow state, not a new runtime API that must literally exist in `.per`.
+
+## 8. Placement → Execution Contract
+
+Execution receives:
 
 ```text
-PLACEMENT_READY
-TARGET_UNAVAILABLE
-PLACEMENT_RETRY
-PLACEMENT_FAILED
-DISPATCH_READY
+placement mode
+object type
+target point/object/reference as applicable
+placement configuration
+escrow state
+builder assignment requirement as applicable
 ```
 
-These are control outcomes, not world-state completion signals.
+The engine then performs the action.
 
-## 8. Execution Boundary
+A crucial engine constraint is preserved: historical UP notes state that only one successful `build`/`up-build` command is allowed per AI rule pass; subsequent build commands silently fail. This makes one-dispatch-per-pass a qualification invariant rather than an optional optimization. citeturn3search0
 
-Placement prepares the spatial state required by the donor command. Execution issues the command.
+## 9. Completion Contract
 
-The following must remain distinguishable:
+No Construction or Placement rule may advance progression merely because:
 
 ```text
-placement ready
-command issued
-pending placement/object exists
-world object exists
-world object satisfies completion condition
+can-build-with-escrow == true
+up-build was invoked
+up-assign-builders was invoked
+up-pending-objects > 0
+up-pending-placement == true
+search found a target
+release-escrow executed
 ```
 
-No intermediate state advances `gl-build-progress`.
+Completion requires the donor's world-state observer, such as the relevant `building-type-count-total` threshold or other explicit completed-world predicate.
 
-## 9. Builder Assignment
+Shadow's stable/tower/construction patterns demonstrate the distinction directly: dispatch rules and later count-based progression rules are separate control events. fileciteturn547file0
 
-Where the donor invokes `up-assign-builders`, the request may carry a builder requirement. Builder assignment remains an execution-side operation.
+## 10. Failure and Re-entry
 
-The following equivalence is prohibited:
+### A. Feasibility failure
 
-```text
-builder assignment accepted == building completed
-```
+Retain the current construction item/cursor. Do not advance.
 
-Exact assignment semantics, reassignment behavior, and failure signaling remain UNKNOWN.
+### B. Existing pending work
 
-## 10. Completion Contract
+Suppress duplicate dispatch where the donor uses a pending guard. `up-pending-placement` is a managed-placement observation and must not be generalized to mills/camps because the engine explicitly uses a different placement system for them. citeturn2search0
 
-Placement cannot declare construction completion.
+### C. Search empty
 
-Completion returns to Construction through Verification:
+`find-*` zero-result state is a search failure. Re-enter search/reassessment. Do not manufacture a target.
 
-```text
-build dispatch
-→ world observation
-→ required building/object state confirmed
-→ Construction completion transition
-→ progress mutation
-→ next current-build-item selection
-```
+### D. Placement cannot currently succeed
 
-For count-based milestones, the authoritative observation is a world-state count such as `building-type-count-total` reaching the required threshold.
+The engine's managed placement mechanism may retry across internal passes. AI-side progression remains unchanged until world-state completion is observed.
 
-## 11. Failure and Re-entry
+### E. Command silently fails / second dispatch in same pass
 
-### Feasibility failure
+Do not infer success. Re-enter on a later script pass subject to the donor's guards. The one-successful-build-per-rule-pass engine constraint is explicit in the reference history. citeturn3search0
 
-Construction retains the current item. Placement is not entered or is exited without advancing progression.
+### F. Progression overshoot
 
-### Pending guard
+Use Shadow's explicit “come back if skipped” reconciliation rules: if world state is below the milestone but the cursor has advanced beyond it, reset `gl-build-progress` to the milestone and restore `gl-current-build-item` on the next progression pass.
 
-If the required object is already pending, duplicate dispatch is suppressed unless a donor-specific failsafe explicitly permits a retry path.
+## 11. Re-entry Rules
 
-### Search failure
+Re-entry is a normal property of the machine, not an exceptional transaction rollback. Re-entry occurs after:
 
-Placement retains/re-enters the target-search state. Construction retains the current objective.
-
-### Placement failure
-
-No progression advancement occurs. Placement configuration/search may be regenerated and the request re-entered.
-
-### Command without completion
-
-The command remains only an execution event. Construction waits for authoritative world-state evidence and reassesses.
-
-### Progression overshoot
-
-If the cursor has advanced beyond an uncompleted construction milestone, Construction performs donor-style cursor reconciliation and re-enters current-item selection.
-
-## 12. Re-entry Rules
-
-Re-entry is legal after:
-
-- resource feasibility changes;
-- pending state clears;
-- a target becomes available;
-- search configuration changes;
-- placement configuration changes;
+- resource/escrow feasibility changes;
+- pending state clears or changes;
+- target/search state becomes available;
+- placement retries advance or fail;
 - timer guards expire;
-- a higher-priority control path releases the progression pause;
-- world-state completion is observed;
-- progression reconciliation resets the cursor.
+- progression pause changes;
+- world-state completion appears;
+- cursor reconciliation detects a skipped milestone;
+- a donor-specific failsafe reactivates the construction path.
 
-No one-shot request/response lifecycle is assumed.
+The module contract therefore remains **persistent-state/reassessment**, not request/response/return.
 
-## 13. Ownership Invariants
+## 12. Ownership Invariants
 
-1. Placement cannot create strategic intent.
-2. Construction cannot claim completion from command issuance.
-3. Escrow cannot claim construction completion.
-4. Builder assignment cannot claim construction completion.
-5. Search success cannot claim construction completion.
-6. Pending state cannot be treated as world-state completion.
-7. Placement failure cannot silently advance progression.
-8. Construction progression cannot outrun verified world state where the donor provides reconciliation.
-9. Jumps remain control-flow edges rather than abstract priority labels.
-10. Donor-specific failsafes remain explicit rather than being collapsed into generic retry behavior.
+1. Placement never creates strategic construction intent.
+2. Construction never declares completion from command issuance.
+3. Escrow never declares completion.
+4. Builder assignment never declares completion.
+5. Search success never declares completion.
+6. Pending state never declares completion.
+7. Placement failure never advances progression.
+8. One successful `build`/`up-build` per AI rule pass is respected.
+9. `place-control` consumes placement data established for that operation.
+10. `place-point` consumes a target point established for that operation.
+11. Donor-specific failsafes and re-entry paths remain explicit.
+12. Jumps remain control-flow edges, not abstract priority labels.
 
-## 14. ABI Surface
+## 13. ABI Surface
 
 ### Construction → Placement
 
 ```text
-request(object_type,
-        placement_mode,
-        progression_identity,
-        target_requirement,
-        builder_requirement,
-        placement_policy_inputs,
-        escrow_context)
-```
-
-### Placement → Construction
-
-```text
-PLACEMENT_READY
-TARGET_UNAVAILABLE
-PLACEMENT_RETRY
-PLACEMENT_FAILED
-DISPATCH_READY
+request:
+  object_type
+  placement_mode
+  progression_identity
+  target_requirement
+  placement_configuration
+  escrow_context
+  builder_requirement
 ```
 
 ### Placement → Execution
 
 ```text
-placement_mode
-object_type
-target_state
-target_object
-target_point
-placement_configuration
-builder_requirement
+prepared:
+  placement_mode
+  object_type
+  target/reference state
+  placement_configuration
+  escrow_state
+  builder_requirement
 ```
+
+### Execution → Verification
+
+```text
+command-issued
+pending-observation
+world-state-observation
+```
+
+These are distinct events, not interchangeable return values.
 
 ### Verification → Construction
 
@@ -331,113 +321,56 @@ WORLD_STATE_CONFIRMED
 WORLD_STATE_NOT_CONFIRMED
 ```
 
-## 15. Prohibited Collapses
+Only `WORLD_STATE_CONFIRMED` may satisfy a completion transition.
 
-The implementation must not collapse:
+## 14. Design Readiness
 
-```text
-can-build-with-escrow → completed
-release-escrow → completed
-build → completed
-up-build → completed
-pending-object → completed
-pending-placement → completed
-builder-assigned → completed
-search-found → completed
-```
+### RESOLVED
 
-Each is a distinct state/evidence class.
+- `up-build` is an action/queue operation, not completion.
+- `up-assign-builders` is an assignment policy/action, not completion.
+- zero-result `find-*` behavior is defined.
+- target-object selection semantics are defined.
+- `place-control` reference semantics are defined.
+- point-placement semantics are defined.
+- placement zone/failure behavior is defined by engine semantics.
+- pending-object/pending-placement meanings are separated.
+- managed placement failure/retry is separated from AI progression.
+- one successful build command per AI rule pass is a hard execution constraint.
 
-## 16. Design Readiness
+### REMAINING / RUNTIME-QUALIFICATION ONLY
 
-The boundary is sufficiently specified for module-level design, but not for final runtime implementation of unresolved engine operations.
+- exact DE-version behavior of the historical Shadow source under current AoE2DE 101.103.48987.0;
+- whether every historical UP placement behavior is preserved identically by the current DE engine;
+- exact runtime observation timing between `up-build`, pending state, foundation creation, and final building count;
+- runtime behavior of Shadow's specific strategic-number combinations;
+- runtime qualification of target/search lifetime across failed placement attempts.
 
-### READY
+These are no longer ABI-definition gaps. They are **runtime qualification questions**.
 
-- Construction owns progression semantics.
-- Placement owns target/mode/search semantics.
-- Verification owns world-state completion evidence.
-- Escrow remains separate.
-- Execution remains separate.
-- Failure preserves re-entry.
-- Completion is observational.
+## 15. Evidence
 
-### OPEN
+**DIRECT:** Shadow contains `up-build place-normal`, `place-point`, and `place-control`; uses search state before point placement; writes placement configuration; uses pending guards; and advances progression from world-state observations. The tower and extra-stable paths are explicit examples. fileciteturn547file0
 
-- exact `up-build` ABI;
-- exact `up-assign-builders` ABI;
-- empty-search representation;
-- placement-failure representation;
-- target-state lifetime after failed dispatch;
-- exact `place-control` semantics;
-- final ownership of placement strategic-number mutation.
+**REFERENCE-TRIANGULATED:** AI Reference/UP documentation establishes `up-build`, `up-assign-builders`, search facts/actions, target selection, placement data, point placement, pending-object semantics, placement retry behavior, and the one-build-per-rule-pass constraint. citeturn2search0turn3search0turn0search1
 
-## 17. Engine-reference triangulation update
+**COMPOSED:** The module boundary and ABI request/response vocabulary organize distributed Shadow state into implementation contracts.
 
-Reference material narrows several previously OPEN claims without closing them completely.
+**INFERRED:** Exact module ownership is an architectural mapping, not a literal donor module structure.
 
-### `up-build`
+## 16. Verification
 
-The AI Reference command index classifies `up-build` as a high-complexity UP **action** that adds a building to the construction queue with dynamic values. This strengthens the ABI distinction between command issuance and completion: `up-build` is a dispatch/queue operation, not a world-state completion observer. citeturn0search4
+- All former ABI questions were rechecked against canonical Shadow patterns and engine/reference semantics.
+- `up-build` remains a dispatch action, never completion.
+- `up-assign-builders` remains assignment, never completion.
+- search-empty is now resolved at the engine level.
+- `place-control` is now resolved sufficiently for implementation design.
+- point-placement configuration semantics are resolved.
+- pending-placement is explicitly not generalized to camps/mills.
+- placement failure is treated as an engine retry/re-entry condition rather than a transaction failure return.
+- the one-successful-build-per-rule-pass constraint is now an explicit execution invariant.
+- no new document was created; this authoritative ABI was consolidated in place.
 
-### `up-assign-builders`
+## 17. Uncertainty
 
-The AI Reference classifies `up-assign-builders` as an UP **action** assigning a specific number of builders to a building type or class. Independent scripting documentation gives the same semantic shape and explicitly describes the value as an assignment to a building type/class rather than completion. The exact lifetime/reassignment semantics in the Shadow path remain unqualified. citeturn0search4turn0search2
-
-### Pending objects
-
-Reference material defines `up-pending-objects` as a comparison against the pending count of an object. DE patch history also confirms that `up-pending-objects` counts additional objects in the unit queue and that `up-find-remote` can find building foundations. Therefore pending state remains an engine-observation class, not a completion signal. citeturn0search2turn0search7
-
-### Placement strategic numbers
-
-Reference patch documentation materially strengthens the placement-configuration interpretation: `sn-placement-zone-size` and `sn-placement-fail-delta` are documented as placement controls for forward/control building commands; successful build calls store the placement zone/failure configuration used by the build operation. This supports retaining placement configuration as part of the dispatch ABI rather than treating it as arbitrary decoration. It does **not** by itself establish the final ShadowByzantine writer ownership of every placement strategic number. citeturn0search5
-
-### `up-build` reliability
-
-Later DE patch notes document fixes to `up-build` placement reliability. This is relevant to qualification because a failed placement may reflect engine behavior rather than a malformed logical target, so runtime tests must observe both the AI-side dispatch state and the resulting world/pending state. citeturn0search11
-
-## 18. Design consequence
-
-The reference triangulation permits one important narrowing:
-
-```text
-Construction
-  → establishes objective/progression/authorization
-
-Placement
-  → establishes target + placement configuration
-
-Execution
-  → invokes up-build / build / builder assignment
-
-Verification
-  → observes pending/world state and completion conditions
-```
-
-It does **not** justify collapsing Placement and Execution, nor does it justify treating `up-build` as a synchronous success return.
-
-The unresolved items remain explicitly unresolved where the available reference material does not establish the donor-specific behavior.
-
-## Evidence
-
-**DIRECT:** Shadow contains explicit `up-build place-normal`, `up-build place-point`, and `up-build place-control` paths; point-placement paths establish target objects/points and mutate placement parameters before dispatch; construction progression is mutated from observed building state.
-
-**COMPOSED:** The Construction↔Placement request/response boundary combines these donor mechanisms into an explicit architectural interface.
-
-**INFERRED:** The named module ownership boundaries are architectural abstractions derived from the donor state graph rather than literal Shadow module boundaries.
-
-**UNKNOWN:** Donor-specific return/failure signaling, exact `up-assign-builders` lifecycle, empty-search representation, target lifetime, and complete `place-control` behavior remain unresolved.
-
-## Verification
-
-- Contract preserves the donor distinction between feasibility, dispatch, pending state, and completion.
-- Contract preserves multiple placement modes.
-- Contract preserves stateful search and re-entry.
-- Contract does not convert jumps into priority semantics.
-- Contract does not promote command acceptance into world-state completion.
-- Reference triangulation now independently supports the action semantics of `up-build`, `up-assign-builders`, pending-object observation, and placement configuration controls.
-- Unresolved donor-specific semantics remain marked OPEN/UNKNOWN rather than being silently promoted.
-
-## Uncertainty
-
-This artifact is a design contract, not runtime qualification. Any implementation that depends on an OPEN ABI item must mark the dependency and must not silently replace it with an assumed engine behavior. Additional canonical source extraction and AI Reference/AI Encyclopedia triangulation should resolve engine semantics before runtime qualification.
+The ABI is **design-ready but not runtime-qualified**. The remaining uncertainty concerns current-DE qualification and timing/observability, not missing conceptual engine definitions. Runtime tests must distinguish command issuance, pending/foundation state, and completed world state and must test the exact donor placement configurations used by Shadow.
