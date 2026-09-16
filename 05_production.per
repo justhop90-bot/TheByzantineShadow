@@ -10,8 +10,7 @@
 ; completion observation, and withdrawal.
 ;
 ; Static unit-line dispatch is intentional. No goal-valued unit id is
-; passed to up-train. AIRef documents unit lines and unit-type-count-total;
-; UserPatch documents up-can-train/up-train escrow-state semantics.
+; passed to up-train. unit-type-count-total includes queued units.
 ;
 (defrule
     (goal SHADOW-PROD-STATE -1)
@@ -70,7 +69,10 @@
 
 (defrule
     (goal SHADOW-PROD-LOCK 0)
-    (up-compare-goal SHADOW-PROD-INFANTRY > 0)
+    (or
+        (up-compare-goal SHADOW-PROD-INFANTRY > 0)
+        (up-compare-goal SHADOW-PROD-ANTI-CAVALRY > 0)
+    )
     (building-type-count-total barracks < 1)
     (up-pending-objects c: barracks < 1)
     (can-build-with-escrow barracks)
@@ -201,8 +203,6 @@
 )
 
 ;------------------------- static dispatch -----------------------
-; up-can-train/up-train use escrow-included. Unit lines are static.
-
 (defrule (goal SHADOW-PROD-LOCK 0) (unit-type-count-total militia-line g:< SHADOW-PROD-INFANTRY) (up-can-train SHADOW-PROD-ESCROW-STATE c: militia-line) => (set-goal SHADOW-PROD-LOCK 1) (set-goal SHADOW-PROD-ADMISSION 400) (up-train SHADOW-PROD-ESCROW-STATE c: militia-line))
 (defrule (goal SHADOW-PROD-LOCK 0) (unit-type-count-total spearman-line g:< SHADOW-PROD-ANTI-CAVALRY) (up-can-train SHADOW-PROD-ESCROW-STATE c: spearman-line) => (set-goal SHADOW-PROD-LOCK 1) (set-goal SHADOW-PROD-ADMISSION 401) (up-train SHADOW-PROD-ESCROW-STATE c: spearman-line))
 (defrule (goal SHADOW-PROD-LOCK 0) (unit-type-count-total archer-line g:< SHADOW-PROD-RANGED) (up-can-train SHADOW-PROD-ESCROW-STATE c: archer-line) => (set-goal SHADOW-PROD-LOCK 1) (set-goal SHADOW-PROD-ADMISSION 402) (up-train SHADOW-PROD-ESCROW-STATE c: archer-line))
