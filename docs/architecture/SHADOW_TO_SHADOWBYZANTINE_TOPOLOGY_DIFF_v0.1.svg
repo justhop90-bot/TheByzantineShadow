@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1050" viewBox="0 0 1600 1050">
+  <title>Shadow to ShadowByzantine topology diff</title>
+  <desc>Static forensic comparison between the ordered Shadow rule machine and the current Pass-1 ShadowByzantine module graph.</desc>
+  <rect x="0" y="0" width="1600" height="1050" fill="white"/>
+  <text x="60" y="55" font-family="Arial, sans-serif" font-size="30" font-weight="bold">Shadow → ShadowByzantine Topology Diff v0.1</text>
+  <text x="60" y="88" font-family="Arial, sans-serif" font-size="16">Static forensic view — not runtime qualification</text>
+
+  <rect x="60" y="125" width="680" height="840" rx="12" fill="#f7f7f7" stroke="#222" stroke-width="2"/>
+  <text x="90" y="170" font-family="Arial, sans-serif" font-size="25" font-weight="bold">CANONICAL SHADOW</text>
+  <text x="90" y="198" font-family="Arial, sans-serif" font-size="15">ShadowSource.per · 1,956 ordered defrule blocks</text>
+
+  <rect x="105" y="235" width="590" height="70" rx="8" fill="#e8e8e8" stroke="#222"/>
+  <text x="400" y="264" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold">Ordered .per control machine</text>
+  <text x="400" y="289" text-anchor="middle" font-family="Arial, sans-serif" font-size="14">source order + fall-through + positional jumps</text>
+
+  <g font-family="Arial, sans-serif" font-size="15">
+    <rect x="115" y="335" width="270" height="52" rx="7" fill="#eeeeee" stroke="#555"/>
+    <text x="250" y="367" text-anchor="middle">Persistent state / timers</text>
+    <rect x="415" y="335" width="270" height="52" rx="7" fill="#eeeeee" stroke="#555"/>
+    <text x="550" y="367" text-anchor="middle">Escrow / progression</text>
+    <rect x="115" y="415" width="270" height="52" rx="7" fill="#eeeeee" stroke="#555"/>
+    <text x="250" y="447" text-anchor="middle">Search / placement</text>
+    <rect x="415" y="415" width="270" height="52" rx="7" fill="#eeeeee" stroke="#555"/>
+    <text x="550" y="447" text-anchor="middle">Production / research</text>
+    <rect x="115" y="495" width="270" height="52" rx="7" fill="#eeeeee" stroke="#555"/>
+    <text x="250" y="527" text-anchor="middle">Military / scouting</text>
+    <rect x="415" y="495" width="270" height="52" rx="7" fill="#eeeeee" stroke="#555"/>
+    <text x="550" y="527" text-anchor="middle">Recovery / re-entry</text>
+  </g>
+
+  <line x1="400" y1="305" x2="400" y2="335" stroke="#222" stroke-width="2"/>
+  <line x1="400" y1="387" x2="400" y2="415" stroke="#222" stroke-width="2"/>
+  <line x1="400" y1="467" x2="400" y2="495" stroke="#222" stroke-width="2"/>
+  <line x1="250" y1="547" x2="250" y2="600" stroke="#222" stroke-width="2"/>
+  <line x1="550" y1="547" x2="550" y2="600" stroke="#222" stroke-width="2"/>
+
+  <rect x="110" y="615" width="580" height="80" rx="8" fill="#dedede" stroke="#222"/>
+  <text x="400" y="649" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold">Distributed re-entry</text>
+  <text x="400" y="675" text-anchor="middle" font-family="Arial, sans-serif" font-size="14">negative jumps, timers, local progression and world-state observers</text>
+
+  <rect x="110" y="730" width="580" height="145" rx="8" fill="white" stroke="#222"/>
+  <text x="130" y="760" font-family="Arial, sans-serif" font-size="15" font-weight="bold">Key donor property</text>
+  <text x="130" y="788" font-family="Arial, sans-serif" font-size="14">The control topology is encoded by rule order and jump destinations.</text>
+  <text x="130" y="814" font-family="Arial, sans-serif" font-size="14">A conceptual module split is not equivalent unless its ordering,</text>
+  <text x="130" y="840" font-family="Arial, sans-serif" font-size="14">state dependencies and jump topology are demonstrably preserved.</text>
+
+  <rect x="860" y="125" width="680" height="840" rx="12" fill="#f7f7f7" stroke="#222" stroke-width="2"/>
+  <text x="890" y="170" font-family="Arial, sans-serif" font-size="25" font-weight="bold">CURRENT SHADOWBYZANTINE</text>
+  <text x="890" y="198" font-family="Arial, sans-serif" font-size="15">Current main · Pass-1 runtime graph</text>
+
+  <rect x="905" y="235" width="590" height="65" rx="8" fill="#eeeeee" stroke="#222"/>
+  <text x="1200" y="263" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold">ShadowByzantine.per</text>
+  <text x="1200" y="286" text-anchor="middle" font-family="Arial, sans-serif" font-size="14">thin root entrypoint → nested loader</text>
+
+  <rect x="905" y="330" width="590" height="62" rx="8" fill="#eeeeee" stroke="#555"/>
+  <text x="1200" y="356" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="bold">ShadowByzantine/ShadowByzantine.per</text>
+  <text x="1200" y="379" text-anchor="middle" font-family="Arial, sans-serif" font-size="13">declared Pass-1 runtime module orchestrator</text>
+
+  <line x1="1200" y1="300" x2="1200" y2="330" stroke="#222" stroke-width="2"/>
+
+  <g font-family="Arial, sans-serif" font-size="14">
+    <rect x="920" y="425" width="170" height="54" rx="7" fill="#eeeeee" stroke="#555"/><text x="1005" y="458" text-anchor="middle">01 constants</text>
+    <rect x="1115" y="425" width="170" height="54" rx="7" fill="#eeeeee" stroke="#555"/><text x="1200" y="458" text-anchor="middle">01b Byzantine</text>
+    <rect x="1310" y="425" width="170" height="54" rx="7" fill="#eeeeee" stroke="#555"/><text x="1395" y="458" text-anchor="middle">02 state</text>
+    <rect x="920" y="505" width="170" height="54" rx="7" fill="#eeeeee" stroke="#555"/><text x="1005" y="538" text-anchor="middle">03 economy</text>
+    <rect x="1115" y="505" width="170" height="54" rx="7" fill="#eeeeee" stroke="#555"/><text x="1200" y="538" text-anchor="middle">04 construction</text>
+    <rect x="1310" y="505" width="170" height="54" rx="7" fill="#eeeeee" stroke="#555"/><text x="1395" y="538" text-anchor="middle">16 Pass-1</text>
+  </g>
+
+  <line x1="1200" y1="392" x2="1200" y2="425" stroke="#222" stroke-width="2"/>
+  <line x1="1005" y1="479" x2="1005" y2="505" stroke="#222" stroke-width="2"/>
+  <line x1="1200" y1="479" x2="1200" y2="505" stroke="#222" stroke-width="2"/>
+  <line x1="1395" y1="479" x2="1395" y2="505" stroke="#222" stroke-width="2"/>
+
+  <rect x="920" y="610" width="560" height="100" rx="8" fill="#dedede" stroke="#222"/>
+  <text x="1200" y="644" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold">Executable nucleus</text>
+  <text x="1200" y="670" text-anchor="middle" font-family="Arial, sans-serif" font-size="14">one Byzantine Spearman transaction</text>
+  <text x="1200" y="693" text-anchor="middle" font-family="Arial, sans-serif" font-size="13">objective → feasibility → escrow → command → world verification → release</text>
+
+  <rect x="920" y="745" width="560" height="130" rx="8" fill="white" stroke="#222"/>
+  <text x="940" y="775" font-family="Arial, sans-serif" font-size="15" font-weight="bold">Not currently loaded</text>
+  <text x="940" y="801" font-family="Arial, sans-serif" font-size="14">research · full production · military · scouting · placement</text>
+  <text x="940" y="826" font-family="Arial, sans-serif" font-size="14">recovery · reassessment · complete search/jump machine</text>
+  <text x="940" y="851" font-family="Arial, sans-serif" font-size="13">Repository modules may exist without being runtime-active.</text>
+
+  <line x1="740" y1="545" x2="860" y2="545" stroke="#222" stroke-width="3" stroke-dasharray="10,8"/>
+  <text x="800" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold">TOPOLOGY DELTA</text>
+  <text x="800" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">ordered program → module graph</text>
+  <text x="800" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="12">distributed machine → Pass-1 kernel</text>
+
+  <text x="60" y="1010" font-family="Arial, sans-serif" font-size="13">Evidence basis: canonical ShadowSource.per SHA-1 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee; current ShadowByzantine runtime load graph.</text>
+</svg>
