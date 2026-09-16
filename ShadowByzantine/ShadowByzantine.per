@@ -1,31 +1,24 @@
 ; ============================================================
 ; THE BYZANTINE SHADOW
-; RUNTIME MODULE ORCHESTRATOR
+; PASS 1 RUNTIME MODULE ORCHESTRATOR
 ; ============================================================
 ;
-; Pass 1 runtime graph.
+; Pass 1 intentionally loads only the minimum clean dependency
+; surface required for one complete economic transaction.
 ;
-; The historical 15-module architecture remains scaffolding. Pass 1
-; intentionally installs one executable vertical slice rather than
-; loading incomplete parallel transaction implementations.
+; The older 05-15 modules remain in the repository as historical
+; scaffolding. They are NOT loaded by the Pass 1 runtime because
+; several are incomplete and/or represent parallel implementations
+; of the transaction lifecycle. Loading them would create competing
+; writers and destroy the forensic boundary of this pass.
 ;
-; Dependency order:
-;   constants -> observation/foundation -> basic infrastructure
-;   -> Pass 1 transaction kernel
+; Runtime objective:
+;   Byzantine Spearman x1.
 ;
-; Pass 1 transaction contract:
-;   objective
-;      -> progression
-;      -> capital feasibility
-;      -> escrow mutation
-;      -> escrow observation
-;      -> authority
-;      -> baseline
-;      -> execution
-;      -> world-state verification
-;      -> release request
-;      -> release observation
-;      -> idle/reassessment
+; Transaction chain:
+;   objective -> progression -> capital -> escrow -> authority
+;   -> baseline -> execution -> world verification -> release
+;   -> release observation -> idle.
 ;
 ; ============================================================
 
@@ -34,14 +27,9 @@
 (load "02_state")
 (load "03_economy")
 (load "04_construction")
-(load "05_composition_policy")
-(load "05_production")
-(load "06_military")
-(load "07_placement")
-(load "07_strategic reserve")
 
 ; ------------------------------------------------------------
-; PASS 1 -- COMPLETE ECONOMIC TRANSACTION VERTICAL SLICE
+; PASS 1 TRANSACTION KERNEL
 ; ------------------------------------------------------------
 (load "16_pass1_transaction")
 
