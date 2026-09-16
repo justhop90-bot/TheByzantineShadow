@@ -1,0 +1,73 @@
+;=============================================================
+; THE BYZANTINE SHADOW
+; MODULE 05R -- PRODUCTION REGISTRY
+;=============================================================
+;
+; Canonical production-domain registry.
+;
+; This registry is deliberately separate from composition policy and
+; execution. It describes the complete Byzantine military production
+; surface using static, engine-qualified unit-line symbols.
+;
+; GOAL BAND 400-423 is reserved for Shadow production authority.
+; 500-503 remain the four-goal UserPatch cost vector.
+;
+; Domain / root production symbol / site:
+;
+; 400 infantry          militia-line       barracks
+; 401 anti-cavalry      spearman-line      barracks
+; 402 ranged            archer-line        archery-range
+; 403 anti-ranged       skirmisher-line    archery-range
+; 404 light cavalry     scout-line         stable
+; 405 heavy cavalry     knight-line        stable
+; 406 mobile ranged     cavalry-archer-line archery-range
+; 407 unique cavalry    cataphract          castle
+; 408 ram siege         battering-ram-line siege-workshop
+; 409 area siege        mangonel-line      siege-workshop
+; 410 anti-mass siege   scorpion-line      siege-workshop
+; 411 gunpowder siege   bombard-cannon     siege-workshop
+; 412 castle siege      trebuchet          castle
+; 413 monastery         monk               monastery
+; 414 galley navy       galley-line        dock
+; 415 fire navy         fire-ship-line     dock
+; 416 demolition navy   demolition-ship-line dock
+; 417 imperial navy     dromon             dock
+;
+; 418-423 are lifecycle/control goals.
+;
+(defconst SHADOW-PROD-INFANTRY 400)
+(defconst SHADOW-PROD-ANTI-CAVALRY 401)
+(defconst SHADOW-PROD-RANGED 402)
+(defconst SHADOW-PROD-ANTI-RANGED 403)
+(defconst SHADOW-PROD-LIGHT-CAVALRY 404)
+(defconst SHADOW-PROD-HEAVY-CAVALRY 405)
+(defconst SHADOW-PROD-MOBILE-RANGED 406)
+(defconst SHADOW-PROD-UNIQUE-CAVALRY 407)
+(defconst SHADOW-PROD-RAM-SIEGE 408)
+(defconst SHADOW-PROD-AREA-SIEGE 409)
+(defconst SHADOW-PROD-ANTI-MASS-SIEGE 410)
+(defconst SHADOW-PROD-GUNPOWDER-SIEGE 411)
+(defconst SHADOW-PROD-CASTLE-SIEGE 412)
+(defconst SHADOW-PROD-MONK 413)
+(defconst SHADOW-PROD-GALLEY-NAVY 414)
+(defconst SHADOW-PROD-FIRE-NAVY 415)
+(defconst SHADOW-PROD-DEMO-NAVY 416)
+(defconst SHADOW-PROD-IMPERIAL-NAVY 417)
+
+(defconst SHADOW-PROD-STATE 418)
+(defconst SHADOW-PROD-ESCROW-STATE 419)
+(defconst SHADOW-PROD-SITE-STATE 420)
+(defconst SHADOW-PROD-ADMISSION 421)
+(defconst SHADOW-PROD-LOCK 422)
+(defconst SHADOW-PROD-REASSESS 423)
+
+(defconst SHADOW-PROD-SATISFIED 0)
+(defconst SHADOW-PROD-ACCUMULATING 1)
+(defconst SHADOW-PROD-ESCROW-PERCENT 35)
+(defconst SHADOW-PROD-SITE-ESCROW-PERCENT 60)
+
+; Engine-defined cost vector. These four goals must remain consecutive.
+(defconst SHADOW-PROD-COST-FOOD 500)
+(defconst SHADOW-PROD-COST-WOOD 501)
+(defconst SHADOW-PROD-COST-STONE 502)
+(defconst SHADOW-PROD-COST-GOLD 503)
