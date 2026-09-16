@@ -1,7 +1,36 @@
+;=============================================
+; THE BYZANTINE SHADOW
+; MODULE 05 -- PRODUCTION
+;=============================================
+;
+; Production owns the minimum military production path.
+; This module deliberately uses documented engine facts/actions
+; rather than custom command names.
+;
+; Barracks prerequisite:
+;   - reach Feudal Age
+;   - no completed barracks
+;   - no barracks foundation already pending
+;   - engine confirms barracks is buildable
+;
 (defrule
     (current-age >= feudal-age)
-    (building-type-count barracks < 1) 
-    (can-build-barracks)
-    (up-pending-object C: barracks < 1) 
+    (building-type-count-total barracks < 1)
+    (up-pending-objects c: barracks < 1)
+    (can-build barracks)
 =>
     (build barracks)
+)
+
+; Byzantine spear baseline:
+; maintain the declared production target once a barracks exists.
+; can-train remains the final engine feasibility gate.
+;
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total barracks > 0)
+    (unit-type-count-total spearman-line < AEGIS-SPEARMAN-TARGET)
+    (can-train spearman-line)
+=>
+    (train spearman-line)
+)
