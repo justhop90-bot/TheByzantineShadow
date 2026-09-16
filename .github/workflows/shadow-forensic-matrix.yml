@@ -9,6 +9,7 @@ on:
       - 'tools/forensics_shadow_transplantation_atlas.py'
       - '.github/workflows/shadow-forensic-matrix.yml'
       - 'Shadow DC7.per'
+      - 'ShadowSource.per'
   workflow_dispatch:
 
 permissions:
@@ -75,11 +76,6 @@ jobs:
           atlas.classify = conservative_classify
           atlas.main()
 
-          # Add exact declaration blocks. The donor contains some header-copy
-          # references to these names near the top of the file; those are not
-          # declaration blocks. Real declarations begin in the 1300+ line
-          # constant namespace, so only headings at/after that boundary are
-          # eligible here. Each block ends immediately before the next Q-heading.
           donor = pathlib.Path('ShadowSource.per').read_text(encoding='utf-8').splitlines()
           target_names = {"QID'S", 'QGENERAL', 'QPOSITION', 'QECONOMY'}
           all_headings = []
@@ -112,19 +108,93 @@ jobs:
           mp.write_text(text, encoding='utf-8')
           PY
 
-      - name: Commit generated forensic artifacts
+      - name: Rebuild ShadowByzantine runtime from authenticated donor
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import pathlib
+          import re
+          import shutil
+
+          donor_path = pathlib.Path('ShadowSource.per')
+          runtime_path = pathlib.Path('ShadowByzantine/ShadowByzantine.per')
+          donor = donor_path.read_text(encoding='utf-8')
+
+          expected_sha256 = 'c6431af3f16597b3de223e65e7b60db6c0b22266c0684915ed435bbb054f55b4'
+          actual_sha256 = hashlib.sha256(donor.encode('utf-8')).hexdigest()
+          if actual_sha256 != expected_sha256:
+              raise SystemExit(f'authenticated donor hash mismatch: {actual_sha256}')
+
+          def count_rules(text):
+              return len(re.findall(r'(?m)^\s*\(defrule\b', text))
+
+          donor_rules = count_rules(donor)
+          if donor_rules != 1956:
+              raise SystemExit(f'authenticated donor rule-count mismatch: {donor_rules}')
+
+          # Preserve the donor's ordered executable machine verbatim except for
+          # the single explicit environment gate that identifies the supported
+          # civilization. No rules are reordered, removed, or synthesized.
+          adapted = donor.replace('(not(civ-selected viking))', '(not(civ-selected byzantines))')
+          if donor.count('(not(civ-selected viking))') != 1:
+              raise SystemExit('expected exactly one Viking civilization gate')
+          if adapted.count('(not(civ-selected byzantines))') != 1:
+              raise SystemExit('Byzantine civilization gate replacement failed')
+
+          runtime_path.write_text(adapted, encoding='utf-8')
+
+          # The runtime package must collapse to the donor's single ordered
+          # program. Retain historical numbered modules in the repository, but
+          # do not load them into the executable graph.
+          root = pathlib.Path('ShadowByzantine.per')
+          root.write_text('(load "ShadowByzantine/ShadowByzantine")\n', encoding='utf-8')
+
+          print(f'rebuilt {runtime_path} from authenticated donor: {donor_rules} rules')
+          print('adaptation: exactly one civ-selected viking -> civ-selected byzantines predicate')
+          PY
+
+      - name: Static transplant integrity check
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import pathlib
+          import re
+
+          donor = pathlib.Path('ShadowSource.per').read_text(encoding='utf-8')
+          runtime = pathlib.Path('ShadowByzantine/ShadowByzantine.per').read_text(encoding='utf-8')
+          normalized_runtime = runtime.replace('(not(civ-selected byzantines))', '(not(civ-selected viking))')
+
+          donor_rules = len(re.findall(r'(?m)^\s*\(defrule\b', donor))
+          runtime_rules = len(re.findall(r'(?m)^\s*\(defrule\b', runtime))
+          if donor_rules != runtime_rules:
+              raise SystemExit(f'rule count drift: donor={donor_rules}, runtime={runtime_rules}')
+
+          if hashlib.sha256(normalized_runtime.encode('utf-8')).hexdigest() != hashlib.sha256(donor.encode('utf-8')).hexdigest():
+              raise SystemExit('runtime differs from donor beyond the authenticated Byzantine civilization gate')
+
+          if '(load ' in runtime:
+              raise SystemExit('runtime donor machine unexpectedly contains nested loads')
+
+          for legacy in pathlib.Path('ShadowByzantine').glob('*.per'):
+              if legacy.name != 'ShadowByzantine.per':
+                  continue
+          print(f'PASS: {runtime_rules} runtime rules; source-order body preserved modulo one Byzantine gate')
+          PY
+
+      - name: Commit generated forensic artifacts and rebuilt runtime
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/forensics/SHADOW_SOURCE_ORDER_MATRIX_v0.3.md \
+          git add ShadowByzantine.per ShadowByzantine/ShadowByzantine.per \
+                  docs/forensics/SHADOW_SOURCE_ORDER_MATRIX_v0.3.md \
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_AND_ESCROW_v0.1.md \
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_v0.1.svg \
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_AND_ESCROW_v0.2.md \
                   docs/forensics/SHADOW_LIVE_CONTROL_FLOW_v0.2.svg \
                   docs/forensics/SHADOW_RULE_TRANSPLANTATION_MAP_v0.1.md
           if git diff --cached --quiet; then
-            echo 'Forensic artifacts unchanged.'
+            echo 'Runtime and forensic artifacts unchanged.'
             exit 0
           fi
-          git commit -m 'forensics: close declaration and rule atlas boundaries'
+          git commit -m 'transplant: rebuild ShadowByzantine from authenticated donor'
           git push
