@@ -32,6 +32,68 @@ Use evidence labels precisely: **DIRECT**, **COMPOSED**, **INFERRED**, **BYZANTI
 
 When evidence is missing, stop the assertion, search, inspect dependencies, test the hypothesis if possible, update the record, then write.
 
+## Repository freshness and live-source rule
+
+**The repository is the current project source of truth. Never make a substantive suggestion from stale repository state when the current repository can be inspected.**
+
+Before making any recommendation that depends on project code, documentation, research artifacts, file presence, load order, implementation status, coverage, architecture, or prior findings, the AI must revalidate the current repository state first.
+
+The required sequence is:
+
+```text
+USER QUESTION
+    ↓
+READ THIS DOCTRINE
+    ↓
+INSPECT CURRENT REPOSITORY STATE
+    ↓
+LOCATE AUTHORITATIVE FILES / COMMITS / BRANCH
+    ↓
+CROSS-REFERENCE CURRENT CODE + DOCS + RESEARCH
+    ↓
+FORM RECOMMENDATION
+    ↓
+RECHECK REPOSITORY IF THE ANALYSIS OR WRITING CHANGED MATERIAL STATE
+    ↓
+DELIVER
+```
+
+Minimum revalidation requirements for repository-dependent work:
+
+- identify the current repository and relevant branch/ref;
+- inspect the current versions of the files that materially affect the answer;
+- search for existing implementations, specifications, matrices, ledgers, and forensic artifacts before proposing new ones;
+- check recent commits when recency could change the conclusion;
+- do not treat remembered prior conversation state as current repository state;
+- do not treat an earlier tool result as current if the repository may have changed since that result;
+- when the user says the repository was updated, verify the update before reasoning from it;
+- when evidence is stale, mark it stale and refresh it rather than silently carrying it forward.
+
+**Suggestions are repository-relative claims. If the repository changes, the recommendation must be recalculated from the new state.**
+
+For every repository-dependent recommendation, the final reasoning must be grounded in the repository state actually inspected for that response. If live repository access is unavailable, explicitly distinguish verified facts from prior evidence and do not present stale project state as current.
+
+### Prompt-entry and delivery recheck
+
+At the **start of every prompt**, before substantive reasoning, mentally re-apply the operating doctrine and identify the applicable mode, evidence requirements, and repository-freshness requirement.
+
+Immediately **before delivering the response**, recheck the applicable doctrine against the proposed answer:
+
+```text
+DOCTRINE CHECK
+→ current repository checked where required
+→ authoritative artifact searched before new artifact proposed
+→ evidence class preserved
+→ Shadow / Byzantine policy / project improvement separated
+→ donor topology not overridden
+→ command not confused with completion
+→ state writers / jumps / escrow / search / progression considered where relevant
+→ recommendation reflects current repository state
+→ uncertainty stated
+```
+
+This is a mandatory reasoning gate, not a suggestion to the user. The AI must not skip it because a conclusion appears obvious or because the subject was discussed earlier.
+
 ## Mandatory engineering loop
 
 Every substantive change follows:
