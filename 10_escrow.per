@@ -1,121 +1,177 @@
-; ============================================
-; AEGIS
-; 10_escrow.per
-; ============================================
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 10 -- ESCROW
+; ============================================================
 ;
-; ESCROW
+; Authority:
+;   Actual engine escrow lifecycle for Byzantine construction.
 ;
-; Responsibility:
+; Escrow protects an active obligation. It does not select strategy,
+; grant execution authority, issue construction commands, or declare
+; construction complete.
 ;
-;   Own the lifecycle of actual engine escrow.
+; Critical invariant:
+;   release command != release completion
 ;
-; This module:
-;
-;   - observes escrow
-;   - executes escrow release
-;   - verifies escrow release
-;   - maintains escrow lifecycle state
-;
-; This module does NOT:
-;
-;   - choose the objective
-;   - determine transaction success
-;   - determine transaction failure
-;   - request strategic release
-;   - perform recovery
-;
-; Release authority chain:
-;
-;   TERMINAL TRANSACTION
-;          ↓
-;   RELEASE REQUEST
-;          ↓
-;   COMMITTED
-;          ↓
-;   RELEASING
-;          ↓
-;   up-release-escrow
-;          ↓
-;   OBSERVE FOUR ESCROW FACTS = 0
-;          ↓
-;   RELEASED
-;
-; IMPORTANT:
-;
-;   Issuing up-release-escrow is NOT proof
-;   that release completed.
-;
-;   RELEASED requires observed engine state.
-;
-; ============================================
+; Numeric escrow percentages/caps and timing policy are supplied by
+; upstream policy. This module never invents them.
+; ============================================================
 
-; ============================================
-; COMMITTED -> RELEASING
-; ============================================
-;
-; Explicit release request is mandatory.
-;
-; Terminal transaction state alone cannot
-; authorize engine escrow release.
-;
-; ============================================
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
 
 (defrule
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
-(goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
-(or
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
-)
+    (goal BYZ-ESCROW-STATE -1)
 =>
-(up-release-escrow)
-(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
+    (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-NO)
+    (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-NO)
+    (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-NONE)
 )
 
-; ============================================
-; RELEASING -> RELEASED
-; ============================================
+; ------------------------------------------------------------
+; REQUESTED -> RESERVING
+; ------------------------------------------------------------
 ;
-; Verify actual engine escrow state.
-;
-; Escrow amounts are non-negative. Therefore
-; a documented relational test of < 1 establishes
-; that each escrow balance has reached zero,
-; without relying on an undocumented '='
-; compareOp for escrow-amount.
-;
-; All four resource escrow balances must
-; independently report zero.
-;
-; ============================================
+; An upstream construction transaction requests protected capital.
+; No engine mutation occurs merely because the request exists.
 
 (defrule
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
-(escrow-amount food < 1)
-(escrow-amount wood < 1)
-(escrow-amount gold < 1)
-(escrow-amount stone < 1)
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
+    (goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-YES)
 =>
-(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-REQUESTED)
 )
-
-; ============================================
-; RELEASED -> UNCOMMITTED
-; ============================================
-;
-; RELEASED is intentionally preserved until
-; the transaction lifecycle has returned to IDLE.
-;
-; This prevents Module 10 from erasing the
-; verified release state before recovery or
-; downstream lifecycle logic can observe it.
-;
-; ============================================
 
 (defrule
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-REQUESTED)
+    (goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-YES)
 =>
-(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-UNCOMMITTED)
-(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RESERVING)
 )
+
+; ------------------------------------------------------------
+; RESERVING -> COMMITTED
+; ------------------------------------------------------------
+;
+; The actual percentage policy is external. When the policy has
+; supplied resource-specific percentages, this module applies them.
+; A zero-valued policy is a valid explicit policy and means no escrow
+; is requested for that resource.
+;
+; The engine operation is intentionally isolated here so that strategic
+; policy cannot accidentally become an escrow executor.
+
+(defrule
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RESERVING)
+    (goal BYZ-ESCROW-POLICY-VALUE >= 0)
+=>
+    (set-escrow-percentage food BYZ-ESCROW-POLICY-FOOD)
+    (set-escrow-percentage wood BYZ-ESCROW-POLICY-WOOD)
+    (set-escrow-percentage gold BYZ-ESCROW-POLICY-GOLD)
+    (set-escrow-percentage stone BYZ-ESCROW-POLICY-STONE)
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
+)
+
+; ------------------------------------------------------------
+; COMMITTED -> RELEASE REQUESTED
+; ------------------------------------------------------------
+;
+; Release is an explicit request. It is not implied by construction
+; completion because recovery/cancellation may also require release.
+
+(defrule
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
+    (goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-YES)
+=>
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASE-REQUESTED)
+)
+
+; ------------------------------------------------------------
+; RELEASE REQUESTED -> RELEASING
+; ------------------------------------------------------------
+
+(defrule
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASE-REQUESTED)
+=>
+    (up-release-escrow)
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASING)
+    (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-PENDING)
+)
+
+; ------------------------------------------------------------
+; RELEASING -> RECONCILING
+; ------------------------------------------------------------
+;
+; Engine state is observed separately from the command above.
+
+(defrule
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASING)
+    (goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-PENDING)
+=>
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
+)
+
+; ------------------------------------------------------------
+; RECONCILING -> RELEASED
+; ------------------------------------------------------------
+;
+; escrow-amount is non-negative; < 1 therefore establishes zero.
+; All four resources must independently reconcile.
+
+(defrule
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
+    (escrow-amount food < 1)
+    (escrow-amount wood < 1)
+    (escrow-amount gold < 1)
+    (escrow-amount stone < 1)
+=>
+    (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-CONFIRMED)
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
+)
+
+; ------------------------------------------------------------
+; FAILED RECONCILIATION
+; ------------------------------------------------------------
+;
+; A contradictory observation does not silently become RELEASED.
+; Downstream recovery may reissue the request after diagnosis.
+
+(defrule
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RECONCILING)
+    (goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-CONTRADICTED)
+=>
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-RECOVERY)
+)
+
+; ------------------------------------------------------------
+; RELEASED -> IDLE
+; ------------------------------------------------------------
+;
+; Preserve RELEASED until the construction lifecycle has left the
+; transaction. This prevents immediate erasure of the observed state.
+
+(defrule
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-RELEASED)
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-IDLE)
+=>
+    (set-goal BYZ-ESCROW-STATE BYZ-ESCROW-IDLE)
+    (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-NO)
+    (set-goal BYZ-ESCROW-COMMIT-REQUEST BYZ-ESCROW-COMMIT-NO)
+    (set-goal BYZ-ESCROW-RECONCILIATION BYZ-ESCROW-RECONCILE-NONE)
+)
+
+; ------------------------------------------------------------
+; SAFETY INVARIANTS
+; ------------------------------------------------------------
+;
+; 1. Escrow protects an obligation, not a building category.
+; 2. Commit policy is external to this executor.
+; 3. Release requires an explicit request.
+; 4. Release command is not release confirmation.
+; 5. Four-resource reconciliation is conjunctive.
+; 6. Escrow never grants construction authority.
+; 7. Escrow never declares construction complete.
+; 8. No percentage, cap, timer, or strategic threshold is hard-coded.
+; ============================================================
