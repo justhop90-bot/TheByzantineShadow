@@ -1,15 +1,1 @@
-; ============================================================
-; THE BYZANTINE SHADOW
-; ROOT RUNTIME ENTRYPOINT
-; ============================================================
-;
-; This is the file presented to the AoE2 AI loader from /ai.
-; The complete runtime module graph is owned by the orchestrator
-; in /ai/ShadowByzantine/ShadowByzantine.per.
-;
-; Keeping the root entrypoint thin prevents two independent load
-; graphs from diverging and makes ShadowByzantine/ the single
-; authoritative runtime package.
-; ============================================================
-
 (load "ShadowByzantine/ShadowByzantine")
