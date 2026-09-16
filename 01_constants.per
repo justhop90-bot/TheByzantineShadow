@@ -14,13 +14,13 @@
 ; Provenance:
 ;   Primary behavioral source: Shadow DC7 / SourceShaRef.
 ;   Values below are preserved where directly evidenced in the
-;   supplied Shadow source.  Experimental/legacy values remain
+;   supplied Shadow source. Experimental/legacy values remain
 ;   explicitly marked rather than silently promoted to behavior.
 ;
 ; IMPORTANT:
-;   Numeric goal IDs are engine-global.  A semantic migration must
-;   preserve the Shadow ID when transplanting Shadow behavior unless
-;   a later collision audit proves that a remap is safe.
+;   Numeric goal IDs are engine-global.
+;   Shadow source explicitly uses goals 478 and 479 for home-x/home-y.
+;   Legacy transaction aliases therefore MUST NOT occupy those IDs.
 ; ============================================================
 
 ; -------------------------
@@ -277,8 +277,6 @@
 (defconst CA-NEED-WOOD-THRESHOLD 250)
 (defconst CA-NEED-STONE-THRESHOLD 200)
 
-; Shadow's map-conditioned defaults.  Keep these as a source-faithful
-; registry; conditional selection belongs to the loading/strategy layer.
 (defconst min-scout-hp1-tiny 12)
 (defconst min-scout-hp2-tiny 15)
 (defconst min-scout-hp1-standard 20)
@@ -293,10 +291,15 @@
 ; -------------------------
 ; COMPATIBILITY / MIGRATION
 ; -------------------------
-; These names are retained temporarily so existing transaction POCs do
-; not become syntactically orphaned while their ownership is migrated.
-; They are NOT the Shadow behavioral registry and should be removed only
-; after downstream modules stop referencing them.
+; Existing transaction POCs retain their symbolic names temporarily.
+; Their numeric IDs are outside the Shadow source-used 478/479 pair.
+;
+; Ownership boundary:
+;   478 = home-x              SOURCE / SHADOW
+;   479 = home-y              SOURCE / SHADOW
+;   520 = AEGIS-TRANSACTION-STONE  LEGACY MIGRATION ONLY
+;   521 = AEGIS-TRANSACTION-ACTIVE LEGACY MIGRATION ONLY
+;
 (defconst AEGIS-OBJECTIVE 450)
 (defconst AEGIS-REQUIREMENT 451)
 (defconst AEGIS-TRANSACTION 452)
@@ -325,8 +328,8 @@
 (defconst AEGIS-TRANSACTION-FOOD 475)
 (defconst AEGIS-TRANSACTION-WOOD 476)
 (defconst AEGIS-TRANSACTION-GOLD 477)
-(defconst AEGIS-TRANSACTION-STONE 478)
-(defconst AEGIS-TRANSACTION-ACTIVE 479)
+(defconst AEGIS-TRANSACTION-STONE 520)
+(defconst AEGIS-TRANSACTION-ACTIVE 521)
 (defconst AEGIS-TRANSACTION-ID 480)
 (defconst AEGIS-DISCRETIONARY-FOOD 481)
 (defconst AEGIS-DISCRETIONARY-WOOD 482)
