@@ -33,7 +33,9 @@ jobs:
         run: python3 tools/forensics_shadow_cfg_escrow_v02.py
 
       - name: Generate rule-level transplantation atlas
-        run: python3 tools/forensics_shadow_transplantation_atlas.py
+        run: |
+          sed -i 's/strip_comments/strip_comment/g' tools/forensics_shadow_transplantation_atlas.py
+          python3 tools/forensics_shadow_transplantation_atlas.py
 
       - name: Commit generated forensic artifacts
         run: |
