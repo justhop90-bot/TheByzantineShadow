@@ -294,3 +294,122 @@ The ledger reaches reconstruction-grade completeness when:
 - runtime/replay qualification distinguishes static reconstruction from observed behavior.
 
 Until then, the ledger is a gap map, not a completion certificate.
+
+---
+
+## 8. Live-main audit — 2026-09-16
+
+**Audited ref:** `main` at commit `2454e86449926b11b9fa4e9f7976bb245740068c`.
+
+**Audit rule:** repository presence is not runtime presence. The current runtime graph is defined by the root `ShadowByzantine.per` loading `ShadowByzantine/ShadowByzantine.per`, which in turn currently loads only `01_constants`, `01b_byz_constants`, `02_state`, `03_economy`, `04_construction`, and `16_pass1_transaction`. The remaining numbered modules are present in Git but are explicitly described by the runtime entrypoint as historical scaffolding and are not loaded by Pass 1.
+
+### 8.1 STALE entries corrected by this audit
+
+| Ledger entry | Finding | Correct interpretation |
+|---|---|---|
+| Placement implementation path `05_placement.per` | **STALE PATH** | Live repository path is `ShadowByzantine/07_placement.per`. The old filename must not be used as current implementation evidence. |
+| Root entrypoint / load topology = `PARTIALLY TRANSPLANTED` | **STALE / UNDERSTATED** | The live root explicitly loads `ShadowByzantine/ShadowByzantine`, and that file explicitly acts as a runtime module orchestrator. This is an actual current architecture, not merely a possibility. It conflicts with the repository doctrine's no-orchestrator veto and therefore requires architecture review rather than being counted as Shadow reconstruction. |
+| Production / research / placement / authority / verification / recovery / reassessment rows when read as runtime coverage | **STALE INTERPRETATION** | These files exist, but the current Pass 1 runtime does not load them. Their presence establishes repository artifacts, not live runtime coverage. |
+
+### 8.2 UNSUPPORTED implementation claims
+
+| Domain | Current evidence | Audit disposition |
+|---|---|---|
+| Full Shadow rule-order transplantation | Modular reconstruction docs + partial modules | **UNSUPPORTED as implemented**. No evidence in the live runtime graph establishes the donor rule stream or donor CFG has been transplanted. Keep `DOCUMENTED ONLY`. |
+| Complete jump topology | Forensic documentation; no full donor→runtime graph in the live graph | **UNSUPPORTED as implemented**. Keep `DOCUMENTED ONLY`. |
+| Corpus-wide escrow transplant | `10_escrow.per` exists but is not in Pass 1 load graph; `16_pass1_transaction.per` contains a separate narrow escrow lifecycle | **UNSUPPORTED as corpus-wide Shadow coverage**. Distinguish the Pass 1 vertical slice from donor-wide escrow reconstruction. |
+| Full search state-machine reconstruction | Placement module and forensic research exist; no dedicated loaded search machine | **UNSUPPORTED as runtime reconstruction**. Keep `DOCUMENTED ONLY`. |
+| Military transplant | `06_military.per` exists but is not loaded by Pass 1 | **UNSUPPORTED as live runtime coverage**. The existing file is a reconstruction artifact, not current runtime qualification. |
+| Scouting / information acquisition | No loaded scouting module appears in the current runtime graph | **UNSUPPORTED as implementation coverage**. Keep `DOCUMENTED ONLY`. |
+| Intelligence / threat classification | Repository research exists, but no loaded intelligence/threat module appears in the current runtime graph | **UNSUPPORTED as implementation coverage**. Keep `DOCUMENTED ONLY / BYZANTINE EXTENSION` only where the extension is explicitly isolated from donor behavior. |
+| Endgame | No complete donor-derived runtime region identified | **UNRECOVERED** remains correct. |
+
+### 8.3 MISSING coverage fields
+
+The original matrix is still too coarse for its stated purpose. The following fields are missing from the main matrix and must be populated for reconstruction-grade auditing:
+
+```text
+LIVE RUNTIME STATUS
+CURRENT LOAD PATH
+EXACT DONOR RULE RANGE / SOURCE OFFSET
+CURRENT IMPLEMENTATION RULE RANGE / SOURCE OFFSET
+DONOR STATE WRITERS / READERS
+CURRENT STATE WRITERS / READERS
+DONOR JUMP EDGES
+CURRENT JUMP EDGES
+ESCROW OBJECTIVE ID
+COMPLETION OBSERVER
+RUNTIME QUALIFICATION STATUS
+TOPOLOGY DIFF
+EVIDENCE CLASS
+```
+
+A file name alone is insufficient for any of these fields.
+
+### 8.4 CURRENT LIVE RUNTIME GRAPH
+
+```text
+AoE2DE root
+    ↓
+ShadowByzantine.per
+    ↓
+ShadowByzantine/ShadowByzantine.per
+    ↓
+01_constants
+01b_byz_constants
+02_state
+03_economy
+04_construction
+16_pass1_transaction
+```
+
+The following repository modules are **present but not loaded by the current Pass 1 runtime graph**:
+
+```text
+05_composition_policy.per
+05_production.per
+06_military.per
+07_placement.per
+07_strategic reserve.per
+08_requirements.per
+09_capital.per
+10_escrow.per
+11_authority.per
+12_execution.per
+13_verification.per
+14_recovery.per
+15_reassessment.per
+```
+
+This distinction is now authoritative for ledger interpretation until the load graph changes.
+
+### 8.5 PASS 1 qualification boundary
+
+`16_pass1_transaction.per` is a **narrow executable vertical slice**, not the Shadow machine. Its documented objective is one Byzantine Spearman transaction. It explicitly separates feasibility, escrow mutation/observation, authority, execution, world-state verification, escrow release, and idle/reassessment. That is useful reconstruction evidence, but it must not be promoted to corpus-wide Shadow coverage without donor-region mapping and runtime qualification.
+
+### 8.6 Architecture veto finding
+
+The live root/runtime graph currently contains an explicit orchestrator pattern:
+
+```text
+root ShadowByzantine.per
+    ↓
+ShadowByzantine/ShadowByzantine.per
+    ↓
+module loads
+```
+
+The runtime module identifies itself as a **PASS 1 RUNTIME MODULE ORCHESTRATOR**. This is a direct conflict with the existing operating doctrine's architecture veto, which states that no orchestrator/dispatcher/controller/manager equivalent may be introduced without a direct Shadow analogue. The ledger therefore marks the root topology as **ARCHITECTURE-REVIEW REQUIRED**, not as successful Shadow transplantation.
+
+### 8.7 Audit disposition
+
+```text
+STALE PATHS: 1 confirmed
+STALE INTERPRETATIONS: multiple runtime-coverage rows
+UNSUPPORTED AS LIVE RUNTIME: rule CFG, jump CFG, corpus escrow, search, military, scouting/intelligence
+MISSING AUDIT FIELDS: 12 classes
+ARCHITECTURE VETO: active on current root/module orchestrator
+CURRENT PASS-1 VERTICAL SLICE: confirmed present in live main
+```
+
+This audit does not delete the original matrix claims; it explicitly supersedes them where live-main evidence is stronger. Future edits must update the matrix in place and distinguish **repository artifact**, **loaded runtime**, and **runtime-qualified behavior**.
