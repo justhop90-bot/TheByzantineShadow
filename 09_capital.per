@@ -15,93 +15,40 @@
 ;   = gross - committed
 ;
 ; Reserve
-;   = strategically protected liquid capital
+;   = strategically protected liquid capital,
+;     produced by 07_strategic reserve.per
 ;
 ; Discretionary
 ;   = liquid - reserve
 ;
 ; Transaction demand
-;   = capital required by the active transaction
+;   = engine-defined capital required by the
+;     active transaction, produced by 08_requirements.per
+;
+; Capital feasibility
+;   = discretionary capital >= transaction demand
 ;
 ; ============================================
-
-
+;
+; RESPONSIBILITY
+; --------------
+; This module calculates capital state.
+;
+; This module does NOT:
+;   - choose reserve policy
+;   - set resource reserve values
+;   - choose the strategic objective
+;   - construct cost data
+;   - modify engine escrow
+;   - release escrow
+;   - grant authority
+;   - execute the transaction
+;   - verify completion
+;
+; Reserve policy belongs to 07.
+; Requirement cost construction belongs to 08.
+;
 ; ============================================
-; CAPITAL STATE
-; ============================================
-
-(defconst AEGIS-GROSS-FOOD 459)
-(defconst AEGIS-GROSS-WOOD 460)
-(defconst AEGIS-GROSS-GOLD 461)
-(defconst AEGIS-GROSS-STONE 462)
-
-(defconst AEGIS-COMMITTED-FOOD 463)
-(defconst AEGIS-COMMITTED-WOOD 464)
-(defconst AEGIS-COMMITTED-GOLD 465)
-(defconst AEGIS-COMMITTED-STONE 466)
-
-(defconst AEGIS-LIQUID-FOOD 467)
-(defconst AEGIS-LIQUID-WOOD 468)
-(defconst AEGIS-LIQUID-GOLD 469)
-(defconst AEGIS-LIQUID-STONE 470)
-
-(defconst AEGIS-RESERVE-FOOD 471)
-(defconst AEGIS-RESERVE-WOOD 472)
-(defconst AEGIS-RESERVE-GOLD 473)
-(defconst AEGIS-RESERVE-STONE 474)
-
-(defconst AEGIS-DISCRETIONARY-FOOD 481)
-(defconst AEGIS-DISCRETIONARY-WOOD 482)
-(defconst AEGIS-DISCRETIONARY-GOLD 483)
-(defconst AEGIS-DISCRETIONARY-STONE 484)
-
-
-; ============================================
-; RESERVE POLICY
-; ============================================
-
-(defconst AEGIS-RESERVE-POLICY 485)
-
-(defconst AEGIS-RESERVE-EARLY 1)
-(defconst AEGIS-RESERVE-DEVELOPMENT 2)
-(defconst AEGIS-RESERVE-MILITARY 3)
-(defconst AEGIS-RESERVE-LATE 4)
-
-(defconst AEGIS-EARLY-FOOD-RESERVE 150)
-(defconst AEGIS-EARLY-WOOD-RESERVE 100)
-(defconst AEGIS-EARLY-GOLD-RESERVE 50)
-(defconst AEGIS-EARLY-STONE-RESERVE 50)
-
-(defconst AEGIS-DEVELOPMENT-FOOD-RESERVE 200)
-(defconst AEGIS-DEVELOPMENT-WOOD-RESERVE 150)
-(defconst AEGIS-DEVELOPMENT-GOLD-RESERVE 100)
-(defconst AEGIS-DEVELOPMENT-STONE-RESERVE 75)
-
-(defconst AEGIS-MILITARY-FOOD-RESERVE 250)
-(defconst AEGIS-MILITARY-WOOD-RESERVE 200)
-(defconst AEGIS-MILITARY-GOLD-RESERVE 150)
-(defconst AEGIS-MILITARY-STONE-RESERVE 100)
-
-(defconst AEGIS-LATE-FOOD-RESERVE 150)
-(defconst AEGIS-LATE-WOOD-RESERVE 150)
-(defconst AEGIS-LATE-GOLD-RESERVE 100)
-(defconst AEGIS-LATE-STONE-RESERVE 50)
-
-
-; ============================================
-; TRANSACTION DEMAND
-; ============================================
-
-(defconst AEGIS-DEMAND-FOOD 486)
-(defconst AEGIS-DEMAND-WOOD 487)
-(defconst AEGIS-DEMAND-GOLD 488)
-(defconst AEGIS-DEMAND-STONE 489)
-
-(defconst AEGIS-CAPITAL-INSUFFICIENT 0)
-(defconst AEGIS-CAPITAL-SUFFICIENT 1)
-
-(defconst AEGIS-CAPITAL-FEASIBILITY 490)
-(defconst AEGIS-DEMAND-ACTIVE 491)
 
 
 ; ============================================
@@ -166,137 +113,117 @@
 
 
 ; ============================================
-; RESERVE POLICY — INITIALIZATION
+; DISCRETIONARY CAPITAL
+; ============================================
+;
+; Reserve policy is supplied by Module 07.
+;
 ; ============================================
 
 (defrule
     (true)
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-EARLY)
+    (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:= AEGIS-LIQUID-FOOD)
+    (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:- AEGIS-RESERVE-FOOD)
+)
+
+(defrule
+    (true)
+=>
+    (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:= AEGIS-LIQUID-WOOD)
+    (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:- AEGIS-RESERVE-WOOD)
+)
+
+(defrule
+    (true)
+=>
+    (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:= AEGIS-LIQUID-GOLD)
+    (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:- AEGIS-RESERVE-GOLD)
+)
+
+(defrule
+    (true)
+=>
+    (up-modify-goal AEGIS-DISCRETIONARY-STONE c:= AEGIS-LIQUID-STONE)
+    (up-modify-goal AEGIS-DISCRETIONARY-STONE c:- AEGIS-RESERVE-STONE)
 )
 
 
 ; ============================================
-; DARK AGE RESERVE
+; DEMAND ACTIVE STATE
+; ============================================
+;
+; Cost demand is relevant while a transaction
+; is being reserved, prepared, or executed.
+;
 ; ============================================
 
 (defrule
-    (current-age == dark-age)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-EARLY)
+    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
+)
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+=>
+    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
+)
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+=>
+    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
+)
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+=>
+    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-INACTIVE)
+)
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+=>
+    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-INACTIVE)
+)
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+=>
+    (set-goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-INACTIVE)
 )
 
 
 ; ============================================
-; FEUDAL DEVELOPMENT RESERVE
+; CAPITAL FEASIBILITY
+; ============================================
+;
+; All four resource dimensions must satisfy
+; the active transaction demand.
+;
 ; ============================================
 
 (defrule
-    (current-age == feudal-age)
-    (military-population < 6)
+    (goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
+    (and
+        (AEGIS-DISCRETIONARY-FOOD >= AEGIS-DEMAND-FOOD)
+        (AEGIS-DISCRETIONARY-WOOD >= AEGIS-DEMAND-WOOD)
+        (AEGIS-DISCRETIONARY-STONE >= AEGIS-DEMAND-STONE)
+        (AEGIS-DISCRETIONARY-GOLD >= AEGIS-DEMAND-GOLD)
+    )
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-DEVELOPMENT)
+    (set-goal AEGIS-CAPITAL-FEASIBILITY AEGIS-CAPITAL-SUFFICIENT)
 )
 
-
-; ============================================
-; FEUDAL MILITARY RESERVE
-; ============================================
-
 (defrule
-    (current-age == feudal-age)
-    (military-population >= 6)
+    (goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
+    (or
+        (AEGIS-DISCRETIONARY-FOOD < AEGIS-DEMAND-FOOD)
+        (AEGIS-DISCRETIONARY-WOOD < AEGIS-DEMAND-WOOD)
+        (AEGIS-DISCRETIONARY-STONE < AEGIS-DEMAND-STONE)
+        (AEGIS-DISCRETIONARY-GOLD < AEGIS-DEMAND-GOLD)
+    )
 =>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-MILITARY)
-)
-
-
-; ============================================
-; CASTLE DEVELOPMENT RESERVE
-; ============================================
-
-(defrule
-    (current-age == castle-age)
-    (military-population < 12)
-=>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-DEVELOPMENT)
-)
-
-
-; ============================================
-; CASTLE MILITARY RESERVE
-; ============================================
-
-(defrule
-    (current-age == castle-age)
-    (military-population >= 12)
-=>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-MILITARY)
-)
-
-
-; ============================================
-; IMPERIAL RESERVE
-; ============================================
-
-(defrule
-    (current-age == imperial-age)
-=>
-    (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-LATE)
-)
-
-
-; ============================================
-; APPLY EARLY RESERVE
-; ============================================
-
-(defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-EARLY)
-=>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-EARLY-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-EARLY-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-EARLY-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-EARLY-STONE-RESERVE)
-)
-
-
-; ============================================
-; APPLY DEVELOPMENT RESERVE
-; ============================================
-
-(defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-DEVELOPMENT)
-=>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-DEVELOPMENT-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-DEVELOPMENT-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-DEVELOPMENT-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-DEVELOPMENT-STONE-RESERVE)
-)
-
-
-; ============================================
-; APPLY MILITARY RESERVE
-; ============================================
-
-(defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-MILITARY)
-=>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-MILITARY-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-MILITARY-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-MILITARY-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-MILITARY-STONE-RESERVE)
-)
-
-
-; ============================================
-; APPLY LATE RESERVE
-; ============================================
-
-(defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-LATE)
-=>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-LATE-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-LATE-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-LATE-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-LATE-STONE-RESERVE)
+    (set-goal AEGIS-CAPITAL-FEASIBILITY AEGIS-CAPITAL-INSUFFICIENT)
 )
