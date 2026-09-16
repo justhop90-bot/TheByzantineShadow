@@ -1,0 +1,379 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; PASS 1 -- SHADOW-DERIVED ECONOMIC TRANSACTION KERNEL
+; ============================================================
+;
+; Purpose:
+;   First executable vertical slice of ShadowByzantine.
+;
+; Objective:
+;   Produce exactly one Byzantine Spearman after a barracks exists.
+;
+; Control chain:
+;
+;   OBJECTIVE
+;      -> PROGRESSION REQUEST
+;      -> CAPITAL FEASIBILITY
+;      -> ESCROW MUTATION
+;      -> ESCROW OBSERVATION
+;      -> EXECUTION AUTHORITY
+;      -> PRE-EXECUTION BASELINE
+;      -> UP-CAN-TRAIN / UP-TRAIN
+;      -> WORLD-STATE VERIFICATION
+;      -> RELEASE REQUEST
+;      -> ACTUAL ESCROW RELEASE
+;      -> RELEASE OBSERVATION
+;      -> IDLE / REASSESS
+;
+; Shadow-derived principles:
+;   - progression is explicit state, not implicit rule order;
+;   - economic protection precedes execution;
+;   - feasibility is distinct from escrow mutation;
+;   - escrow mutation is distinct from commitment confirmation;
+;   - command issuance is distinct from completion;
+;   - world state closes the transaction;
+;   - release is a two-step request/observation process;
+;   - no rule may infer completion from command issuance.
+;
+; Pass 1 deliberately does NOT attempt to solve:
+;   - full Byzantine composition arbitration;
+;   - full Shadow research transplant;
+;   - construction transaction transplant;
+;   - timeout/retry policy;
+;   - strategic supersession;
+;   - multi-objective arbitration.
+;
+; Those are subsequent passes.
+;
+; ============================================================
+; OBJECTIVE CONTRACT
+; ============================================================
+;
+; One Spearman is the first complete transaction because it gives
+; us a concrete Byzantine military objective with:
+;   - an existing Shadow-compatible production command;
+;   - a known resource vector;
+;   - an observable completion fact;
+;   - an existing barracks prerequisite.
+;
+; Cost contract for Pass 1:
+;   60 food + 40 wood.
+;
+; These values are transaction requirements for this proof slice,
+; not a claim that the final ShadowByzantine cost authority should
+; hard-code unit costs. Later passes should replace these literals
+; with engine-derived cost data once that ABI is transplanted.
+;
+; ============================================================
+; INITIALIZATION
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION-ACTIVE 0)
+=>
+    (set-goal AEGIS-TRANSACTION-ACTIVE 0)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+    (set-goal AEGIS-OBJECTIVE 0)
+    (set-goal AEGIS-REQUIREMENT 0)
+    (set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+    (set-goal AEGIS-VERIFICATION AEGIS-UNVERIFIED)
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-UNCOMMITTED)
+    (set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
+    (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+    (set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+)
+
+; ============================================================
+; IDLE -> RESERVING
+; ============================================================
+;
+; Objective admission is deliberately narrow:
+;   - Byzantine barracks exists;
+;   - no trained Spearman exists;
+;   - no transaction is active.
+;
+; The world-state barracks count is used as the prerequisite.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+    (goal AEGIS-TRANSACTION-ACTIVE 0)
+    (building-type-count-total barracks > 0)
+    (unit-type-count spearman-line < 1)
+=>
+    (set-goal AEGIS-OBJECTIVE AEGIS-OBJECTIVE-SPEARMAN)
+    (set-goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
+    (set-goal AEGIS-TRANSACTION-ACTIVE 1)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
+)
+
+; ============================================================
+; RESERVING -> CAPITAL FEASIBILITY
+; ============================================================
+;
+; Pass 1 capital feasibility is conjunctive over the complete
+; transaction requirement. No resource may be negative after
+; paying the transaction requirement.
+;
+; This is a gate only. It does not mutate escrow.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
+    (food-amount >= 60)
+    (wood-amount >= 40)
+=>
+    (set-goal AEGIS-CAPITAL-FEASIBILITY 1)
+)
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
+    (or
+        (food-amount < 60)
+        (wood-amount < 40)
+    )
+=>
+    (set-goal AEGIS-CAPITAL-FEASIBILITY 0)
+)
+
+; ============================================================
+; CAPITAL FEASIBILITY -> ESCROW MUTATION
+; ============================================================
+;
+; This is the Shadow idiom:
+;   feasibility -> escrow mutation.
+;
+; up-modify-escrow establishes the physical escrow reservation.
+; It is NOT itself the logical COMMITTED transition.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-CAPITAL-FEASIBILITY 1)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
+=>
+    (up-modify-escrow food c:max 60)
+    (up-modify-escrow wood c:max 40)
+)
+
+; ============================================================
+; ESCROW MUTATION -> COMMITTED
+; ============================================================
+;
+; Commitment is established only after the engine reports the
+; protected escrow quantities. This prevents command issuance from
+; being mistaken for reservation completion.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-CAPITAL-FEASIBILITY 1)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
+    (escrow-amount food >= 60)
+    (escrow-amount wood >= 40)
+=>
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+)
+
+; ============================================================
+; READY + COMMITTED -> AUTHORITY
+; ============================================================
+;
+; Authority does not select the objective and does not execute it.
+; It only permits the already prepared transaction to cross into
+; execution.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+=>
+    (set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+)
+
+; ============================================================
+; AUTHORITY -> PRE-EXECUTION BASELINE
+; ============================================================
+;
+; Capture the actual trained Spearman population before issuing
+; the command. Verification will compare post-execution world state
+; against this baseline.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+    (goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+=>
+    (up-get-fact unit-type-count spearman-line AEGIS-EXECUTION-BASELINE)
+    (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
+)
+
+; ============================================================
+; BASELINE -> ESCROW-INCLUDED EXECUTION
+; ============================================================
+;
+; Shadow's escrow-aware execution idiom is preserved:
+;   committed escrow -> escrow state -> can -> command.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+    (goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
+=>
+    (set-goal AEGIS-ESCROW-STATE escrow-included)
+)
+
+; ============================================================
+; EXECUTE ONE SPEARMAN
+; ============================================================
+;
+; The can condition directly guards the corresponding command.
+; No completion state is written here.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+    (goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
+    (goal AEGIS-ESCROW-STATE escrow-included)
+    (up-can-train AEGIS-ESCROW-STATE c:< spearman-line)
+=>
+    (up-train AEGIS-ESCROW-STATE c:< spearman-line)
+    (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+)
+
+; ============================================================
+; EXECUTING -> VERIFYING
+; ============================================================
+;
+; The transaction remains incomplete after command issuance.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+    (goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+=>
+    (set-goal AEGIS-VERIFICATION AEGIS-UNVERIFIED)
+)
+
+; ============================================================
+; VERIFYING -> COMPLETE
+; ============================================================
+;
+; World state is authoritative. unit-type-count excludes queued
+; units, so a positive delta is the completion observation for this
+; one-unit production transaction.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+    (goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
+    (unit-type-count spearman-line g:> AEGIS-EXECUTION-BASELINE)
+=>
+    (set-goal AEGIS-VERIFICATION AEGIS-VERIFIED)
+    (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-VERIFIED)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+    (set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+)
+
+; ============================================================
+; COMPLETE -> RELEASE OBSERVATION
+; ============================================================
+;
+; The release command is intentionally separate from release
+; completion. The engine's actual escrow state must be observed.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+    (goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+=>
+    (up-release-escrow)
+)
+
+; ============================================================
+; RELEASING -> RELEASED
+; ============================================================
+;
+; Escrow is non-negative. < 1 is therefore the zero observation.
+;
+; Only after all four escrow balances report zero does the logical
+; state become RELEASED.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+    (escrow-amount food < 1)
+    (escrow-amount wood < 1)
+    (escrow-amount gold < 1)
+    (escrow-amount stone < 1)
+=>
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+)
+
+; ============================================================
+; RELEASED -> IDLE
+; ============================================================
+;
+; Preserve the completed objective long enough to observe release,
+; then clear the transaction lifecycle. The Spearman world state
+; remains authoritative and prevents re-admission of the same
+; one-unit objective.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+    (unit-type-count spearman-line >= 1)
+=>
+    (set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
+    (set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+    (set-goal AEGIS-TRANSACTION-ACTIVE 0)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+)
+
+; ============================================================
+; FAIL-SAFE: INSUFFICIENT CAPITAL
+; ============================================================
+;
+; No reservation and no execution authority are permitted while
+; the complete transaction requirement is infeasible.
+;
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-CAPITAL-FEASIBILITY 0)
+=>
+    (set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+)
+
+; ============================================================
+; END PASS 1
+; ============================================================
