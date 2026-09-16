@@ -23,7 +23,7 @@ The end product is intended to be a **Shadow-style Byzantine AI**, not an AI tha
 
 ## 2. Why Shadow?
 
-The donor is historical FireBall37 Shadow. Its source explicitly identifies Shadow as an Age of Empires II AI by FireBall37 and documents the original author's use of the AI scripting community and other AIs as learning sources. citeturn460search0
+The donor is historical FireBall37 Shadow. Its source explicitly identifies Shadow as an Age of Empires II AI by FireBall37 and documents the original author's use of the AI scripting community and other AIs as learning sources.
 
 The important discovery is that Shadow is not best understood as a pile of independent rules. Its behavior emerges from a **large sequential control machine** encoded directly in the `.per` rule stream.
 
@@ -106,7 +106,46 @@ That separation is the central design principle of this repository.
 
 ---
 
-## 4. The Runtime Model
+## 4. Repository Map
+
+Start here when navigating the repository. The links below are the **primary working surfaces**; the historical archives and individual numbered experiments are intentionally not expanded into a giant catalog.
+
+| Area | Path | Purpose |
+|---|---|---|
+| **Runtime** | [`ShadowByzantine/`](./ShadowByzantine/) | Authoritative Byzantine runtime modules and reconstruction work |
+| **Runtime entrypoint** | [`ShadowByzantine.per`](./ShadowByzantine.per) | AoE2 `.per` entrypoint and runtime load boundary |
+| **Donor source** | [`ShadowSource.per`](./ShadowSource.per) | Canonical preserved FireBall37 Shadow source |
+| **Donor references** | [`SourceRef`](./SourceRef) · [`SourceShaRef`](./SourceShaRef) | Source authentication and reference material |
+| **Forensics** | [`docs/forensics/`](./docs/forensics/) | Control-flow, escrow, production, construction, military, ownership, and runtime evidence |
+| **Architecture** | [`docs/architecture/`](./docs/architecture/) | Reconstruction architecture derived from the forensic record |
+| **ABI / contracts** | [`docs/abi/`](./docs/abi/) | Explicit boundaries and contracts for reconstructed systems |
+| **System studies** | [`docs/`](./docs/) | Numbered system deep-dives and project-level specifications |
+| **Tools** | [`tools/`](./tools/) | Static extraction and forensic analysis utilities |
+| **Research corpus** | [`research/`](./research/) | Research material and preserved external AI/tooling corpus, where present |
+
+### Reading order
+
+```text
+README.md
+   ↓
+ShadowSource.per
+   ↓
+docs/forensics/
+   ↓
+docs/architecture/ + docs/abi/
+   ↓
+ShadowByzantine/
+   ↓
+tools/ + research/
+```
+
+The donor source is the historical evidence. The forensic layer explains what was recovered. Architecture and ABI documents state how those findings are being reconstructed. The runtime is the implementation. Tools and research material support the investigation but do not automatically become runtime dependencies.
+
+> **Directory names are evidence boundaries, not decorative folders.** If a document contradicts the donor source, the contradiction gets investigated; it does not silently become the new history.
+
+---
+
+## 5. The Runtime Model
 
 The intended runtime entrypoint is deliberately thin:
 
@@ -140,89 +179,6 @@ This is deliberate. Loading every half-finished module because the filenames loo
 
 ---
 
-## 5. Repository Organization
-
-### Runtime
-
-`ShadowByzantine/`
-
-The Byzantine reconstruction itself. Numbered files are currently divided into constants, state, economy, construction, policy, production, military, placement, requirements, capital, escrow, authority, execution, verification, recovery, reassessment, and pass-specific reconstruction work.
-
-`ShadowByzantine.per`
-
-The root AoE2 AI entrypoint. It loads the authoritative runtime package rather than maintaining a second load graph.
-
-### Donor Source
-
-`ShadowSource.per`
-
-The canonical preserved Shadow source used for forensic reconstruction. It is retained byte-for-byte as the primary donor reference.
-
-`SourceRef` / `SourceShaRef`
-
-Reference material used to authenticate and cross-check the canonical donor source.
-
-`Shadow DC7.zip`
-
-Preserved donor package used for historical reconstruction and comparison.
-
-### Forensic Research
-
-`docs/forensics/`
-
-The evidence layer. This contains the control-region atlases, source-order matrices, escrow dependency closure, military/production boundary analysis, construction extraction, goal ownership analysis, runtime qualification matrices, and related audits.
-
-The most important forensic documents currently include:
-
-- `SHADOWSOURCE_CONTROL_REGION_ATLAS_v0.1.md`
-- `SHADOWSOURCE_MILITARY_CONTROL_REGION_ATLAS_v0.1.md`
-- `SHADOWSOURCE_MILITARY_PRODUCTION_BOUNDARY_ATLAS_v0.1.md`
-- `SHADOW_ESCROW_DEPENDENCY_CLOSURE_v0.1.md`
-- `SHADOW_ESCROW_TRANSPLANT_SLICES_v0.1.md`
-- `SHADOW_LIVE_CONTROL_FLOW_AND_ESCROW_v0.2.md`
-- `SHADOW_SOURCE_ORDER_MATRIX_v0.3.md`
-- `SHADOW_GOAL_OWNERSHIP_MAP_2026-09-16.md`
-- `SHADOW_CONSTRUCTION_FORENSIC_PASS2_1801_1896_2026-09-16.md`
-- `SHADOW_BYZANTINE_ESCROW_RUNTIME_QUALIFICATION_MATRIX_v0.1.md`
-
-### Architecture
-
-`docs/architecture/`
-
-Design-level synthesis that translates forensic findings into reconstruction rules without pretending that the design document itself is evidence of donor behavior.
-
-### ABI / Contracts
-
-`docs/abi/`
-
-Small, explicit interfaces for Byzantine construction, escrow, placement, verification, and recovery. These describe the intended reconstruction boundary rather than claiming that the original Shadow donor contained these exact interfaces.
-
-### System Deep Dives
-
-`docs/SYSTEM_*.md`
-
-The chapterized forensic reconstruction of initialization, state, targeting, scouting, food logistics, villager economy, construction, research, market/resource exchange, and donor reconstruction.
-
-### Research / Apprenticeship Material
-
-`Doc1-*`, `Doc2-*`, and the preserved AI archives at repository root are the historical learning corpus: other bots, formatters, parsers, replay tooling, and reference implementations used to understand the AoE2 AI scripting ecosystem.
-
-### Tools
-
-`tools/`
-
-Static forensic extraction utilities for Shadow source, rule atlases, source-order matrices, escrow/control-flow analysis, and related research.
-
-`extract_aegis_replay_20260913.py`
-
-Replay-oriented extraction support.
-
-### External Tooling / Reference Archives
-
-The repository also preserves several upstream or third-party research artifacts, including AoE2 AI formatting/parsing tools, replay tooling, MGZ tooling, engine/reference projects, and historical AI archives. These are **research dependencies/corpus**, not automatically part of the ShadowByzantine runtime.
-
----
-
 ## 6. Evidence Discipline
 
 This project deliberately distinguishes:
@@ -242,8 +198,6 @@ Two rules are non-negotiable:
 > **Static source-order reachability is not runtime firing proof.**
 
 Likewise, `release-escrow` does not by itself prove that escrow reached zero; `can-*-with-escrow` proves feasibility, not success; and a pending object is not automatically a completed world-state mutation.
-
-This distinction exists because otherwise a `.per` forensic project quickly turns into archaeology performed with a permanent marker.
 
 ---
 
