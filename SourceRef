@@ -1,0 +1,49 @@
+# SourceRef — Bot Corpus
+
+Repository: `justhop90-bot/TheByzantineShadow`
+Purpose: authoritative index of AI/bot source packages retained for AEGIS comparative archaeology.
+
+## Bot Sources
+
+| Source | Repository path | Blob SHA | Size | Role |
+|---|---|---|---:|---|
+| Shadow DC7 | `Shadow DC7.zip` | `8127c4243b071fa80853f258fb3cf5959399ca86` | 84,371 B | Shadow reference package |
+| Bright Spark 41 DE | `Bright Spark 41 DE.zip` | `715a170403ddd51e55ee7a6a0ace101b2a3fad6e` | 182,864 B | Comparative AI source |
+| DE_VERSION Immortal v0.10f | `DE_VERSION Immortal v0.10f.zip` | `847b3ced7a582f5b132148c7b95241583d4100c0` | 451,051 B | Comparative AI source |
+| Naga 0.19 | `Naga_0.19.zip` | `90471a7e0db0a9cb7a2eb95a50007f8a87eea926` | 401,285 B | Comparative AI source |
+| Odette AI 2025 | `Odette_AI 2025.zip` | `816034c0f08b3503190d1f2b924c685145662605` | 164,601 B | Comparative AI source |
+| Rehoboam 1.80j | `Rehoboam 1.80j.zip` | `56eba23b5f5524bb70497cf052c25003bffc343b` | 395,776 B | Comparative AI source |
+| Byzantine basic | `byz_basic.per` | `5a53b74b43c798ac979eba66ac0281da3a418934` | 406 B | Minimal Byzantine POC |
+| Byzantine basic AI descriptor | `byz_basic.ai` | `e69de29bb2d1d6434b8b29ae775ad8c2e48c5391` | 0 B | AI descriptor placeholder |
+
+## AEGIS Working Modules
+
+| Module | Repository path |
+|---|---|
+| Constants | `01_constants.per` |
+| State | `02_state.per` |
+| Economy | `03_economy.per` |
+| Construction | `04_construction.per` |
+| Production | `05_production.per` |
+| Military | `06_military.per` |
+| Strategic reserve | `07_strategic reserve.per` |
+| Capital | `09_capital.per` |
+| Escrow | `10_escrow.per` |
+| Authority | `11_authority.per` |
+| Execution | `12_execution.per` |
+| Verification | `13_verification.per` |
+| Recovery | `14_recovery.per` |
+
+## Evidence / Provenance
+
+- This file is an **index**, not a merged source dump.
+- ZIP files are preserved as repository objects so their original package identity remains intact.
+- `SourceShaRef` is retained separately as the existing large source-reference artifact.
+- Bot packages must not be treated as equivalent implementations; each is a separate archaeological source.
+- Current AEGIS modules are experimental design artifacts and must not be assumed to reproduce Shadow behavior without direct evidence.
+
+## Repository Snapshot
+
+Root tree SHA at indexing: `b1defb465b675fec42ff862a63ee73ef490b8f5b`
+
+Generated as a source index only; no bot archives were modified.
