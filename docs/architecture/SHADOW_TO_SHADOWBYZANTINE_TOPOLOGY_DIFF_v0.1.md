@@ -297,3 +297,53 @@ RUNTIME QUALIFICATION STATUS
 ```
 
 The 1,956-rule source-order matrix supplies the first column. This diff supplies the first model-level comparison. The remaining work is to close the rule-level semantic and topology mapping without inventing unsupported abstractions.
+
+---
+
+## 11. State-closure integration — 2026-09-16
+
+The state graph is now cross-bound to this topology diff.
+
+### Donor state that must be preserved as executable topology
+
+```text
+goals 1-317, 392, 478-479
+timers 1-42, 46
+strategic-number carriers used as mutable cursors/configuration
+search state
+escrow state
+progression cursor state
+environment/world observations
+source-order and jump position
+```
+
+The most consequential coupled state machine for construction/research is:
+
+```text
+strategy / interruption condition
+    -> progression pause
+    -> escrow mutation
+    -> escrow-aware feasibility
+    -> engine command
+    -> world-state observation
+    -> progress mutation
+    -> current-item mutation
+    -> release/restoration
+    -> re-entry
+```
+
+Current `AEGIS-*` and `BYZ-*` state namespaces are classified as **ADDED PROJECT STATE**, not recovered Shadow state. They may be retained temporarily for controlled experiments, but they must not become the permanent control architecture merely because they are convenient.
+
+Exact donor construction anchors 1764–1776 and 1794–1801 and research/progression anchors 1172–1197 are now bound in `docs/forensics/SHADOW_RULE_TRANSPLANTATION_MAP_v0.1.md`.
+
+---
+
+## 12. Rebuild decision
+
+The donor-topology architecture veto has now been applied to the current runtime graph.
+
+**Result:** the current nested module/orchestrator runtime is not acceptable as the final ShadowByzantine architecture. However, replacing it with a new monolithic runtime **before** the remaining exact QUNITS production ordinals and full rule-level mappings are mechanically bound would simply substitute one unsupported architecture for another.
+
+Therefore the implementation is intentionally **not promoted yet**. The Pass-1 code remains a forensic vertical slice, while the next code change must be the actual donor-rule transplant—not another controller, manager, transaction coordinator, or module framework.
+
+This is an implementation gate, not a conceptual-architecture request.
