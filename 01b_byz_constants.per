@@ -1,0 +1,84 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 01B -- BYZANTINE CONSTRUCTION ABI NAMESPACE
+; ============================================================
+;
+; Isolated implementation namespace for the new construction ABI.
+; This file intentionally does not alter the existing Shadow/legacy
+; constants registry. All allocations here are above the current
+; migration range.
+;
+; Strategic thresholds, timers, escrow percentages/caps, placement
+; geometry, and builder counts are deliberately NOT defined here.
+; ============================================================
+
+; Goal registers
+(defconst BYZ-CONSTRUCTION-STATE 522)
+(defconst BYZ-CURRENT-BUILD-ITEM 523)
+(defconst BYZ-BUILD-PROGRESS 524)
+(defconst BYZ-PROGRESSION-PAUSE 525)
+(defconst BYZ-CONSTRUCTION-REQUEST 526)
+(defconst BYZ-CONSTRUCTION-PRIORITY 527)
+(defconst BYZ-CONSTRUCTION-REQUIREMENTS 528)
+(defconst BYZ-CONSTRUCTION-ESCROW-POLICY 529)
+(defconst BYZ-CONSTRUCTION-PLACEMENT-POLICY 530)
+(defconst BYZ-CONSTRUCTION-BUILDER-POLICY 531)
+(defconst BYZ-CONSTRUCTION-EXPIRY-POLICY 532)
+(defconst BYZ-CONSTRUCTION-VERIFICATION-POLICY 533)
+
+; Construction state values
+(defconst BYZ-CONSTRUCTION-IDLE 0)
+(defconst BYZ-CONSTRUCTION-REQUESTED 1)
+(defconst BYZ-CONSTRUCTION-QUALIFIED 2)
+(defconst BYZ-CONSTRUCTION-RESERVED 3)
+(defconst BYZ-CONSTRUCTION-AUTHORIZED 4)
+(defconst BYZ-CONSTRUCTION-PLACEMENT 5)
+(defconst BYZ-CONSTRUCTION-EXECUTING 6)
+(defconst BYZ-CONSTRUCTION-PENDING 7)
+(defconst BYZ-CONSTRUCTION-VERIFYING 8)
+(defconst BYZ-CONSTRUCTION-COMPLETE 9)
+(defconst BYZ-CONSTRUCTION-FAILED 10)
+(defconst BYZ-CONSTRUCTION-EXPIRED 11)
+(defconst BYZ-CONSTRUCTION-RECOVERY 12)
+
+; Construction request values
+(defconst BYZ-REQUEST-INACTIVE 0)
+(defconst BYZ-REQUEST-ACTIVE 1)
+
+; Symbolic placement modes
+(defconst BYZ-PLACE-NORMAL 0)
+(defconst BYZ-PLACE-POINT 1)
+(defconst BYZ-PLACE-CONTROL 2)
+
+; Symbolic target state values
+(defconst BYZ-TARGET-NONE 0)
+(defconst BYZ-TARGET-SEARCHING 1)
+(defconst BYZ-TARGET-OBJECT 2)
+(defconst BYZ-TARGET-POINT 3)
+(defconst BYZ-TARGET-CONTROL 4)
+(defconst BYZ-TARGET-VALID 5)
+(defconst BYZ-TARGET-INVALID 6)
+
+; Symbolic verification values
+(defconst BYZ-VERIFY-NOT-STARTED 0)
+(defconst BYZ-VERIFY-PENDING 1)
+(defconst BYZ-VERIFY-OBSERVING 2)
+(defconst BYZ-VERIFY-CONFIRMED 3)
+(defconst BYZ-VERIFY-FAILED 4)
+(defconst BYZ-VERIFY-CONTRADICTED 5)
+(defconst BYZ-VERIFY-RECONCILE 6)
+
+; Symbolic recovery values
+(defconst BYZ-RECOVERY-NONE 0)
+(defconst BYZ-RECOVERY-DETECTED 1)
+(defconst BYZ-RECOVERY-DIAGNOSING 2)
+(defconst BYZ-RECOVERY-ROLLBACK 3)
+(defconst BYZ-RECOVERY-ESCROW-RELEASE 4)
+(defconst BYZ-RECOVERY-REQUEUE 5)
+(defconst BYZ-RECOVERY-RETRY 6)
+(defconst BYZ-RECOVERY-CANCELLED 7)
+(defconst BYZ-RECOVERY-COMPLETE 8)
+
+; No numeric strategic threshold, timer, escrow percentage/cap,
+; placement geometry, priority, retry count, or builder count is
+; assigned by this namespace.
