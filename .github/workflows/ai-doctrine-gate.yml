@@ -1,0 +1,23 @@
+name: AI Scripter Doctrine Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+jobs:
+  ai-doctrine-gate:
+    name: AI-facing change doctrine gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate AI-facing change record
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: python tools/check_ai_change_doctrine.py
