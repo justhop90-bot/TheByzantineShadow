@@ -6,27 +6,28 @@
 ; CAPITAL MODEL
 ;
 ; Gross
-;   = resources currently held by the AI
+;   = resources currently held by the AI.
 ;
 ; Committed
-;   = resources currently held in engine escrow
+;   = resources currently held in engine escrow.
 ;
 ; Liquid
-;   = gross - committed
+;   = gross - committed.
 ;
 ; Reserve
 ;   = strategically protected liquid capital,
-;     produced by 07_strategic reserve.per
+;     produced by 07_strategic reserve.per.
 ;
 ; Discretionary
-;   = liquid - reserve
+;   = liquid - reserve.
 ;
 ; Transaction demand
 ;   = engine-defined capital required by the
-;     active transaction, produced by 08_requirements.per
+;     active transaction, produced by 08_requirements.per.
 ;
 ; Capital feasibility
 ;   = discretionary capital >= transaction demand
+;     across all four resource dimensions.
 ;
 ; ============================================
 ;
@@ -82,13 +83,19 @@
 ; ============================================
 ; LIQUID CAPITAL
 ; ============================================
+;
+; UserPatch math semantics: c:min stores the lesser
+; of the current value and the supplied value; c:max
+; stores the greater. Therefore c:max 0 is the floor.
+;
+; ============================================
 
 (defrule
     (true)
 =>
     (up-modify-goal AEGIS-LIQUID-FOOD c:= AEGIS-GROSS-FOOD)
     (up-modify-goal AEGIS-LIQUID-FOOD c:- AEGIS-COMMITTED-FOOD)
-    (up-modify-goal AEGIS-LIQUID-FOOD c:min 0)
+    (up-modify-goal AEGIS-LIQUID-FOOD c:max 0)
 )
 
 (defrule
@@ -96,7 +103,7 @@
 =>
     (up-modify-goal AEGIS-LIQUID-WOOD c:= AEGIS-GROSS-WOOD)
     (up-modify-goal AEGIS-LIQUID-WOOD c:- AEGIS-COMMITTED-WOOD)
-    (up-modify-goal AEGIS-LIQUID-WOOD c:min 0)
+    (up-modify-goal AEGIS-LIQUID-WOOD c:max 0)
 )
 
 (defrule
@@ -104,7 +111,7 @@
 =>
     (up-modify-goal AEGIS-LIQUID-GOLD c:= AEGIS-GROSS-GOLD)
     (up-modify-goal AEGIS-LIQUID-GOLD c:- AEGIS-COMMITTED-GOLD)
-    (up-modify-goal AEGIS-LIQUID-GOLD c:min 0)
+    (up-modify-goal AEGIS-LIQUID-GOLD c:max 0)
 )
 
 (defrule
@@ -112,7 +119,7 @@
 =>
     (up-modify-goal AEGIS-LIQUID-STONE c:= AEGIS-GROSS-STONE)
     (up-modify-goal AEGIS-LIQUID-STONE c:- AEGIS-COMMITTED-STONE)
-    (up-modify-goal AEGIS-LIQUID-STONE c:min 0)
+    (up-modify-goal AEGIS-LIQUID-STONE c:max 0)
 )
 
 
@@ -120,7 +127,8 @@
 ; DISCRETIONARY CAPITAL
 ; ============================================
 ;
-; Reserve policy is supplied by Module 07.
+; Reserve policy and resource-specific reserve
+; values are supplied by Module 07.
 ;
 ; ============================================
 
@@ -129,7 +137,7 @@
 =>
     (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:= AEGIS-LIQUID-FOOD)
     (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:- AEGIS-RESERVE-FOOD)
-    (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:min 0)
+    (up-modify-goal AEGIS-DISCRETIONARY-FOOD c:max 0)
 )
 
 (defrule
@@ -137,7 +145,7 @@
 =>
     (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:= AEGIS-LIQUID-WOOD)
     (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:- AEGIS-RESERVE-WOOD)
-    (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:min 0)
+    (up-modify-goal AEGIS-DISCRETIONARY-WOOD c:max 0)
 )
 
 (defrule
@@ -145,7 +153,7 @@
 =>
     (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:= AEGIS-LIQUID-GOLD)
     (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:- AEGIS-RESERVE-GOLD)
-    (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:min 0)
+    (up-modify-goal AEGIS-DISCRETIONARY-GOLD c:max 0)
 )
 
 (defrule
@@ -153,7 +161,7 @@
 =>
     (up-modify-goal AEGIS-DISCRETIONARY-STONE c:= AEGIS-LIQUID-STONE)
     (up-modify-goal AEGIS-DISCRETIONARY-STONE c:- AEGIS-RESERVE-STONE)
-    (up-modify-goal AEGIS-DISCRETIONARY-STONE c:min 0)
+    (up-modify-goal AEGIS-DISCRETIONARY-STONE c:max 0)
 )
 
 
@@ -207,19 +215,22 @@
 ; CAPITAL FEASIBILITY
 ; ============================================
 ;
-; All four resource dimensions must satisfy
-; the active transaction demand.
+; IMPORTANT:
+; (goal GoalId Value) performs equality only.
+; Comparisons against another goal use
+; up-compare-goal.
+;
+; Demand goals follow UserPatch cost-data order:
+; FOOD, WOOD, STONE, GOLD.
 ;
 ; ============================================
 
 (defrule
     (goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
-    (and
-        (goal AEGIS-DISCRETIONARY-FOOD g:>= AEGIS-DEMAND-FOOD)
-        (goal AEGIS-DISCRETIONARY-WOOD g:>= AEGIS-DEMAND-WOOD)
-        (goal AEGIS-DISCRETIONARY-STONE g:>= AEGIS-DEMAND-STONE)
-        (goal AEGIS-DISCRETIONARY-GOLD g:>= AEGIS-DEMAND-GOLD)
-    )
+    (up-compare-goal AEGIS-DISCRETIONARY-FOOD >= AEGIS-DEMAND-FOOD)
+    (up-compare-goal AEGIS-DISCRETIONARY-WOOD >= AEGIS-DEMAND-WOOD)
+    (up-compare-goal AEGIS-DISCRETIONARY-STONE >= AEGIS-DEMAND-STONE)
+    (up-compare-goal AEGIS-DISCRETIONARY-GOLD >= AEGIS-DEMAND-GOLD)
 =>
     (set-goal AEGIS-CAPITAL-FEASIBILITY AEGIS-CAPITAL-SUFFICIENT)
 )
@@ -227,10 +238,10 @@
 (defrule
     (goal AEGIS-DEMAND-ACTIVE AEGIS-DEMAND-ACTIVE-VALUE)
     (or
-        (goal AEGIS-DISCRETIONARY-FOOD g:< AEGIS-DEMAND-FOOD)
-        (goal AEGIS-DISCRETIONARY-WOOD g:< AEGIS-DEMAND-WOOD)
-        (goal AEGIS-DISCRETIONARY-STONE g:< AEGIS-DEMAND-STONE)
-        (goal AEGIS-DISCRETIONARY-GOLD g:< AEGIS-DEMAND-GOLD)
+        (up-compare-goal AEGIS-DISCRETIONARY-FOOD < AEGIS-DEMAND-FOOD)
+        (up-compare-goal AEGIS-DISCRETIONARY-WOOD < AEGIS-DEMAND-WOOD)
+        (up-compare-goal AEGIS-DISCRETIONARY-STONE < AEGIS-DEMAND-STONE)
+        (up-compare-goal AEGIS-DISCRETIONARY-GOLD < AEGIS-DEMAND-GOLD)
     )
 =>
     (set-goal AEGIS-CAPITAL-FEASIBILITY AEGIS-CAPITAL-INSUFFICIENT)
