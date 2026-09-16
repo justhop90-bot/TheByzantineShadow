@@ -119,9 +119,9 @@ Start here when navigating the repository. The links below are the **primary wor
 | **Forensics** | [`docs/forensics/`](./docs/forensics/) | Control-flow, escrow, production, construction, military, ownership, and runtime evidence |
 | **Architecture** | [`docs/architecture/`](./docs/architecture/) | Reconstruction architecture derived from the forensic record |
 | **ABI / contracts** | [`docs/abi/`](./docs/abi/) | Explicit boundaries and contracts for reconstructed systems |
-| **System studies** | [`docs/`](./docs/) | Numbered system deep-dives and project-level specifications |
+| **Project docs / system studies** | [`docs/`](./docs/) | Project-level specifications, system studies, audits, and architecture/forensics subtrees |
 | **Tools** | [`tools/`](./tools/) | Static extraction and forensic analysis utilities |
-| **Research corpus** | [`research/`](./research/) | Research material and preserved external AI/tooling corpus, where present |
+| **Research corpus** | [repository root](./) | Preserved external AI archives, apprenticeship material, and research references; there is no `research/` directory |
 
 ### Reading order
 
@@ -136,10 +136,10 @@ docs/architecture/ + docs/abi/
    ↓
 ShadowByzantine/
    ↓
-tools/ + research/
+tools/ + repository-root research archives
 ```
 
-The donor source is the historical evidence. The forensic layer explains what was recovered. Architecture and ABI documents state how those findings are being reconstructed. The runtime is the implementation. Tools and research material support the investigation but do not automatically become runtime dependencies.
+The donor source is the historical evidence. The forensic layer explains what was recovered. Architecture and ABI documents state how those findings are being reconstructed. The runtime is the implementation. Tools and the preserved root-level research corpus support the investigation but do not automatically become runtime dependencies.
 
 > **Directory names are evidence boundaries, not decorative folders.** If a document contradicts the donor source, the contradiction gets investigated; it does not silently become the new history.
 
