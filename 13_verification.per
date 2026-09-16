@@ -1,147 +1,97 @@
-; ============================================
-; AEGIS
-; 13_verification.per
-; ============================================
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 13 -- VERIFICATION
+; ============================================================
 ;
-; VERIFICATION
+; Authority: world-state verification for construction transactions.
 ;
-; POC TRANSACTION:
+; Core invariant:
+;   command issued != pending != completion
 ;
-;   Train one Spearman.
-;
-; Verification model:
-;
-;   PRE-EXECUTION TRAINED COUNT
-;          ↓
-;   EXECUTION REQUEST
-;          ↓
-;   POST-EXECUTION TRAINED COUNT
-;          ↓
-;   COUNT DELTA > 0
-;
-; IMPORTANT:
-;
-;   unit-type-count measures trained units.
-;
-;   unit-type-count-total includes trained
-;   and queued units and is therefore suitable
-;   for production-demand logic, but is not
-;   sufficient to establish that a unit has
-;   actually completed training.
-;
-;   Verification therefore uses unit-type-count.
-;
-; ============================================
+; Target-specific observers provide BYZ-VERIFY-OBSERVATION-READY only
+; after collecting admissible world-state evidence. This module does not
+; assume that a build command or pending placement proves completion.
+; ============================================================
 
-; ============================================
-; CAPTURE PRE-EXECUTION BASELINE
-; ============================================
-;
-; Capture the number of already-trained
-; Spearman-line units before execution.
-;
-; The fact parameter identifies the unit type
-; being counted.
-;
-; The baseline is stored in the dedicated
-; execution-baseline goal.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; INITIALIZATION
+; ------------------------------------------------------------
 (defrule
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
-(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-GRANTED)
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
-(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
+    (goal BYZ-VERIFY-STATE -1)
 =>
-(up-get-fact unit-type-count spearman-line AEGIS-EXECUTION-BASELINE)
-(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-BASELINED)
+    (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-NOT-STARTED)
+    (set-goal BYZ-VERIFY-OBSERVATION-READY 0)
 )
 
-; ============================================
-; EXECUTION REQUEST UNVERIFIED
-; ============================================
-;
-; An issued execution command is not proof
-; of successful completion.
-;
-; Verification therefore remains explicitly
-; UNVERIFIED until the trained-unit count
-; changes.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; EXECUTION -> PENDING VERIFICATION
+; ------------------------------------------------------------
 (defrule
-(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-VERIFY-STATE BYZ-VERIFY-NOT-STARTED)
 =>
-(set-goal AEGIS-VERIFICATION AEGIS-UNVERIFIED)
+    (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-PENDING)
 )
 
-; ============================================
-; VERIFY TRAINED SPEARMAN
-; ============================================
-;
-; The current trained Spearman count must
-; exceed the pre-execution trained count.
-;
-; Because unit-type-count excludes queued
-; units, a positive delta establishes that
-; an additional Spearman has actually entered
-; the trained-unit population.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; OBSERVATION WINDOW
+; ------------------------------------------------------------
 (defrule
-(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-EXECUTING)
-(unit-type-count spearman-line g:> AEGIS-EXECUTION-BASELINE)
+    (goal BYZ-VERIFY-STATE BYZ-VERIFY-PENDING)
+    (goal BYZ-VERIFY-OBSERVATION-READY 1)
 =>
-(set-goal AEGIS-VERIFICATION AEGIS-VERIFIED)
-(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-VERIFIED)
-(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+    (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
 )
 
-; ============================================
-; REQUEST ESCROW RELEASE AFTER SUCCESS
-; ============================================
-;
-; Verification establishes that the
-; transaction's defined world-state criterion
-; has been satisfied.
-;
-; Release is requested separately.
-;
-; Module 10 remains the sole executor of
-; actual engine escrow release.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; CONFIRMATION
+; ------------------------------------------------------------
+; The observation-ready marker is an interface from target-specific
+; evidence collectors. It must not be set merely because execution ran.
 (defrule
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
-(goal AEGIS-VERIFICATION AEGIS-VERIFIED)
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
+    (goal BYZ-VERIFY-OBSERVATION-READY 1)
 =>
-(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+    (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
 )
 
-; ============================================
-; AUTHORITY LOST BEFORE VERIFICATION
-; ============================================
-;
-; If authority disappears while execution
-; remains unverified, the transaction cannot
-; continue as an authorized execution.
-;
-; It is therefore passed to recovery.
-;
-; ============================================
-
+; ------------------------------------------------------------
+; VERIFIED CONSTRUCTION -> ESCROW RELEASE REQUEST
+; ------------------------------------------------------------
+; Release remains a separate action owned by Module 10.
 (defrule
-(goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-ISSUED)
-(goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-COMPLETE)
+    (goal BYZ-VERIFY-STATE BYZ-VERIFY-CONFIRMED)
+    (goal BYZ-ESCROW-STATE BYZ-ESCROW-COMMITTED)
 =>
-(set-goal AEGIS-VERIFICATION AEGIS-FAILED)
-(set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-FAILED)
-(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+    (set-goal BYZ-ESCROW-RELEASE-REQUEST BYZ-ESCROW-RELEASE-YES)
 )
+
+; ------------------------------------------------------------
+; CONTRADICTION / FAILURE
+; ------------------------------------------------------------
+; An explicit contradiction from a target observer is failure evidence,
+; not a silent pass.
+(defrule
+    (goal BYZ-VERIFY-STATE BYZ-VERIFY-OBSERVING)
+    (goal BYZ-VERIFY-OBSERVATION-READY 0)
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+=>
+    (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-CONTRADICTED)
+)
+
+; Authority loss while pending/observing invalidates the transaction.
+(defrule
+    (goal BYZ-CONSTRUCTION-STATE BYZ-CONSTRUCTION-PENDING)
+    (goal BYZ-AUTHORITY-STATE BYZ-AUTHORITY-DENIED)
+=>
+    (set-goal BYZ-VERIFY-STATE BYZ-VERIFY-FAILED)
+)
+
+; INVARIANTS:
+; no command is completion evidence
+; no pending object is completion evidence
+; verification does not select strategy
+; verification does not execute construction
+; verification does not itself release escrow
+; ============================================================
