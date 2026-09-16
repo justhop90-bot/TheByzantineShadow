@@ -3,26 +3,23 @@
 ; MODULE 03 -- ECONOMY
 ;======================================
 
-(defrule    
+(defrule
     (can-train villager)
-=> 
+=>
     (train villager)
-) 
+)
 
 ;======================================
 ; BASIC BYZANTINE AI
-; MODULE 03 -- ECONOMY  
+; MODULE 03 -- ECONOMY
 ;======================================
 
 (defrule
     (true)
 =>
-    (set-strategic -number sn-food-gatherer-percentage 60)
+    (set-strategic-number sn-food-gatherer-percentage 60)
     (set-strategic-number sn-wood-gatherer-percentage 40)
     (set-strategic-number sn-gold-gatherer-percentage 0)
     (set-strategic-number sn-stone-gatherer-percentage 0)
     (disable-self)
-
 )
-
-
