@@ -115,25 +115,19 @@ jobs:
           import hashlib
           import pathlib
           import re
+          import subprocess
 
           donor_path = pathlib.Path('/tmp/ShadowCanonical.per')
           runtime_path = pathlib.Path('ShadowByzantine/ShadowByzantine.per')
-          donor_bytes = donor_path.read_bytes()
-          donor = donor_bytes.decode('utf-8')
+          donor = donor_path.read_text(encoding='utf-8')
 
-          # The authenticated matrix is generated from this exact historical
-          # Git object. Authenticate both its identity and rule count.
-          expected_sha256 = 'c6431af3f16597b3de223e65e7b60db6c0b22266c0684915ed435bbb054f55b4'
-          normalized = donor.replace('\r\n', '\n').replace('\r', '\n')
-          actual_sha256 = hashlib.sha256(normalized.encode('utf-8')).hexdigest()
-          print(f'authenticated historical donor normalized SHA-256: {actual_sha256}')
-          if actual_sha256 != expected_sha256:
-              raise SystemExit(f'authenticated historical donor hash mismatch: {actual_sha256}')
+          expected_blob_sha1 = '70a18a3b69e8ea46bd5132673fe9fcf8a36595ee'
+          blob_sha1 = subprocess.check_output(['git', 'hash-object', str(donor_path)], text=True).strip()
+          print(f'authenticated historical donor Git blob SHA-1: {blob_sha1}')
+          if blob_sha1 != expected_blob_sha1:
+              raise SystemExit(f'authenticated historical donor blob mismatch: {blob_sha1}')
 
-          def count_rules(text):
-              return len(re.findall(r'(?m)^\s*\(defrule\b', text))
-
-          donor_rules = count_rules(donor)
+          donor_rules = len(re.findall(r'(?m)^\s*\(defrule\b', donor))
           if donor_rules != 1956:
               raise SystemExit(f'authenticated historical donor rule-count mismatch: {donor_rules}')
 
@@ -155,9 +149,13 @@ jobs:
           python3 - <<'PY'
           import pathlib
           import re
+          import subprocess
 
-          donor = pathlib.Path('/tmp/ShadowCanonical.per').read_text(encoding='utf-8')
+          donor_path = pathlib.Path('/tmp/ShadowCanonical.per')
+          donor = donor_path.read_text(encoding='utf-8')
           runtime = pathlib.Path('ShadowByzantine/ShadowByzantine.per').read_text(encoding='utf-8')
+          if subprocess.check_output(['git', 'hash-object', str(donor_path)], text=True).strip() != '70a18a3b69e8ea46bd5132673fe9fcf8a36595ee':
+              raise SystemExit('historical donor Git blob identity changed')
           normalized_donor = donor.replace('\r\n', '\n').replace('\r', '\n')
           normalized_runtime = runtime.replace('\r\n', '\n').replace('\r', '\n')
           expected = normalized_donor.replace('(not(civ-selected viking))', '(not(civ-selected byzantines))')
