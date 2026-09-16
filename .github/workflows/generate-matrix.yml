@@ -1,0 +1,27 @@
+name: Generate Shadow Forensic Matrix
+
+on:
+  workflow_dispatch: # Allows you to run it manually from the Actions tab
+
+jobs:
+  build-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Crucial: fetches full history so git show works for old commits
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run Forensic Script
+        run: python3 scripts/generate_matrix.py # Update path to where you saved your script
+
+      - name: Commit and Push Generated Matrix
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update Shadow source-order forensic matrix [skip ci]"
+          file_pattern: "docs/forensics/SHADOW_SOURCE_ORDER_MATRIX_v0.3.md"
