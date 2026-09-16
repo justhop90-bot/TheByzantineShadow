@@ -1,0 +1,156 @@
+flowchart LR
+  W[Shared writers] --> S[Strategy state gl-strategy]
+  W --> P[Interrupt state gl-progression-pause]
+  W --> B[Progression cursor gl-build-progress]
+  W --> C[Current item gl-current-build-item]
+  E[Physical escrow namespace] --> X[Escrow configuration]
+  M[gl-escrow-state\nengine accounting mode] --> CMD[Escrow-aware command]
+
+  subgraph F01[Scale Mail]
+    T1[1172 trigger] --> P1[pause=SCALEMAIL]
+    P1 --> E1[1173 food +100]
+    E1 --> C1[1174 up-research ri-scale-mail]
+    C1 --> O1[research-status observer]
+    O1 --> R1[release food / restore]
+  end
+
+  subgraph F02[Chain Mail]
+    T2[1175 trigger] --> P2[pause=CHAINMAIL]
+    P2 --> E2[1176 food +200\ngold +100]
+    E2 --> C2[1177 up-research ri-chain-mail]
+    C2 --> O2[research-status observer]
+    O2 --> R2[release food+gold / restore]
+  end
+
+  subgraph F03[F03/F04 Iron Casting]
+    T3[1179/1184 cursor correction] --> C3[current-item=IRONCASTING]
+    C3 --> E3[1181/1186 escrow policy]
+    E3 --> C4[1178/1183 up-research ri-iron-casting]
+    C4 --> O3[1182/1187 status observer]
+    O3 --> B3[build-progress +1]
+  end
+
+  subgraph F05[F05/F06 Forging]
+    T4[1189/1194 cursor correction] --> C5[current-item=FORGING]
+    C5 --> E4[1191/1196 escrow policy]
+    E4 --> C6[1188/1193 up-research ri-forging]
+    C6 --> O4[1192/1197 status observer]
+    O4 --> B4[build-progress +1]
+  end
+
+  subgraph F07[F07/F08 Chain Barding]
+    T5[1199/1204 cursor correction] --> C7[current-item=CHAINBARDING]
+    C7 --> E5[1201/1206 escrow policy]
+    E5 --> C8[1198/1203 up-research ri-chain-barding]
+    C8 --> O5[1202/1207 status observer]
+    O5 --> B5[build-progress +1]
+  end
+
+  subgraph F09[F09 Scale Barding]
+    T6[1209 cursor correction] --> C9[current-item=SCALEBARDING]
+    C9 --> E6[1211 escrow policy]
+    E6 --> C10[1208 up-research ri-scale-barding]
+    C10 --> O6[1212 status observer]
+    O6 --> B6[build-progress +1]
+  end
+
+  subgraph F10[F10 Fletching]
+    T7[1237 cursor correction] --> C11[current-item=FLTCH]
+    C11 --> E7[1239 food+100/gold+50]
+    E7 --> C12[1236 legacy research]
+    C12 --> O7[1240 status observer]
+    O7 --> B7[build-progress +1]
+  end
+
+  subgraph F11[F11 Leather Archer Armor]
+    T8[1242 cursor correction] --> C13[current-item=LAA]
+    C13 --> E8[1244 MID-HIGH food/gold]
+    E8 --> C14[1241 up-research ri-leather-archer-armor]
+    C14 --> O8[1245 status observer]
+    O8 --> B8[build-progress +1]
+  end
+
+  subgraph F12[F12 Padded Archer Armor]
+    T9[1247 cursor correction] --> C15[current-item=PAA]
+    C15 --> E9[1249 food +100 / release wood+gold]
+    E9 --> C16[1246 legacy research]
+    C16 --> O9[1250 status observer]
+    O9 --> B9[build-progress +1]
+  end
+
+  S --> T1
+  P --> T1
+  S --> T2
+  P --> T2
+  S --> T3
+  B --> T3
+  C --> T3
+  S --> T4
+  B --> T4
+  C --> T4
+  S --> T5
+  B --> T5
+  C --> T5
+  S --> T6
+  B --> T6
+  C --> T6
+  S --> T7
+  B --> T7
+  C --> T7
+  S --> T8
+  B --> T8
+  C --> T8
+  S --> T9
+  B --> T9
+  C --> T9
+
+  X --> E1
+  X --> E2
+  X --> E3
+  X --> E4
+  X --> E5
+  X --> E6
+  X --> E7
+  X --> E8
+  X --> E9
+  M --> C1
+  M --> C2
+  M --> C4
+  M --> C6
+  M --> C8
+  M --> C10
+  M -.legacy boundary.-> C12
+  M -.legacy boundary.-> C16
+
+  O3 --> B
+  O4 --> B
+  O5 --> B
+  O6 --> B
+  O7 --> B
+  O8 --> B
+  O9 --> B
+
+  J[Global explicit jumps] -.may bypass local interval.-> T1
+  J -.may bypass local interval.-> T3
+  J -.may bypass local interval.-> T7
+  Q[Competing escrow writers] --> X
+  Q[Competing escrow writers] -.shared namespace conflict.-> R1
+  Q -.shared namespace conflict.-> R2
+  Q -.shared namespace conflict.-> E3
+  Q -.shared namespace conflict.-> E4
+  Q -.shared namespace conflict.-> E5
+  Q -.shared namespace conflict.-> E6
+  Q -.shared namespace conflict.-> E7
+  Q -.shared namespace conflict.-> E8
+  Q -.shared namespace conflict.-> E9
+
+  R1 --> RE[Re-entry into progression]
+  R2 --> RE
+  B --> RE
+  RE --> T3
+  RE --> T4
+  RE --> T5
+  RE --> T6
+  RE --> T7
+  RE --> T8
+  RE --> T9
