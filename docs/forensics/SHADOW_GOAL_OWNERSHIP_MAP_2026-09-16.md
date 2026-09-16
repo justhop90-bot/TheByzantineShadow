@@ -70,8 +70,6 @@ No symbol is declared twice in the current `01_constants.per` registry. No dupli
 
 ### Semantic typing of repeated values
 
-Repeated numeric values are classified as follows:
-
 | Example | Value | Classification | Action |
 |---|---:|---|---|
 | `home-x` | 478 | Shadow goal/state | Preserve; permanently reserved |
@@ -147,3 +145,23 @@ Only after this trace may a repeated-value pair be declared a canonical alias or
 - Numeric collision audit: `eb01f7fb949e2ce66c4842af03533ca7c73bb52c`
 - Semantic namespace audit: `68c50797aa9909c931f099141a49db1a3a12d6cc`
 - Semantic typing artifact: `eb84a5c71ef50b9ec398ca6929ab86590bf1d813`
+
+## State-closure extension — 2026-09-16
+
+The state graph is now materially closed at the donor-source level and cross-referenced to the active ShadowByzantine slice. The detailed closure is recorded in `docs/forensics/SHADOW_STATE_CLOSURE_v0.1.md` and the executable rule mapping in `docs/forensics/SHADOW_RULE_TRANSPLANTATION_MAP_v0.1.md`.
+
+### Additional closure findings
+
+- Donor persistent state is distributed across goals, strategic numbers, timers, engine search state, escrow state, progression state, and rule-position state.
+- Donor goals remain exactly `1-317, 392, 478-479`; no current ShadowByzantine extension may claim one of those slots without explicit source-usage proof.
+- Donor timers are `1-42, 46`; timers participate in effective reachability and therefore are part of the control topology.
+- Directly recovered strategic-number carriers include `sn-focus-player-number`, `sn-total-number-explorers`, `sn-number-explore-groups`, `sn-placement-zone-size`, `sn-home-exploration-time`, `sn-special-attack-type2`, and `sn-special-attack-influence2`.
+- `gl-current-build-item`, `gl-build-progress`, `gl-progression-pause`, `gl-escrow-state`, `SPLIT`, and world-state observers form a coupled progression/escrow machine rather than independent variables.
+- The active ShadowByzantine Pass-1 state vector (`AEGIS-*`) is newly invented state. It is a useful proof slice but is not donor-canonical and must not be promoted to the recovered Shadow architecture.
+- `01b_byz_constants.per` adds a second large state namespace (`BYZ-*`) for construction, escrow, placement, verification, recovery, authority, execution, and capital. These are also project extensions, not donor state. They should be removed or reduced when the donor machine is actually transplanted rather than allowed to become a parallel controller state system.
+
+### Current transplantation status
+
+The exact donor construction anchors 1764–1776 and 1794–1801 and the research/progression anchors 1172–1197 are now bound to source offsets. The current ShadowByzantine implementation does not preserve those topologies: jumps, progression cursor state, placement control, distributed escrow, and progress mutation are missing or replaced.
+
+The remaining exact QUNITS production ordinals for the Byzantine Spearman path must be mechanically bound before implementation. They are intentionally marked `UNKNOWN` in the transplantation map rather than fabricated.
