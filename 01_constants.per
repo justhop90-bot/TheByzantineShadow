@@ -72,36 +72,28 @@
 
 (defconst AEGIS-RECOVERY-STATE 496)
 
-; Capital feasibility state.
 (defconst AEGIS-CAPITAL-INSUFFICIENT 0)
 (defconst AEGIS-CAPITAL-SUFFICIENT 1)
-
-; Transaction-demand activity state.
 (defconst AEGIS-DEMAND-INACTIVE 0)
 (defconst AEGIS-DEMAND-ACTIVE-VALUE 1)
 
-; Strategic reserve policy states.
 (defconst AEGIS-RESERVE-EARLY 1)
 (defconst AEGIS-RESERVE-DEVELOPMENT 2)
 (defconst AEGIS-RESERVE-MILITARY 3)
 (defconst AEGIS-RESERVE-LATE 4)
 
-; Strategic reserve values.
 (defconst AEGIS-EARLY-FOOD-RESERVE 150)
 (defconst AEGIS-EARLY-WOOD-RESERVE 100)
 (defconst AEGIS-EARLY-GOLD-RESERVE 50)
 (defconst AEGIS-EARLY-STONE-RESERVE 50)
-
 (defconst AEGIS-DEVELOPMENT-FOOD-RESERVE 200)
 (defconst AEGIS-DEVELOPMENT-WOOD-RESERVE 150)
 (defconst AEGIS-DEVELOPMENT-GOLD-RESERVE 100)
 (defconst AEGIS-DEVELOPMENT-STONE-RESERVE 75)
-
 (defconst AEGIS-MILITARY-FOOD-RESERVE 250)
 (defconst AEGIS-MILITARY-WOOD-RESERVE 200)
 (defconst AEGIS-MILITARY-GOLD-RESERVE 150)
 (defconst AEGIS-MILITARY-STONE-RESERVE 100)
-
 (defconst AEGIS-LATE-FOOD-RESERVE 150)
 (defconst AEGIS-LATE-WOOD-RESERVE 150)
 (defconst AEGIS-LATE-GOLD-RESERVE 100)
@@ -110,7 +102,6 @@
 (defconst AEGIS-OBJECTIVE-FEUDAL 1)
 (defconst AEGIS-OBJECTIVE-BARRACKS 2)
 (defconst AEGIS-OBJECTIVE-SPEARMAN 3)
-
 (defconst AEGIS-REQUIREMENT-FEUDAL 1)
 (defconst AEGIS-REQUIREMENT-BARRACKS 2)
 (defconst AEGIS-REQUIREMENT-SPEARMAN 3)
@@ -121,51 +112,38 @@
 (defconst AEGIS-TRANSACTION-EXECUTING 3)
 (defconst AEGIS-TRANSACTION-COMPLETE 4)
 (defconst AEGIS-TRANSACTION-FAILED 5)
-
 (defconst AEGIS-AUTHORITY-DENIED 0)
 (defconst AEGIS-AUTHORITY-GRANTED 1)
-
 (defconst AEGIS-UNVERIFIED 0)
 (defconst AEGIS-VERIFIED 1)
 (defconst AEGIS-FAILED 2)
-
 (defconst AEGIS-EXECUTION-IDLE 0)
 (defconst AEGIS-EXECUTION-BASELINED 1)
 (defconst AEGIS-EXECUTION-ISSUED 2)
 (defconst AEGIS-EXECUTION-VERIFIED 3)
 (defconst AEGIS-EXECUTION-FAILED 4)
-
 (defconst AEGIS-RECOVERY-IDLE 0)
 (defconst AEGIS-RECOVERY-REQUIRED 1)
 (defconst AEGIS-RECOVERY-RELEASING 2)
 (defconst AEGIS-RECOVERY-RELEASED 3)
 (defconst AEGIS-RECOVERY-CLEARED 4)
-
 (defconst AEGIS-ESCROW-UNCOMMITTED 0)
 (defconst AEGIS-ESCROW-COMMITTING 1)
 (defconst AEGIS-ESCROW-COMMITTED 2)
 (defconst AEGIS-ESCROW-RELEASING 3)
 (defconst AEGIS-ESCROW-RELEASED 4)
-
 (defconst AEGIS-ESCROW-RELEASE-NO 0)
 (defconst AEGIS-ESCROW-RELEASE-YES 1)
-
 (defconst escrow-included 0)
 (defconst escrow-deducted 1)
-
 (defconst place-normal 0)
 (defconst place-forward 1)
-
 (defconst AEGIS-SPEARMAN-TARGET 3)
 
 ; ============================================================
 ; THE BYZANTINE SHADOW -- MODULE 06 MILITARY REGISTRY
 ; ============================================================
-;
-; Observation/decision interface only. Military execution remains
-; outside this module. These goals are separate from production
-; transaction state so threat state cannot collide with execution state.
-;
+
 (defconst SHADOW-MIL-POPULATION 540)
 (defconst SHADOW-MIL-ENEMY-POPULATION 541)
 (defconst SHADOW-MIL-POSTURE 542)
@@ -176,6 +154,8 @@
 (defconst SHADOW-MIL-THREAT-TARGET 547)
 (defconst SHADOW-MIL-SUPERIORITY 548)
 (defconst SHADOW-MIL-INITIALIZED 549)
+(defconst SHADOW-MIL-ENEMY-IN-TOWN 550)
+(defconst SHADOW-MIL-DEFENDER-COUNT 551)
 
 (defconst SHADOW-MIL-POSTURE-BUILDUP 0)
 (defconst SHADOW-MIL-POSTURE-DEFENSIVE 1)
@@ -191,6 +171,4 @@
 
 (defconst SHADOW-MIL-INFERIOR 0)
 (defconst SHADOW-MIL-SUPERIOR 1)
-
-; Policy parameter, not an engine fact.
 (defconst SHADOW-MIL-ATTACK-READY-MIN-POP 10)
