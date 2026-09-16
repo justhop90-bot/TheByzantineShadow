@@ -372,6 +372,52 @@ The boundary is sufficiently specified for module-level design, but not for fina
 - exact `place-control` semantics;
 - final ownership of placement strategic-number mutation.
 
+## 17. Engine-reference triangulation update
+
+Reference material narrows several previously OPEN claims without closing them completely.
+
+### `up-build`
+
+The AI Reference command index classifies `up-build` as a high-complexity UP **action** that adds a building to the construction queue with dynamic values. This strengthens the ABI distinction between command issuance and completion: `up-build` is a dispatch/queue operation, not a world-state completion observer. citeturn0search4
+
+### `up-assign-builders`
+
+The AI Reference classifies `up-assign-builders` as an UP **action** assigning a specific number of builders to a building type or class. Independent scripting documentation gives the same semantic shape and explicitly describes the value as an assignment to a building type/class rather than completion. The exact lifetime/reassignment semantics in the Shadow path remain unqualified. citeturn0search4turn0search2
+
+### Pending objects
+
+Reference material defines `up-pending-objects` as a comparison against the pending count of an object. DE patch history also confirms that `up-pending-objects` counts additional objects in the unit queue and that `up-find-remote` can find building foundations. Therefore pending state remains an engine-observation class, not a completion signal. citeturn0search2turn0search7
+
+### Placement strategic numbers
+
+Reference patch documentation materially strengthens the placement-configuration interpretation: `sn-placement-zone-size` and `sn-placement-fail-delta` are documented as placement controls for forward/control building commands; successful build calls store the placement zone/failure configuration used by the build operation. This supports retaining placement configuration as part of the dispatch ABI rather than treating it as arbitrary decoration. It does **not** by itself establish the final ShadowByzantine writer ownership of every placement strategic number. citeturn0search5
+
+### `up-build` reliability
+
+Later DE patch notes document fixes to `up-build` placement reliability. This is relevant to qualification because a failed placement may reflect engine behavior rather than a malformed logical target, so runtime tests must observe both the AI-side dispatch state and the resulting world/pending state. citeturn0search11
+
+## 18. Design consequence
+
+The reference triangulation permits one important narrowing:
+
+```text
+Construction
+  → establishes objective/progression/authorization
+
+Placement
+  → establishes target + placement configuration
+
+Execution
+  → invokes up-build / build / builder assignment
+
+Verification
+  → observes pending/world state and completion conditions
+```
+
+It does **not** justify collapsing Placement and Execution, nor does it justify treating `up-build` as a synchronous success return.
+
+The unresolved items remain explicitly unresolved where the available reference material does not establish the donor-specific behavior.
+
 ## Evidence
 
 **DIRECT:** Shadow contains explicit `up-build place-normal`, `up-build place-point`, and `up-build place-control` paths; point-placement paths establish target objects/points and mutate placement parameters before dispatch; construction progression is mutated from observed building state.
@@ -380,7 +426,7 @@ The boundary is sufficiently specified for module-level design, but not for fina
 
 **INFERRED:** The named module ownership boundaries are architectural abstractions derived from the donor state graph rather than literal Shadow module boundaries.
 
-**UNKNOWN:** Several engine-level return/failure semantics remain unresolved.
+**UNKNOWN:** Donor-specific return/failure signaling, exact `up-assign-builders` lifecycle, empty-search representation, target lifetime, and complete `place-control` behavior remain unresolved.
 
 ## Verification
 
@@ -389,7 +435,8 @@ The boundary is sufficiently specified for module-level design, but not for fina
 - Contract preserves stateful search and re-entry.
 - Contract does not convert jumps into priority semantics.
 - Contract does not promote command acceptance into world-state completion.
-- Contract explicitly isolates unresolved ABI behavior.
+- Reference triangulation now independently supports the action semantics of `up-build`, `up-assign-builders`, pending-object observation, and placement configuration controls.
+- Unresolved donor-specific semantics remain marked OPEN/UNKNOWN rather than being silently promoted.
 
 ## Uncertainty
 
