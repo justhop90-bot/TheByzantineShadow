@@ -16,11 +16,19 @@
 ;   563 gold
 ;   564 stone
 ;
-; Module 09 derives capital slack as:
+; UserPatch cost-data commands operate only on legal extended-goal
+; ranges. Module 09 therefore reads the 500-503 cost vector into
+; the engine scratch vector 504-507, then copies the resulting
+; resource-minus-cost delta into the public Shadow outputs 594-597.
 ;
-;   current resources
-;   - Module 08 transaction cost
-;   - Module 07 protected reserve
+; Public Module 09 outputs:
+;   594 food slack
+;   595 wood slack
+;   596 stone slack
+;   597 gold slack
+;   598 feasibility
+;   599 active
+;   600 initialized
 ;
 ; Feasibility is true only when all four resulting slack values
 ; are non-negative while Module 08 reports an active requirement.
@@ -36,15 +44,13 @@
 ;   - alter production demand
 ;
 ; =============================================================
-
-
-; =============================================================
 ; INITIALIZATION
 ; =============================================================
 
 (defrule
     (true)
 =>
+    (set-goal SHADOW-CAPITAL-COST-DELTA-FOOD 0)
     (set-goal SHADOW-CAPITAL-SLACK-FOOD 0)
     (set-goal SHADOW-CAPITAL-SLACK-WOOD 0)
     (set-goal SHADOW-CAPITAL-SLACK-STONE 0)
@@ -54,43 +60,53 @@
     (set-goal SHADOW-CAPITAL-INITIALIZED 1)
 )
 
-
 ; =============================================================
-; COST-DATA SELECTION
+; ENGINE COST DELTA
 ; =============================================================
 ;
-; up-get-cost-delta reads the current engine resource stockpile
-; against the cost data selected by the most recent
-; up-setup-cost-data command. Explicitly select the Shadow
-; production cost vector here rather than depending on another
-; module's most recent cost-data selection.
+; up-setup-cost-data with reset flag 0 selects the existing Module 08
+; cost vector without clearing it. up-get-cost-delta then computes:
 ;
-; The command writes four consecutive goals in the order:
-; FOOD, WOOD, STONE, GOLD.
+;   current resources - transaction cost
 ;
-; 594-597 are the Shadow Module 09 slack vector.
+; into the legal 504-507 engine scratch vector.
+;
 ; =============================================================
 
 (defrule
     (goal SHADOW-CAPITAL-INITIALIZED 1)
 =>
     (up-setup-cost-data 0 SHADOW-PROD-COST-FOOD)
-    (up-get-cost-delta SHADOW-CAPITAL-SLACK-FOOD)
+    (up-get-cost-delta SHADOW-CAPITAL-COST-DELTA-FOOD)
 )
 
+; =============================================================
+; PUBLIC SLACK MATERIALIZATION
+; =============================================================
+;
+; Copy the engine delta vector into the public Shadow capital slots.
+; The reserve deduction is performed only after the copy so that the
+; public outputs remain the authoritative capital slack vector.
+; =============================================================
+
+(defrule
+    (goal SHADOW-CAPITAL-INITIALIZED 1)
+=>
+    (up-modify-goal SHADOW-CAPITAL-SLACK-FOOD g:= SHADOW-CAPITAL-COST-DELTA-FOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-WOOD g:= SHADOW-CAPITAL-COST-DELTA-WOOD)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-STONE g:= SHADOW-CAPITAL-COST-DELTA-STONE)
+    (up-modify-goal SHADOW-CAPITAL-SLACK-GOLD g:= SHADOW-CAPITAL-COST-DELTA-GOLD)
+)
 
 ; =============================================================
 ; PROTECTED-RESERVE DEDUCTION
 ; =============================================================
 ;
-; up-get-cost-delta gives:
-;
-;   current resources - transaction cost
-;
+; up-get-cost-delta gives current resources minus transaction cost.
 ; Subtract the Module 07 protected reserve from each resource.
 ;
-; Do NOT clamp these values to zero. Negative slack is the
-; evidence required by the feasibility gate.
+; Do NOT clamp these values to zero. Negative slack is the evidence
+; required by the feasibility gate.
 ; =============================================================
 
 (defrule
@@ -102,45 +118,43 @@
     (up-modify-goal SHADOW-CAPITAL-SLACK-GOLD c:- SHADOW-RESERVE-GOLD)
 )
 
-
 ; =============================================================
 ; ACTIVE STATE
 ; =============================================================
 ;
 ; Capital feasibility is meaningful only while Module 08 has an
 ; active production requirement. Capital does not invent demand.
+;
+; All comparisons here are against constants or the literal zero.
+; Therefore the ordinary three-argument up-compare-goal form is used;
+; no typed goal-operator is required.
 ; =============================================================
 
 (defrule
-    (up-compare-goal SHADOW-REQ-ACTIVE g:= SHADOW-REQ-ACTIVE-VALUE)
+    (up-compare-goal SHADOW-REQ-ACTIVE == SHADOW-REQ-ACTIVE-VALUE)
 =>
     (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-ACTIVE-VALUE)
 )
 
 (defrule
-    (up-compare-goal SHADOW-REQ-ACTIVE g:= SHADOW-REQ-INACTIVE)
+    (up-compare-goal SHADOW-REQ-ACTIVE == SHADOW-REQ-INACTIVE)
 =>
     (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-INACTIVE)
 )
 
-
 ; =============================================================
 ; CAPITAL FEASIBILITY -- SUFFICIENT
 ; =============================================================
-;
-; Goal-to-goal comparison uses g:<op> syntax.
-; =============================================================
 
 (defrule
-    (up-compare-goal SHADOW-CAPITAL-ACTIVE g:= SHADOW-CAPITAL-ACTIVE-VALUE)
-    (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD g:>= 0)
-    (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD g:>= 0)
-    (up-compare-goal SHADOW-CAPITAL-SLACK-STONE g:>= 0)
-    (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD g:>= 0)
+    (up-compare-goal SHADOW-CAPITAL-ACTIVE == SHADOW-CAPITAL-ACTIVE-VALUE)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD >= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD >= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-STONE >= 0)
+    (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD >= 0)
 =>
     (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-SUFFICIENT)
 )
-
 
 ; =============================================================
 ; CAPITAL FEASIBILITY -- INSUFFICIENT
@@ -151,21 +165,20 @@
 ; =============================================================
 
 (defrule
-    (up-compare-goal SHADOW-CAPITAL-ACTIVE g:= SHADOW-CAPITAL-ACTIVE-VALUE)
+    (up-compare-goal SHADOW-CAPITAL-ACTIVE == SHADOW-CAPITAL-ACTIVE-VALUE)
     (or
-        (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD g:< 0)
+        (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD < 0)
         (or
-            (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD g:< 0)
+            (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD < 0)
             (or
-                (up-compare-goal SHADOW-CAPITAL-SLACK-STONE g:< 0)
-                (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD g:< 0)
+                (up-compare-goal SHADOW-CAPITAL-SLACK-STONE < 0)
+                (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD < 0)
             )
         )
     )
 =>
     (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
 )
-
 
 ; =============================================================
 ; INACTIVE REQUIREMENT STATE
@@ -177,7 +190,7 @@
 ; =============================================================
 
 (defrule
-    (up-compare-goal SHADOW-CAPITAL-ACTIVE g:= SHADOW-CAPITAL-INACTIVE)
+    (up-compare-goal SHADOW-CAPITAL-ACTIVE == SHADOW-CAPITAL-INACTIVE)
 =>
     (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
 )
