@@ -4,6 +4,7 @@ import hashlib
 import re
 from pathlib import Path
 
+# Explicit contiguous donor-slice qualifier; the interval is no longer mislabeled R07 1794-1814.
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "ShadowSource.per"
 IMPLEMENTATION = ROOT / "ShadowByzantine" / "04_construction.per"
