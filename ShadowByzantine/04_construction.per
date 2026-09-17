@@ -6,32 +6,26 @@
 ;
 ; Canonical donor: ShadowSource.per
 ; Donor blob SHA: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
-; Implemented donor rule interval: 1794-1814
+; Implemented donor interval: 1794-1827
 ;
-; IMPORTANT SOURCE-BOUNDARY FACT
-;   Rules 1794-1805 are the authenticated farm-progression
-;   sequence. Rules 1806-1814 are the immediately following
-;   QHOUSE construction sequence in the canonical source. They
-;   are included here because the requested authenticated interval
-;   is 1794-1814 and source order is executable semantics. They are
-;   NOT relabeled as farm rules.
+; SOURCE-BOUNDARY NOTE
+;   1794-1805 = farm progression.
+;   1806-1814 in the prior reconstruction were mislabeled: the
+;   canonical donor identifies those positions as source rules
+;   1815-1823. This file corrects that numbering drift.
+;   1815-1827 = QHOUSE construction/control region in the donor.
 ;
 ; IMPLEMENTATION STATUS
 ;   STATIC SOURCE TRANSPLANT: implemented
 ;   RUNTIME QUALIFICATION: pending
 ;
-; NO CLAIM IS MADE THAT COMMAND ISSUANCE EQUALS COMPLETION.
+; Command issuance is NOT completion evidence.
+; Pending-object predicates are NOT completion evidence.
+; World-state predicates are completion/reconciliation evidence only.
 ;
 ; ============================================================
 ; DONOR COMPATIBILITY CONSTANTS
 ; ============================================================
-;
-; These are exact donor numeric identities required by rules
-; 1794-1814 and not yet present in the central constant registry.
-; They are kept local temporarily so the implementation can be
-; statically closed without inventing values. Migration into
-; 01_constants.per is a follow-up cleanup once the complete R07
-; identifier set is centralized.
 ;
 (defconst with-escrow 0)
 (defconst without-escrow 1)
@@ -49,28 +43,14 @@
 ; ============================================================
 ; R07 RULE 1794
 ; ============================================================
-;
-; DIRECT DONOR MAPPING
-; Reads:
-;   gl-second-turn == 1
-;   gl-strategy == FLUSH
-;   gl-escrow-state via up-can-build
-;   gl-build-progress < FletchingNumber
-;   wood-amount >= 370 OR (wood >= 250 AND archery-range >= 2)
-; Writes:
-;   none
-; Escrow:
-;   feasibility is evaluated through up-can-build with
-;   gl-escrow-state; no explicit release/mutation occurs here.
-; Pending guard:
-;   none
-; Command:
-;   up-build place-normal gl-escrow-state c: farm
-; Completion observer:
-;   none
-; Jump:
-;   none; fall-through -> 1795
-;
+; Reads: gl-second-turn, gl-strategy, gl-escrow-state via
+;        up-can-build, gl-build-progress, wood, archery-range.
+; Writes: none.
+; Escrow: feasibility through up-can-build; no explicit mutation.
+; Pending guard: none.
+; Command: up-build place-normal gl-escrow-state c: farm.
+; Completion observer: none.
+; Jump: none; fall-through -> 1795.
 (defrule
     (goal gl-second-turn 1)
     (goal gl-strategy FLUSH)
@@ -86,22 +66,15 @@
 ; ============================================================
 ; R07 RULE 1795
 ; ============================================================
-;
-; Reads:
-;   current-age == dark-age
-;   can-build-with-escrow(farm)
-;   gl-strategy == KRUSH
-;   pending farm < 1
-;   gl-current-build-item == FARMS
-;   farm count < 4
-;   wood >= 90 OR housing-headroom >= 4 OR pending farm < 1
-; Writes: none
-; Escrow: release-escrow wood
-; Pending guard: up-pending-objects c: farm < 1
-; Command: build farm
-; Completion observer: none
-; Jump: none; fall-through -> 1796
-;
+; Reads: current-age, can-build-with-escrow farm, gl-strategy,
+;        pending farm, gl-current-build-item, farm count, wood,
+;        housing-headroom.
+; Writes: none.
+; Escrow: release-escrow wood.
+; Pending guard: up-pending-objects c: farm < 1.
+; Command: build farm.
+; Completion observer: none.
+; Jump: none; fall-through -> 1796.
 (defrule
     (current-age == dark-age)
     (can-build-with-escrow farm)
@@ -120,16 +93,13 @@
 ; ============================================================
 ; R07 RULE 1796
 ; ============================================================
-;
-; Reads: gl-strategy == KRUSH; gl-current-build-item == FARMS;
-;       farm count >= 4
-; Writes: gl-build-progress += 1
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: building-type-count-total farm >= 4
-; Jump: none; fall-through -> 1797
-;
+; Reads: gl-strategy, gl-current-build-item, farm count.
+; Writes: gl-build-progress += 1; disables self.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: farm >= 4.
+; Jump: none; fall-through -> 1797.
 (defrule
     (goal gl-strategy KRUSH)
     (goal gl-current-build-item FARMS)
@@ -142,16 +112,13 @@
 ; ============================================================
 ; R07 RULE 1797
 ; ============================================================
-;
-; Reads: gl-strategy == KRUSH; farm count < 4;
-;       gl-build-progress > KrushFarmsNumber
-; Writes: gl-build-progress = KrushFarmsNumber
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: contradiction/reconciliation condition only
-; Jump: none; fall-through -> 1798
-;
+; Reads: gl-strategy, farm count, gl-build-progress.
+; Writes: gl-build-progress = KrushFarmsNumber.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: farm < 4 is reconciliation evidence.
+; Jump: none; fall-through -> 1798.
 (defrule
     (goal gl-strategy KRUSH)
     (building-type-count-total farm < 4)
@@ -163,16 +130,13 @@
 ; ============================================================
 ; R07 RULE 1798
 ; ============================================================
-;
-; Reads: gl-current-build-item != FARMS;
-;       gl-build-progress == KrushFarmsNumber
-; Writes: gl-current-build-item = FARMS
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: none
-; Jump: none; fall-through -> 1799
-;
+; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
+; Writes: gl-current-build-item = FARMS.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1799.
 (defrule
     (goal gl-strategy KRUSH)
     (up-compare-goal gl-current-build-item != FARMS)
@@ -184,17 +148,15 @@
 ; ============================================================
 ; R07 RULE 1799
 ; ============================================================
-;
-; Reads: current-age == dark-age; can-build-with-escrow(farm);
-;       KRUSH; pending farm < 1; current item FARMS2; farm < 7;
-;       wood >= 90 OR housing-headroom >= 3
-; Writes: none
-; Escrow: release-escrow wood
-; Pending guard: up-pending-objects c: farm < 1
-; Command: build farm
-; Completion observer: none
-; Jump: none; fall-through -> 1800
-;
+; Reads: current-age, can-build-with-escrow farm, wood,
+;        housing-headroom, gl-strategy, pending farm,
+;        gl-current-build-item, farm count.
+; Writes: none.
+; Escrow: release-escrow wood.
+; Pending guard: up-pending-objects c: farm < 1.
+; Command: build farm.
+; Completion observer: none.
+; Jump: none; fall-through -> 1800.
 (defrule
     (current-age == dark-age)
     (can-build-with-escrow farm)
@@ -212,15 +174,13 @@
 ; ============================================================
 ; R07 RULE 1800
 ; ============================================================
-;
-; Reads: KRUSH; current item FARMS2; farm count >= 7
-; Writes: gl-build-progress += 1; self disabled
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: farm >= 7
-; Jump: none; fall-through -> 1801
-;
+; Reads: gl-strategy, gl-current-build-item, farm count.
+; Writes: gl-build-progress += 1; disables self.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: farm >= 7.
+; Jump: none; fall-through -> 1801.
 (defrule
     (goal gl-strategy KRUSH)
     (goal gl-current-build-item FARMS2)
@@ -233,16 +193,13 @@
 ; ============================================================
 ; R07 RULE 1801
 ; ============================================================
-;
-; Reads: KRUSH; gl-build-progress == KrushFarms2Number;
-;       current item != FARMS2
-; Writes: gl-current-build-item = FARMS2
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: none
-; Jump: none; fall-through -> 1802
-;
+; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
+; Writes: gl-current-build-item = FARMS2.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1802.
 (defrule
     (goal gl-strategy KRUSH)
     (up-compare-goal gl-current-build-item != FARMS2)
@@ -254,17 +211,14 @@
 ; ============================================================
 ; R07 RULE 1802
 ; ============================================================
-;
-; Reads: dark-age; can-build-with-escrow(farm); FLUSH;
-;       pending farm < 1; current item FARMS;
-;       wood >= 310 OR farm count < 2
-; Writes: wood escrow percentage = 0
-; Escrow: set-escrow-percentage wood 0; release-escrow wood
-; Pending guard: up-pending-objects c: farm < 1
-; Command: build farm
-; Completion observer: none
-; Jump: none; fall-through -> 1803
-;
+; Reads: current-age, can-build-with-escrow farm, gl-strategy,
+;        pending farm, gl-current-build-item, wood, farm count.
+; Writes: wood escrow percentage = 0.
+; Escrow: set-escrow-percentage wood 0; release-escrow wood.
+; Pending guard: up-pending-objects c: farm < 1.
+; Command: build farm.
+; Completion observer: none.
+; Jump: none; fall-through -> 1803.
 (defrule
     (current-age == dark-age)
     (can-build-with-escrow farm)
@@ -282,15 +236,13 @@
 ; ============================================================
 ; R07 RULE 1803
 ; ============================================================
-;
-; Reads: FLUSH; current item FARMS; farm count >= 2
-; Writes: gl-build-progress += 1
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: farm >= 2
-; Jump: none; fall-through -> 1804
-;
+; Reads: gl-strategy, gl-current-build-item, farm count.
+; Writes: gl-build-progress += 1.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: farm >= 2.
+; Jump: none; fall-through -> 1804.
 (defrule
     (goal gl-strategy FLUSH)
     (goal gl-current-build-item FARMS)
@@ -302,15 +254,13 @@
 ; ============================================================
 ; R07 RULE 1804
 ; ============================================================
-;
-; Reads: FLUSH; farm count < 2; gl-build-progress > FarmsNumber
-; Writes: gl-build-progress = FarmsNumber
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: contradiction/reconciliation condition only
-; Jump: none; fall-through -> 1805
-;
+; Reads: gl-strategy, farm count, gl-build-progress.
+; Writes: gl-build-progress = FarmsNumber.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: farm < 2 is reconciliation evidence.
+; Jump: none; fall-through -> 1805.
 (defrule
     (goal gl-strategy FLUSH)
     (building-type-count-total farm < 2)
@@ -322,16 +272,14 @@
 ; ============================================================
 ; R07 RULE 1805
 ; ============================================================
-;
-; Reads: FLUSH; current item != FARMS; gl-build-progress == FarmsNumber
+; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
 ; Writes: wood escrow percentage = LOW-ESCROW;
-;        gl-current-build-item = FARMS
-; Escrow: set-escrow-percentage wood LOW-ESCROW
-; Pending guard: none
-; Command: none
-; Completion observer: none
-; Jump: none; fall-through -> 1806
-;
+;         gl-current-build-item = FARMS.
+; Escrow: set-escrow-percentage wood LOW-ESCROW.
+; Pending guard: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1806.
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != FARMS)
@@ -342,17 +290,16 @@
 )
 
 ; ============================================================
-; R07 RULE 1806 -- QHOUSE, NOT FARM
+; R07 RULE 1815
 ; ============================================================
-;
-; Reads: true
-; Writes: none
-; Escrow: none
-; Pending guard: none
-; Command: up-assign-builders house 1
-; Completion observer: none
-; Jump: none; fall-through -> 1807
-;
+; QHOUSE.
+; Reads: true.
+; Writes: none.
+; Escrow: none.
+; Pending guard: none.
+; Command: up-assign-builders c: house c: 1.
+; Completion observer: none.
+; Jump: none; fall-through -> 1816.
 (defrule
     (true)
 =>
@@ -360,18 +307,17 @@
 )
 
 ; ============================================================
-; R07 RULE 1807 -- QHOUSE, NOT FARM
+; R07 RULE 1816
 ; ============================================================
-;
-; Reads: false; game-time >= 50; gl-fifth-turn == 1;
-;       housing-headroom < 2
-; Writes: none
-; Escrow: none
-; Pending guard: none
-; Command: chat + up-assign-builders house 3
-; Completion observer: none
-; Jump: none; fall-through -> 1808
-;
+; QHOUSE.
+; Reads: game-time >= 50, gl-fifth-turn == 1, housing-headroom < 2.
+; Writes: none.
+; Escrow: none.
+; Pending guard: none.
+; Command: chat warning; up-assign-builders c: house c: 3.
+; Completion observer: none.
+; Note: false predicate is preserved exactly; it is not optimized away.
+; Jump: none; fall-through -> 1817.
 (defrule
     (false)
     (game-time >= 50)
@@ -383,19 +329,19 @@
 )
 
 ; ============================================================
-; R07 RULE 1808 -- QHOUSE, NOT FARM
+; R07 RULE 1817
 ; ============================================================
-;
-; Reads: game-time > 6; housing-headroom < 5; population-headroom != 0;
-;       can-build-with-escrow house; archery-range >= 2
-; Writes: placement data via up-set-placement-data
-; Escrow: feasibility uses escrow-aware build path
-; Pending guard: house pending < 1
+; QHOUSE / CONTROL placement.
+; Reads: game-time > 6, housing-headroom < 5,
+;        population-headroom != 0, can-build-with-escrow house,
+;        pending house < 1, archery-range >= 2.
+; Writes: placement-data state via up-set-placement-data.
+; Escrow: feasibility through can-build-with-escrow house.
+; Pending guard: up-pending-objects c: house < 1.
 ; Command: up-build place-control gl-escrow-state c: house;
-;          up-set-placement-data me -1 c: -5
-; Completion observer: none
-; Jump: none; fall-through -> 1809
-;
+;          up-set-placement-data me -1 c: -5.
+; Completion observer: none.
+; Jump: none; fall-through -> 1818.
 (defrule
     (game-time > 6)
     (housing-headroom < 5)
@@ -409,19 +355,19 @@
 )
 
 ; ============================================================
-; R07 RULE 1809 -- QHOUSE, NOT FARM
+; R07 RULE 1818
 ; ============================================================
-;
-; Reads: game-time > 6; housing-headroom < 2; population-headroom != 0;
-;       can-build-with-escrow house
-; Writes: placement data
-; Escrow: feasibility uses escrow-aware build path
-; Pending guard: house pending < 1
+; QHOUSE / CONTROL placement.
+; Reads: game-time > 6, housing-headroom < 2,
+;        population-headroom != 0, can-build-with-escrow house,
+;        pending house < 1.
+; Writes: placement-data state via up-set-placement-data.
+; Escrow: feasibility through can-build-with-escrow house.
+; Pending guard: up-pending-objects c: house < 1.
 ; Command: up-build place-control gl-escrow-state c: house;
-;          up-set-placement-data me -1 c: -5
-; Completion observer: none
-; Jump: none; fall-through -> 1810
-;
+;          up-set-placement-data me -1 c: -5.
+; Completion observer: none.
+; Jump: none; fall-through -> 1819.
 (defrule
     (game-time > 6)
     (housing-headroom < 2)
@@ -434,18 +380,18 @@
 )
 
 ; ============================================================
-; R07 RULE 1810 -- QHOUSE, NOT FARM
+; R07 RULE 1819
 ; ============================================================
-;
-; Reads: can-build house
-; Writes: placement data; rule self disabled
-; Escrow: none
-; Pending guard: none
-; Command: up-set-placement-data; place-control house;
-;          up-assign-builders house 2
-; Completion observer: none
-; Jump: none; fall-through -> 1811
-;
+; QHOUSE / CONTROL placement.
+; Reads: can-build house.
+; Writes: placement-data; disables self.
+; Escrow: none.
+; Pending guard: none.
+; Command: up-set-placement-data me villager-class c: 0;
+;          up-build place-control 0 c: house;
+;          up-assign-builders c: house c: 2.
+; Completion observer: none.
+; Jump: none; fall-through -> 1820.
 (defrule
     (can-build house)
 =>
@@ -456,20 +402,20 @@
 )
 
 ; ============================================================
-; R07 RULE 1811 -- QHOUSE, NOT FARM
+; R07 RULE 1820
 ; ============================================================
-;
-; Reads: can-build house; civilian-population < 6;
-;       house count > 0; sheep availability
-; Writes: placement data; rule self disabled
-; Escrow: none
-; Pending guard: none
-; Command: up-set-placement-data; place-control house;
-;          up-assign-builders house 1
-; Completion observer: house count > 0 is a predicate, not a
-;                       completion write
-; Jump: none; fall-through -> 1812
-;
+; QHOUSE / CONTROL placement.
+; Reads: can-build house, civilian-population < 6, house count > 0,
+;        sheep availability.
+; Writes: placement-data; disables self.
+; Escrow: none.
+; Pending guard: none.
+; Command: up-set-placement-data me villager-class c: 1;
+;          up-build place-control 0 c: house;
+;          up-assign-builders c: house c: 1.
+; Completion observer: house count > 0 is an input predicate only;
+;                     it is not a completion write.
+; Jump: none; fall-through -> 1821.
 (defrule
     (can-build house)
     (civilian-population < 6)
@@ -484,17 +430,16 @@
 )
 
 ; ============================================================
-; R07 RULE 1812 -- QHOUSE, NOT FARM
+; R07 RULE 1821
 ; ============================================================
-;
-; Reads: true
-; Writes: generic goal = 12
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: none
-; Jump: none; fall-through -> 1813
-;
+; QHOUSE control-state write.
+; Reads: true.
+; Writes: generic goal = 12.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1822.
 (defrule
     (true)
 =>
@@ -502,17 +447,16 @@
 )
 
 ; ============================================================
-; R07 RULE 1813 -- QHOUSE, NOT FARM
+; R07 RULE 1822
 ; ============================================================
-;
-; Reads: gl-enemy-strategy == DRUSH OR gl-town-safe != YES
-; Writes: generic goal = -5
-; Escrow: none
-; Pending guard: none
-; Command: none
-; Completion observer: none
-; Jump: none; fall-through -> 1814
-;
+; QHOUSE control-state write.
+; Reads: gl-enemy-strategy == DRUSH OR gl-town-safe != YES.
+; Writes: generic goal = -5.
+; Escrow: none.
+; Pending guard: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1823.
 (defrule
     (or	(goal gl-enemy-strategy DRUSH)
     (up-compare-goal gl-town-safe != YES))
@@ -521,21 +465,21 @@
 )
 
 ; ============================================================
-; R07 RULE 1814 -- QHOUSE, NOT FARM
+; R07 RULE 1823
 ; ============================================================
-;
-; Reads: can-build house; housing-headroom < 4;
-;       population-headroom != 0; house count < 5;
-;       pending house < 1
-; Writes: placement data; sn-placement-zone-size = 5;
-;         sn-placement-fail-delta = 2
-; Escrow: none
-; Pending guard: up-pending-objects c: house < 1
-; Command: up-set-placement-data; place-control house;
-;          up-assign-builders house 1
-; Completion observer: none
-; Jump: none; fall-through -> 1815
-;
+; QHOUSE / CONTROL placement.
+; Reads: can-build house, housing-headroom < 4,
+;        population-headroom != 0, house count < 5,
+;        pending house < 1.
+; Writes: placement-data; sn-placement-zone-size = 5;
+;         sn-placement-fail-delta = 2.
+; Escrow: none.
+; Pending guard: up-pending-objects c: house < 1.
+; Command: up-set-placement-data me -1 c: 10;
+;          up-build place-control 0 c: house;
+;          up-assign-builders c: house c: 1.
+; Completion observer: none.
+; Jump: none; fall-through -> 1824.
 (defrule
     (can-build house)
     (housing-headroom < 4)
@@ -551,14 +495,125 @@
 )
 
 ; ============================================================
-; END AUTHENTICATED R07 1794-1814 SLICE
+; R07 RULE 1824
 ; ============================================================
-;
-; No explicit up-jump-rule occurs in 1794-1814.
-; Therefore each rule falls through to the next donor rule:
-;   1794->1795->...->1814->1815.
-;
-; Completion evidence is deliberately restricted to world-state
-; predicates present in the donor. Pending-object predicates are
-; not promoted to completion evidence.
+; QHOUSE / CONTROL placement.
+; Reads: can-build house, housing-headroom < 4,
+;        population-headroom != 0, house count >= 5,
+;        pending house < 1, archery-range < 1.
+; Writes: placement-data; sn-placement-zone-size = 5;
+;         sn-placement-fail-delta = 2.
+; Escrow: none.
+; Pending guard: up-pending-objects c: house < 1.
+; Command: up-set-placement-data me -1 g: goal;
+;          up-build place-control 0 c: house;
+;          up-assign-builders c: house c: 1.
+; Completion observer: house >= 5 and archery-range < 1 are
+;                     decision predicates, not completion proof.
+; Jump: none; fall-through -> 1825.
+(defrule
+    (can-build house)
+    (housing-headroom < 4)
+    (population-headroom != 0)
+    (building-type-count house >= 5)
+    (up-pending-objects c: house < 1)
+    (building-type-count archery-range < 1)
+=>
+    (up-set-placement-data me -1 g: goal)
+    (set-strategic-number sn-placement-zone-size 5)
+    (set-strategic-number sn-placement-fail-delta 2)
+    (up-build place-control 0 c: house)
+    (up-assign-builders c: house c: 1)
+)
+
 ; ============================================================
+; R07 RULE 1825
+; ============================================================
+; QHOUSE / CONTROL placement.
+; Reads: can-build house, housing-headroom < 10,
+;        population-headroom != 0, pending house < 1,
+;        (KRUSH AND stable >= 2) OR archery-range >= 2.
+; Writes: placement-data; sn-placement-zone-size = 5;
+;         sn-placement-fail-delta = 2.
+; Escrow: none.
+; Pending guard: up-pending-objects c: house < 1.
+; Command: up-set-placement-data me -1 g: goal;
+;          up-build place-control 0 c: house.
+; Completion observer: none.
+; Jump: none; fall-through -> 1826.
+(defrule
+    (can-build house)
+    (housing-headroom < 10)
+    (population-headroom != 0)
+    (up-pending-objects c: house < 1)
+    (or	(and(goal gl-strategy KRUSH)
+    (building-type-count-total stable >= 2))
+    (building-type-count-total archery-range >= 2))
+=>
+    (up-set-placement-data me -1 g: goal)
+    (set-strategic-number sn-placement-zone-size 5)
+    (set-strategic-number sn-placement-fail-delta 2)
+    (up-build place-control 0 c: house)
+)
+
+; ============================================================
+; R07 RULE 1826
+; ============================================================
+; QHOUSE arbitration entry.
+; Reads: can-build house, housing-headroom < 15,
+;        population-headroom != 0, pending house < 2,
+;        FLUSH+stable>=1 OR KRUSH+stable>=3 OR
+;        SIEGE+siege-workshop>=1.
+; Writes: SPLIT = 1.
+; Escrow: none.
+; Pending guard: up-pending-objects c: house < 2.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1827.
+(defrule
+    (can-build house)
+    (housing-headroom < 15)
+    (population-headroom != 0)
+    (up-pending-objects c: house < 2)
+    (or	(and(goal gl-strategy FLUSH)
+    (building-type-count stable >= 1))
+    (or	(and(goal gl-strategy KRUSH)
+    (building-type-count-total stable >= 3))
+    (and(goal gl-strategy SIEGE)
+    (building-type-count siege-workshop >= 1))))
+=>
+    (set-goal SPLIT 1)
+)
+
+; ============================================================
+; R07 RULE 1827
+; ============================================================
+; QHOUSE arbitration execution.
+; Reads: SPLIT == 1.
+; Writes: placement-data; sn-placement-zone-size = 5;
+;         sn-placement-fail-delta = 2; SPLIT = 0.
+; Escrow: none.
+; Pending guard: none.
+; Command: up-set-placement-data me -1 g: goal;
+;          up-build place-control 0 c: house.
+; Completion observer: none.
+; Jump: none; fall-through -> 1828.
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-set-placement-data me -1 g: goal)
+    (set-strategic-number sn-placement-zone-size 5)
+    (set-strategic-number sn-placement-fail-delta 2)
+    (up-build place-control 0 c: house)
+    (set-goal SPLIT 0)
+)
+
+; ============================================================
+; R07 SOURCE-ORDER / CONTROL-FLOW NOTE
+; ============================================================
+; No explicit up-jump-rule occurs in 1794-1827.
+; Therefore the donor fall-through chain is preserved:
+;   1794 -> 1795 -> ... -> 1827 -> 1828.
+; Builder assignment is execution authority, not completion evidence.
+; CONTROL placement is spatial realization; it does not advance
+; construction progression by itself.
