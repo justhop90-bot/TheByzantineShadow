@@ -5,8 +5,8 @@ from pathlib import Path
 SRC = Path(sys.argv[1] if len(sys.argv) > 1 else 'ShadowSource.per')
 OUT = Path(sys.argv[2] if len(sys.argv) > 2 else 'shadow-jump-graph-out')
 OUT.mkdir(parents=True, exist_ok=True)
-text = SRC.read_text(encoding='utf-8')
 raw = SRC.read_bytes()
+text = raw.decode('utf-8')
 EXPECTED_GIT_BLOB_SHA = '70a18a3b69e8ea46bd5132673fe9fcf8a36595ee'
 git_blob_sha = hashlib.sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest()
 raw_sha = hashlib.sha1(raw).hexdigest()
@@ -15,22 +15,34 @@ if git_blob_sha != EXPECTED_GIT_BLOB_SHA:
 
 # up-jump-rule is a signed rule delta. For 1-based forensic ordinals:
 # target = source ordinal + signed delta. Fall-through = source ordinal + 1.
-starts = [m.start() for m in re.finditer(r'\(defrule\b', text)]
+def mask_source(s):
+    out=list(s); i=0; n=len(s); in_str=False; escaped=False
+    while i<n:
+        c=s[i]
+        if in_str:
+            if c=='\\' and not escaped: out[i]=' '; escaped=True
+            elif c=='"' and not escaped: out[i]=' '; in_str=False; escaped=False
+            else:
+                if c not in '\r\n': out[i]=' '
+                escaped=False
+            i+=1; continue
+        if c=='"': out[i]=' '; in_str=True; i+=1; continue
+        if c==';':
+            while i<n and s[i] not in '\r\n': out[i]=' '; i+=1
+            continue
+        i+=1
+    return ''.join(out)
+masked=mask_source(text)
+starts=[m.start() for m in re.finditer(r'\(defrule\b', masked)]
 def end_of_rule(start):
-    depth = 0; quoted = False; esc = False; i = start
-    while i < len(text):
-        c = text[i]
-        if quoted:
-            if c == '\\' and not esc: esc = True
-            elif c == '"' and not esc: quoted = False
-            else: esc = False
-        else:
-            if c == '"': quoted = True
-            elif c == '(': depth += 1
-            elif c == ')':
-                depth -= 1
-                if depth == 0: return i + 1
-        i += 1
+    depth=0; i=start
+    while i<len(masked):
+        c=masked[i]
+        if c=='(': depth+=1
+        elif c==')':
+            depth-=1
+            if depth==0: return i+1
+        i+=1
     raise ValueError(f'unbalanced defrule at char {start}')
 def line(pos): return text.count('\n', 0, pos) + 1
 def byte(pos): return len(text[:pos].encode('utf-8'))
