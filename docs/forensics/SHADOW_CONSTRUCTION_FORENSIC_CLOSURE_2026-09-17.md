@@ -300,6 +300,17 @@ nothing. This replaces all prior class-by-class sweeps; the method
 (token ∩ ¬repo ∩ ¬registry → donor lookup) is the standing
 procedure. Pipeline green (28 modules, 0 failed).
 
+## Amendment record 2026-09-17 — object-data-target-id (02b:335)
+
+Probe matrix F–I (one match): `object-data-target-id` fails with both
+`g:!=` and `g:==` (F/H); `object-data-target` boots clean (G), as does
+`up-find-status-local` (I). Replaced the sole loaded-set occurrence
+(donor rule 260) with `object-data-target`. Semantic note: Naga uses
+`object-data-target` against classes; here it filters villagers by
+target reference against `goal1` — closest engine-valid form,
+behavioral parity subject to runtime observation. Deviation already
+recorded for rule 260.
+
 ## Amendment record 2026-09-17 — UP-era stance aliases (02b line 69)
 
 Engine dialog `ERR2005` at `(up-target-point explo-x action-move -1
