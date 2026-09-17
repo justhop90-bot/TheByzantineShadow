@@ -89,10 +89,16 @@ def main():
         try: cs=consts(p.read_text(encoding="utf-8"))
         except UnicodeDecodeError: continue
         for k,v in cs.items(): repo_defs.setdefault(k,[]).append((str(p.relative_to(ROOT)),v))
-    summaries=[]; configured={}
+    summaries=[]; configured=set()
     for spec in cfg.get("modules",[]):
-        p=ROOT/spec["implementation"]; configured.add(spec["implementation"])
-        if not p.exists(): summaries.append({"module":spec["name"],"implementation":spec["implementation"],"status":"MISSING_IMPLEMENTATION"}); continue
+        if not isinstance(spec,dict) or "implementation" not in spec or "name" not in spec:
+            raise SystemExit("INVALID_MODULE_SPEC: each configured module must be an object containing name and implementation")
+        implementation=spec["implementation"]
+        if not isinstance(implementation,str) or not implementation:
+            raise SystemExit("INVALID_MODULE_SPEC: implementation must be a non-empty string")
+        configured.add(implementation)
+        p=ROOT/implementation
+        if not p.exists(): summaries.append({"module":spec["name"],"implementation":implementation,"status":"MISSING_IMPLEMENTATION"}); continue
         summaries.append(qualify(spec["name"],p,p.read_text(encoding="utf-8"),donor,spec,repo_defs))
     root=ROOT/"ShadowByzantine"
     for p in sorted(root.glob("*.per")):
