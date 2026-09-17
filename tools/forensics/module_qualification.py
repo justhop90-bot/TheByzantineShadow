@@ -55,8 +55,8 @@ def state_counts(rs): return {s:sum(s in tokens(r) for r in rs) for s in STATE}
 def escrow_counts(rs): return {s:sum(s in norm(r.text) for r in rs) for s in ESCROW}
 def slice_rules(rs,a,b): return [Rule(i,rs[i-1].text,rs[i-1].line) for i in range(a,b+1)]
 
-def qualify(name,path,text,donor,spec,repo_defs):
-    rs=parse_rules(text); local=consts(text); declared=set(local)|set(repo_defs)
+def qualify(name,path,text,donor,spec,repo_defs,external_state_symbols):
+    rs=parse_rules(text); local=consts(text); declared=set(local)|set(repo_defs)|set(external_state_symbols)
     unresolved=sorted(t for r in rs for t in tokens(r) if (t.startswith("gl-") or t=="SPLIT") and t not in declared)
     edges=[]; bad=[]
     for r in rs:
@@ -83,6 +83,9 @@ def main():
     source=ROOT/cfg.get("donor_source","ShadowSource.per"); donor_text=source.read_text(encoding="utf-8"); donor=parse_rules(donor_text); actual=sha_blob(donor_text.encode())
     if cfg.get("donor_blob_sha") and cfg["donor_blob_sha"]!=actual: raise SystemExit(f"DONOR_BLOB_SHA_MISMATCH expected={cfg['donor_blob_sha']} actual={actual}")
     if cfg.get("donor_rule_count") and cfg["donor_rule_count"]!=len(donor): raise SystemExit(f"DONOR_RULE_COUNT_MISMATCH expected={cfg['donor_rule_count']} actual={len(donor)}")
+    external_state_symbols=cfg.get("external_state_symbols",[])
+    if not isinstance(external_state_symbols,list) or not all(isinstance(x,str) and x for x in external_state_symbols):
+        raise SystemExit("INVALID_EXTERNAL_STATE_SYMBOLS: expected a list of non-empty strings")
     repo_defs={}
     for p in ROOT.rglob("*.per"):
         if p==source: continue
@@ -90,6 +93,7 @@ def main():
         except UnicodeDecodeError: continue
         for k,v in cs.items(): repo_defs.setdefault(k,[]).append((str(p.relative_to(ROOT)),v))
     summaries=[]; configured=set()
+    if not isinstance(configured,set): raise SystemExit("INTERNAL_CONFIGURED_TYPE_REGRESSION: configured must be a set")
     for spec in cfg.get("modules",[]):
         if not isinstance(spec,dict) or "implementation" not in spec or "name" not in spec:
             raise SystemExit("INVALID_MODULE_SPEC: each configured module must be an object containing name and implementation")
@@ -99,11 +103,11 @@ def main():
         configured.add(implementation)
         p=ROOT/implementation
         if not p.exists(): summaries.append({"module":spec["name"],"implementation":implementation,"status":"MISSING_IMPLEMENTATION"}); continue
-        summaries.append(qualify(spec["name"],p,p.read_text(encoding="utf-8"),donor,spec,repo_defs))
+        summaries.append(qualify(spec["name"],p,p.read_text(encoding="utf-8"),donor,spec,repo_defs,external_state_symbols))
     root=ROOT/"ShadowByzantine"
     for p in sorted(root.glob("*.per")):
         rel=str(p.relative_to(ROOT))
-        if rel not in configured: summaries.append(qualify(p.stem,p,p.read_text(encoding="utf-8"),donor,{},repo_defs))
+        if rel not in configured: summaries.append(qualify(p.stem,p,p.read_text(encoding="utf-8"),donor,{},repo_defs,external_state_symbols))
     (out/"donor_rule_index.json").write_text(json.dumps({"source":str(source.relative_to(ROOT)),"git_blob_sha1":actual,"rule_count":len(donor),"rules":[{"id":r.id,"line":r.line,"normalized":norm(r.text)} for r in donor]},indent=2)+"\n",encoding="utf-8")
     (out/"repository_symbol_index.json").write_text(json.dumps(dict(sorted(repo_defs.items())),indent=2)+"\n",encoding="utf-8")
     for s in summaries: (out/(s["module"].replace('/','_')+".json")).write_text(json.dumps(s,indent=2)+"\n",encoding="utf-8")
