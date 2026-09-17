@@ -1,0 +1,35 @@
+name: apply-authenticated-r07-1828-1849
+
+on:
+  push:
+    paths:
+      - tools/forensics/append_r07_1828_1849.py
+      - ShadowSource.per
+      - ShadowByzantine/04_construction.per
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event_name == 'workflow_dispatch' || github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply authenticated donor slice
+        run: python tools/forensics/append_r07_1828_1849.py
+      - name: Commit authenticated slice
+        run: |
+          if git diff --quiet -- ShadowByzantine/04_construction.per; then
+            echo 'No implementation change required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ShadowByzantine/04_construction.per
+          git commit -m 'construction: implement authenticated R07 1828-1849'
+          git push
