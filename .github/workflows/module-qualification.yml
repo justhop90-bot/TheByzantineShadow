@@ -36,16 +36,33 @@ jobs:
           python-version: '3.x'
 
       - name: Run consolidated qualification
+        id: qualify
+        shell: bash
         run: |
+          set +e
           python tools/forensics/module_qualification.py \
             --config tools/forensics/module_qualification.json \
-            --out artifacts/module-qualification
+            --out artifacts/module-qualification \
+            2>&1 | tee artifacts/module-qualification/qualification.log
+          rc=${PIPESTATUS[0]}
+          printf '%s\n' "$rc" > artifacts/module-qualification/qualification_exit_code.txt
+          exit "$rc"
 
       - name: Publish qualification summary
         if: always()
         run: |
           if [ -f artifacts/module-qualification/MODULE_QUALIFICATION_REPORT.md ]; then
             cat artifacts/module-qualification/MODULE_QUALIFICATION_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          elif [ -f artifacts/module-qualification/qualification.log ]; then
+            {
+              echo '# Module Qualification Failure'
+              echo
+              echo 'The qualification executable failed before generating its normal report.'
+              echo
+              echo '```text'
+              cat artifacts/module-qualification/qualification.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Upload forensic reports
@@ -54,5 +71,5 @@ jobs:
         with:
           name: module-qualification-${{ github.sha }}
           path: artifacts/module-qualification/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
