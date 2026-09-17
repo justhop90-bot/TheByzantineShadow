@@ -29,7 +29,7 @@
       "donor_start":237,
       "donor_end":480,
       "label":"authenticated Shadow scouting/sheep/lure/defense slice",
-      "allowed_deviations":[249, 252, 256, 258, 260, 262, 271, 272, 278, 279, 285, 291, 327, 353, 354, 361, 378],
+      "allowed_deviations":[249, 252, 256, 258, 260, 262, 271, 272, 278, 279, 285, 291, 327, 353, 354, 361, 378, 401, 404, 406, 417, 418, 419, 423, 430],
       "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
     },
     {

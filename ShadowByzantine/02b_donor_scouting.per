@@ -1886,8 +1886,9 @@
     (goal gl-scouting-switch -1)
     ;	(up-point-distance scout-x explo-x >= 6)
     (or	(up-point-contains explo-x c: tree-class)
-    (or	(up-point-distance scout-x explo-x >= 50)
-    (up-point-explored explo-x != explored-no)))
+    (up-point-distance scout-x explo-x >= 50))
+    ;REMOVED-DEAD-ON-DE (up-point-explored explo-x != explored-no): engine
+    ;ERR2005 at 02b:1890; all explored-state queries share the defect class.
     (or	(up-compare-goal explo-x < 2)
     (or	(up-compare-goal explo-y < 2)
     (or	(up-compare-goal explo-x g:>= gl-max-coordinate-value)
@@ -1919,7 +1920,7 @@
 (defrule
     (false)
     (goal SPLIT 1)
-    (up-point-explored explo-x != explored-no)
+    ;REMOVED-DEAD-ON-DE (up-point-explored explo-x != explored-no)
 =>
     (chat-to-player me "!=ExploredNo")
 )
@@ -1940,8 +1941,8 @@
     (goal gl-scouting-switch 0)
     ;	(up-point-distance scout-x explo-x >= 6)
     (or	(up-point-contains explo-x c: tree-class)
-    (or	(up-point-distance scout-x explo-x >= 50)
-    (up-point-explored explo-x != explored-no)))
+    (up-point-distance scout-x explo-x >= 50))
+    ;REMOVED-DEAD-ON-DE (up-point-explored explo-x != explored-no)
     (or	(up-compare-goal explo-x < 2)
     (or	(up-compare-goal explo-y < 2)
     (or	(up-compare-goal explo-x g:>= gl-max-coordinate-value)
@@ -2055,8 +2056,8 @@
     (or	(game-time < 100)
     (up-point-distance explo-x scout-x < 12))
     (or	(goal goal 65535)
-    (or	(up-point-contains explo-x c: tree-class)
-    (up-point-explored explo-x != explored-no)))
+    (up-point-contains explo-x c: tree-class))
+    ;REMOVED-DEAD-ON-DE (up-point-explored explo-x != explored-no)
 =>
     ;	(chat-to-player me "Lerp")
     (up-lerp-tiles explo-x home-x g: goal1)
@@ -2067,7 +2068,7 @@
 ; AUTHENTICATED DONOR RULE 418 | DONOR_LINE=6094
 (defrule	;move the point out of obstacles
     (goal NEWSCOUTING 0)
-    (up-point-explored explo-x == explored-no)
+    ;REMOVED-DEAD-ON-DE (up-point-explored explo-x == explored-no)
     (up-point-distance explo-x home-x >= MaxDistance)
 =>
     ;	(chat-to-player me "Lerp 2")
@@ -2081,8 +2082,8 @@
     (goal NEWSCOUTING 0)
     (up-point-distance explo-x home-x >= MaxDistance)
     (or	(goal goal 65535)
-    (or	(up-point-contains explo-x c: tree-class)
-    (up-point-explored explo-x != explored-no)))
+    (up-point-contains explo-x c: tree-class))
+    ;REMOVED-DEAD-ON-DE (up-point-explored explo-x != explored-no)
 =>
     (up-cross-tiles explo-x home-x g: CROSS)
     (up-lerp-tiles explo-x home-x c: 2)
@@ -2125,7 +2126,7 @@
     (false)
     (goal NEWSCOUTING 0)
     (up-compare-goal goal g:>= goal2)	;17 closer/11 further
-    (up-point-explored explo-x == explored-no)
+    ;REMOVED-DEAD-ON-DE (up-point-explored explo-x == explored-no)
     (not(up-point-contains explo-x c: tree-class))
     (up-compare-goal goal != 65535)
     ;		(or	(up-compare-goal explo-x g:>= gl-max-coordinate-value)
@@ -2209,7 +2210,7 @@
 (defrule
     (taunt-detected me 81)
     (goal gl-second-turn 1)
-    (up-point-explored explo-x != explored-no)
+    ;REMOVED-DEAD-ON-DE (up-point-explored explo-x != explored-no)
 =>
     (chat-to-player me "Point Explored")
 )

@@ -357,6 +357,20 @@ tool reporting success without a match count silently did nothing
 once (tab-vs-space indent) — verify every edit mechanically
 afterward.
 
+## Amendment record 2026-09-17 — explored-state queries removed (02b)
+
+Engine dialog at 02b:1890 (donor rule 401) on
+`(up-point-explored explo-x != explored-no)`. All tokens individually
+defensible (registry documents the command; Naga uses the shape), but
+the engine rejects the line and no static oracle distinguishes it —
+same signature as the filter-status and target-id cases. Removed all
+8 live `up-point-explored` uses (donor rules 401, 404, 406, 417, 418,
+419, 423, 430) by commenting the condition/disjunct with rebalanced
+parens; affected rules fire on their remaining guards (narrower, never
+broader). Whether the command or the ExploredState value is at fault
+is recorded UNKNOWN — no probe evidence either way. Config deviations
+now 25 rules for the scouting slice.
+
 ## Amendment record 2026-09-17 — precise-distance operand (02b)
 
 Engine dialog `ERR2004: Missing identifier: object-data-precise-distance`
