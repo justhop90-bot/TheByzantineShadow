@@ -1,0 +1,124 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; 03C -- BYZANTINE UU DOCTRINE (CATAPHRACT / CAMEL / LOGISTICA)
+; ============================================================
+;
+; Evidence class: BYZANTINE-GENERALIZATION over DIRECT stock
+; corroboration (AI (HD version).per, Promiskuitiv). Every rule
+; below mirrors an observed stock Byzantine behavior; nothing here
+; is presented as donor (Shadow) behavior -- Shadow was Vikings-only
+; and carries no Cataphract/camel doctrine.
+;
+; Stock-corroborated judgments implemented:
+;   1. Cataphracts answer massed infantry (stock trains UU < 20 on
+;      sn-infantry-threat >= 1 for Byzantine profiles;
+;      AI (HD version).per:28295-28308) and eagle-warrior enemy
+;      goal (28310-28322).
+;   2. UU production seeds early for Byzantines: Castle threshold
+;      < 5 vs < 12 general (29644-29653).
+;   3. Knights de-emphasized once castled (Byzantine nand-guard on
+;      the Castle knight rule, 29239-29251); knight requests map to
+;      camels ("I'll focus on camels", 37730-37741).
+;   4. Hand Cannoneers routed around, not through: the HC mass rule
+;      excludes castled Byzantines (28637-28651) because the
+;      anti-infantry answer is the UU. HC stays a secondary line.
+;   5. UU-gold eco shift: UU plan + 2 castles reallocates gatherers
+;      toward gold (45/27/25 stock shape, 33207-33220).
+;   6. Logistica as late backstop on gold stockpile + population
+;      scale (22763-22777); belief-driven demand (below) fires first.
+;
+; Engine notes: my-unique-unit-line / my-unique-research /
+; my-unique-unit-upgrade resolve per-civilization (Cataphract /
+; Logistica / Elite Cataphract for Byzantines). No hardcoded IDs.
+;
+; Loaded by ShadowByzantine.per after 03b_strategy_bootstrap.
+; ============================================================
+
+; ------------------------------------------------------------
+; 1. CATAPHRACT SEED (early, Castle, low threshold)
+; ------------------------------------------------------------
+(defrule
+    (current-age == castle-age)
+    (building-type-count-total castle >= 1)
+    (unit-type-count-total my-unique-unit-line < 5)
+    (can-train my-unique-unit-line)
+=>
+    (train my-unique-unit-line)
+)
+
+; ------------------------------------------------------------
+; 2. CATAPHRACT MASS (threat-driven: infantry masses + eagles)
+; ------------------------------------------------------------
+(defrule
+    (current-age >= castle-age)
+    (unit-type-count-total my-unique-unit-line < 20)
+    (or	(players-unit-type-count any-enemy militiaman-line >= 6)
+    (or	(players-unit-type-count any-enemy eagle-warrior-line >= 4)
+    (players-unit-type-count any-enemy huskarl-line >= 4)))
+    (or	(gold-amount > 100)
+    (up-research-status c: my-unique-unit-upgrade >= research-pending))
+    (can-train my-unique-unit-line)
+=>
+    (train my-unique-unit-line)
+)
+
+; ------------------------------------------------------------
+; 3. LOGISTICA BACKSTOP (gold stockpile + population scale)
+; ------------------------------------------------------------
+(defrule
+    (current-age >= castle-age)
+    (current-age-time > 300)
+    (population >= 100)
+    (gold-amount > 800)
+    (can-research-with-escrow my-unique-research)
+=>
+    (release-escrow wood)
+    (release-escrow food)
+    (release-escrow gold)
+    (research my-unique-research)
+)
+
+; ------------------------------------------------------------
+; 4. UU-GOLD ECO SHIFT (Cataphract demand + 2 castles)
+; ------------------------------------------------------------
+(defrule
+    (current-age == castle-age)
+    (unit-type-count-total my-unique-unit-line > 0)
+    (building-type-count-total castle > 1)
+    (unit-type-count-total villager > 20)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 45)
+    (set-strategic-number sn-wood-gatherer-percentage 27)
+    (set-strategic-number sn-gold-gatherer-percentage 25)
+    (set-strategic-number sn-stone-gatherer-percentage 3)
+)
+
+; Revert: no Cataphract demand active -> Castle baseline eco.
+; Without this the UU-gold shift above latches forever once fired.
+; Baseline is project policy (BYZANTINE-GENERALIZATION): food/wood
+; trash economy with a standing gold share for monks/siege tech.
+(defrule
+    (current-age == castle-age)
+    (unit-type-count-total my-unique-unit-line <= 0)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 55)
+    (set-strategic-number sn-wood-gatherer-percentage 35)
+    (set-strategic-number sn-gold-gatherer-percentage 10)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+; ------------------------------------------------------------
+; 5. TAUNT-250 KNIGHT REQUEST -> CAMELS (stock mapping verbatim
+;    in behavior: Byzantines answer knight requests with camels)
+; ------------------------------------------------------------
+(defrule
+    (or	(taunt-detected me 250)
+    (taunt-detected any-ally 250))
+    (civ-selected byzantine)
+=>
+    (chat-to-player me "I'll focus on camels.")
+    (chat-to-player every-ally "I'll focus on camels.")
+    (acknowledge-taunt me 250)
+    (acknowledge-taunt any-ally 250)
+    (set-goal BYZ-CAMEL-PLAN BYZ-CAMEL-REQUESTED)
+)

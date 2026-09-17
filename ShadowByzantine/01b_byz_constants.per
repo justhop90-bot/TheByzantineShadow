@@ -161,5 +161,13 @@
 (defconst BYZ-REQUEST-ACTIVE-FLAG 570)
 (defconst BYZ-EXECUTION-COMMAND-ISSUED 571)
 
+; Byzantine UU / camel-plan signals (stock-corroborated, see 03c).
+; BYZ-CAMEL-PLAN is set by the taunt-250 knight-request mapping
+; (stock: Byzantines answer knight requests with camels) and read by
+; future composition consumers. 0 = none, 1 = camels requested.
+(defconst BYZ-CAMEL-PLAN 498)
+(defconst BYZ-CAMEL-NONE 0)
+(defconst BYZ-CAMEL-REQUESTED 1)
+
 ; No strategic threshold, timer, escrow percentage/cap, placement
 ; geometry, retry count, priority value, or builder count is defined.
