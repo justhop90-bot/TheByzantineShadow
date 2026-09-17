@@ -1,0 +1,59 @@
+name: rebuild authenticated construction slice
+
+on:
+  push:
+    paths:
+      - 'tools/forensics/rebuild_authenticated_construction_slice.py'
+      - 'ShadowSource.per'
+      - 'ShadowByzantine/04_construction.per'
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Rebase onto current main and rebuild exact donor interval
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          python3 tools/forensics/rebuild_authenticated_construction_slice.py
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('ShadowByzantine/04_construction.per')
+          t = p.read_text(encoding='utf-8')
+          masked = list(t)
+          q = False; esc = False; i = 0
+          while i < len(t):
+              c=t[i]
+              if q:
+                  if c=='\\' and not esc: masked[i]=' '; esc=True
+                  elif c=='"' and not esc: masked[i]=' '; q=False; esc=False
+                  else:
+                      if c not in '\r\n': masked[i]=' '
+                      esc=False
+                  i+=1; continue
+              if c=='"': masked[i]=' '; q=True; i+=1; continue
+              if c==';':
+                  while i < len(t) and t[i] not in '\r\n': masked[i]=' '; i+=1
+                  continue
+              i+=1
+          n=sum(1 for _ in re.finditer(r'\(defrule\b', ''.join(masked)))
+          assert n == 156, n
+          print(f'IMPLEMENTATION_DEFRULE_COUNT={n}')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ShadowByzantine/04_construction.per docs/forensics/SHADOW_BYZANTINE_CONSTRUCTION_TRANSPLANT_INVENTORY_v0.1.csv
+          git diff --cached --quiet && exit 0
+          git commit -m 'forensics: restore exact authenticated construction donor interval [skip ci]'
+          git push origin HEAD:main
