@@ -343,6 +343,20 @@ Standing method update: engine dialogs name the token (ERR2004);
 registry presence and Naga precedent do NOT establish DE validity;
 04's clean-parsed content is the engine-proven allowlist.
 
+## Amendment record 2026-09-17 — up-filter-status removed (probe-proven)
+
+Probe matrix (5 single-rule AIs, one match): `up-filter-status` fails
+with every status/list combination (B/C/D probes), while
+`up-filter-distance` boots clean (E probe). Verdict: the command
+itself is rejected by this build in this usage — operand values were
+never the discriminator. All 12 occurrences commented out in 02b
+(donor rules 249, 252, 256, 258, 260, 262, 271, 272, 278, 279, 285,
+291, 327, 353, 354, 361 per diff; status-ready→resource edits
+subsumed). Behavioral note: status pre-filtering is lost; finds run
+on ambient filter state. Foundation-finding rules are degraded, not
+dead — flagged for a DE-native rewrite in a later tranche. Config
+deviations extended to the 16 affected rules.
+
 ## Amendment record 2026-09-17 — scouting slice (rules 237–480)
 
 - New `ShadowByzantine/02b_donor_scouting.per`: authenticated donor

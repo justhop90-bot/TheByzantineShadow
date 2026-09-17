@@ -160,7 +160,7 @@
 =>
     (up-full-reset-search)
     (up-filter-distance c: -1 c: 5)
-    (up-filter-status c: status-resource c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 50)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -207,7 +207,7 @@
 =>
     (up-full-reset-search)
     (up-filter-distance c: -1 c: 5)
-    (up-filter-status c: status-resource c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 50)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -263,7 +263,7 @@
     (goal goal -1)
 =>
     (up-full-reset-search)
-    (up-filter-status c: status-pending c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-pending c: list-active)
     (up-find-status-local c: house c: 1)
     (up-get-search-state lt)
     ;	(up-chat-data-to-player me "Houses Pending: %d" g: lt)
@@ -290,7 +290,7 @@
     (up-full-reset-search)
     (up-set-target-point point-x)
     (up-filter-distance c: -1 c: 5)
-    (up-filter-status c: status-resource c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-resource c: list-active)
     ;	(up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: gold c: 1)		;gold-mine
@@ -326,7 +326,7 @@
     (up-chat-data-to-player me "Delete House Foundation Near Gold(%d)" g: rt)
     (up-set-target-point point-x)
     (up-filter-distance c: -1 c: 5)
-    (up-filter-status c: status-pending c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-pending c: list-active)
     (up-find-status-local c: house c: 1)
     (up-target-point 0 action-delete -1 -1)	;0
     (up-full-reset-search)
@@ -351,7 +351,7 @@
 (defrule
     (goal SPLIT 1)
 =>
-    (up-filter-status c: status-resource c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 30)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -441,7 +441,7 @@
     (goal gl-lclerp -1)
 =>
     (up-full-reset-search)
-    (up-filter-status c: status-pending c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-pending c: list-active)
     (up-find-status-local c: lumber-camp c: 1)
     (up-set-target-object search-local c: 0)
     (up-get-point position-object point-x)
@@ -456,7 +456,7 @@
 (defrule
     (goal SPLIT 1)
 =>
-    (up-filter-status c: status-resource c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 30)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -520,7 +520,7 @@
     (goal gl-lclerp -1)
 =>
     (up-full-reset-search)
-    (up-filter-status c: status-pending c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-pending c: list-active)
     (up-find-status-local c: lumber-camp c: 1)
     (up-set-target-object search-local c: 0)
     (up-get-point position-object point-x)
@@ -535,7 +535,7 @@
     (up-full-reset-search)
     (up-set-target-point point-x)
     (up-filter-distance c: -1 c: 3)
-    (up-filter-status c: status-resource c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 30)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -597,7 +597,7 @@
     (up-full-reset-search)
     (up-set-target-point point-x)
     (up-filter-distance c: -1 c: 10)
-    (up-filter-status c: status-resource c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 30)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -662,7 +662,7 @@
     (goal gl-lclerp 3)
 =>
     (up-full-reset-search)
-    (up-filter-status c: status-pending c: list-active)
+;REMOVED-DEAD-ON-DE (up-filter-status c: status-pending c: list-active)
     (up-find-status-local c: lumber-camp c: 1)
     (up-set-target-object search-local c: 0)
     (up-get-point position-object object-x)
