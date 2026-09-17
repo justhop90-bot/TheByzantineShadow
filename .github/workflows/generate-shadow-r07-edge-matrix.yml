@@ -1,0 +1,36 @@
+name: Generate authenticated Shadow R07 edge matrix
+
+on:
+  push:
+    paths:
+      - 'ShadowSource.per'
+      - 'tools/forensics/generate_r07_edge_matrix.py'
+      - '.github/workflows/generate-shadow-r07-edge-matrix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout authenticated donor
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Generate exact R07 edge matrix
+        run: python tools/forensics/generate_r07_edge_matrix.py
+
+      - name: Commit generated matrix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/forensics/SHADOW_R07_EDGE_MATRIX_v0.1.csv
+          if git diff --cached --quiet; then
+            echo 'No edge-matrix changes.'
+            exit 0
+          fi
+          git commit -m 'forensics: generate authenticated R07 edge matrix'
+          git push origin HEAD:main
