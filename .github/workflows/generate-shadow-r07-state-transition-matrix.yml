@@ -1,0 +1,51 @@
+name: Generate authenticated Shadow R07 state-transition matrix
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ShadowSource.per'
+      - 'docs/forensics/SHADOW_R07_EDGE_MATRIX_v0.1.csv'
+      - 'tools/forensics/generate_r07_state_transition_matrix.py'
+      - '.github/workflows/generate-shadow-r07-state-transition-matrix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Generate authenticated matrix
+        run: python3 tools/forensics/generate_r07_state_transition_matrix.py
+
+      - name: Verify generated artifact
+        run: |
+          test -f docs/forensics/SHADOW_R07_STATE_TRANSITION_MATRIX_v0.1.csv
+          python3 - <<'PY'
+          import csv
+          p='docs/forensics/SHADOW_R07_STATE_TRANSITION_MATRIX_v0.1.csv'
+          with open(p, newline='', encoding='utf-8') as f:
+              rows=list(csv.DictReader(f))
+          assert len(rows)==107, len(rows)
+          assert len({(r['direction'],r['source_rule'],r['target_rule'],r['edge_kind'],r['jump_delta']) for r in rows})==107
+          print('verified_edge_rows=107')
+          PY
+
+      - name: Commit generated artifact
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/forensics/SHADOW_R07_STATE_TRANSITION_MATRIX_v0.1.csv
+          if git diff --cached --quiet; then
+            echo 'No generated changes.'
+            exit 0
+          fi
+          git commit -m 'forensics: generate authenticated R07 state-transition matrix'
+          git push origin HEAD:main
