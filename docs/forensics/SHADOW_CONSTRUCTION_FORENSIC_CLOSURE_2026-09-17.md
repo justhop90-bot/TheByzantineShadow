@@ -329,6 +329,20 @@ tool reporting success without a match count silently did nothing
 once (tab-vs-space indent) — verify every edit mechanically
 afterward.
 
+## Amendment record 2026-09-17 — precise-distance operand (02b)
+
+Engine dialog `ERR2004: Missing identifier: object-data-precise-distance`
+at 02b:1431 (donor rule 361). The engine does not know this identifier
+on this build (confirmed by exe string dump: 19 `object-data-*` names
+present, precise-distance/target-id/index/player absent among them).
+Replaced with `object-data-distance` — proven valid by 04's own clean
+parse (live use, zero dialogs) — in donor rules 327, 353, 354, 361
+(5 occurrences). Semantic delta (exact vs tile distance in search
+sorting) negligible for scouting. Deviations recorded in config.
+Standing method update: engine dialogs name the token (ERR2004);
+registry presence and Naga precedent do NOT establish DE validity;
+04's clean-parsed content is the engine-proven allowlist.
+
 ## Amendment record 2026-09-17 — scouting slice (rules 237–480)
 
 - New `ShadowByzantine/02b_donor_scouting.per`: authenticated donor
