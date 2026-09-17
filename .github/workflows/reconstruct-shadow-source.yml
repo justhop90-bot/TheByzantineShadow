@@ -1,0 +1,50 @@
+name: Reconstruct authenticated ShadowSource
+
+on:
+  push:
+    paths:
+      - 'tools/forensics/reconstruct_shadow_source.py'
+      - '.github/workflows/reconstruct-shadow-source.yml'
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct and verify
+        run: |
+          python3 tools/forensics/reconstruct_shadow_source.py /tmp/shadow-source-rule-index.json
+          cp ShadowSource.per /tmp/ShadowSource.per
+          python3 - <<'PY'
+          import json, pathlib, hashlib
+          p = pathlib.Path('/tmp/shadow-source-rule-index.json')
+          d = json.loads(p.read_text())
+          print('RULE_COUNT=', d['defrule_count'])
+          print('SHA1=', d['actual_sha1'])
+          print('BYTE_LENGTH=', d['byte_length'])
+          print('LINE_COUNT=', d['line_count'])
+          assert d['actual_sha1'] == d['expected_sha1']
+          assert d['defrule_count'] == 1956, f"Unexpected defrule count: {d['defrule_count']}"
+          PY
+      - name: Build targeted control graph
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          d=json.loads(pathlib.Path('/tmp/shadow-source-rule-index.json').read_text())
+          keys={'gl-build-progress','gl-current-build-item','gl-progression-pause','gl-strategy','SPLIT','set-escrow-percentage','up-modify-escrow','release-escrow','disable-self','up-jump-rule'}
+          targeted=[r for r in d['rules'] if keys.intersection(r['keywords'])]
+          pathlib.Path('/tmp/shadow-targeted-rules.json').write_text(json.dumps(targeted,indent=2))
+          print('TARGETED_RULES=',len(targeted))
+          for r in targeted:
+              print(f"{r['ordinal']}:{r['source_line_start']}-{r['source_line_end']} jump={r['jump_targets_raw']} keys={','.join(r['keywords'])}")
+          PY
+      - name: Publish reconstruction artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadow-source-authenticated-reconstruction
+          path: |
+            /tmp/ShadowSource.per
+            /tmp/shadow-source-rule-index.json
+            /tmp/shadow-targeted-rules.json
