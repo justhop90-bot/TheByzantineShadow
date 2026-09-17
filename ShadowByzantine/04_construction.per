@@ -1479,3 +1479,696 @@
 ; then proceed by normal source-order fall-through. Command issuance remains
 ; distinct from world-state completion; observed building counts are the
 ; completion/progression evidence where explicitly used by the donor.
+
+; ============================================================
+; R07 RULE 1875 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal MILL YES; can-build mill; building-type-count-total mill < 4
+; State writes: set-goal MILL NO
+; Pending guards: none
+; Commands: up-build place-control 0 c: mill; up-assign-builders c: mill c: 1
+; Placement operations: up-set-placement-data me mill g: goal; up-build place-control 0 c: mill
+; Completion/world observers: building-type-count-total mill < 4
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1876;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal MILL YES)
+    (can-build mill)
+    (building-type-count-total mill < 4)
+=>
+    ;	(up-chat-data-to-player me "FARMING MILL(%d)" g: goal)
+    (up-set-placement-data me mill g: goal)
+    (up-build place-control 0 c: mill)
+    (up-assign-builders c: mill c: 1)
+    (set-goal MILL NO)
+)
+
+; ============================================================
+; R07 RULE 1876 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: up-compare-goal MILL != YES; up-pending-placement c: mill; building-type-count-total mill < 2; building-type-count-total farm > 20; building-type-count-total mill < 3; building-type-count-total farm > 28; building-type-count-total mill < 4; building-type-count-total farm > 38
+; State writes: set-goal MILL YES
+; Pending guards: up-pending-placement c: mill
+; Commands: none
+; Placement operations: none
+; Completion/world observers: building-type-count-total mill < 2; building-type-count-total farm > 20; building-type-count-total mill < 3; building-type-count-total farm > 28; building-type-count-total mill < 4; building-type-count-total farm > 38
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1877;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (up-compare-goal MILL != YES)
+    (not(up-pending-placement c: mill))
+    (or	(and(building-type-count-total mill < 2)
+    (building-type-count-total farm > 20))
+    (or	(and(building-type-count-total mill < 3)
+    (building-type-count-total farm > 28))
+    (and(building-type-count-total mill < 4)
+    (building-type-count-total farm > 38))))
+=>
+    ;	(chat-to-player me "NEED MILL")
+    (set-goal MILL YES)
+)
+
+; ============================================================
+; R07 RULE 1877 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: game-time < 1200; goal gl-strategy KRUSH; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; building-type-count-total mining-camp >= 1
+; State writes: set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-placement-fail-delta 0; set-strategic-number sn-placement-zone-size 5
+; Pending guards: none
+; Commands: up-build place-normal gl-escrow-state c: mining-camp
+; Placement operations: up-build place-normal gl-escrow-state c: mining-camp
+; Completion/world observers: building-type-count-total mining-camp >= 1
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1878;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule	;failsafe
+    (game-time < 1200)
+    (goal gl-strategy KRUSH)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC1)
+    (building-type-count-total mining-camp >= 1)
+=>
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-placement-fail-delta 0)
+    (set-strategic-number sn-placement-zone-size 5)
+    ;	(chat-to-all "KRUSH FAILSAFE MC")
+    (up-build place-normal gl-escrow-state c: mining-camp)
+)
+
+; ============================================================
+; R07 RULE 1878 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-progression-pause -1; goal gl-strategy KRUSH; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; building-type-count-total mining-camp < 1
+; State writes: set-strategic-number sn-focus-player-number 0
+; Pending guards: none
+; Commands: none
+; Placement operations: up-full-reset-search; up-set-target-point home-x; up-find-remote c: gold-mine c: 40; up-clean-search search-remote 44 search-order-asc; up-remove-objects search-remote -1 > 0
+; Completion/world observers: building-type-count-total mining-camp < 1
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1879;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-progression-pause -1)
+    (goal gl-strategy KRUSH)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC1)
+    (building-type-count-total mining-camp < 1)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 30)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-remote c: gold-mine c: 40)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-clean-search search-remote 44 search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+)
+
+; ============================================================
+; R07 RULE 1879 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-tenth-turn 1; goal gl-strategy KRUSH; goal gl-progression-pause -1; dropsite-min-distance gold > 3; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; up-set-target-object search-remote c: 0; up-timer-status t-build-delay != timer-running
+; State writes: set-goal SPLIT 1
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: dropsite-min-distance gold > 3
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1880;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-tenth-turn 1)
+    (goal gl-strategy KRUSH)
+    (goal gl-progression-pause -1)
+    (dropsite-min-distance gold > 3)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC1)
+    (up-set-target-object search-remote c: 0)
+    (up-timer-status t-build-delay != timer-running)
+=>
+    (set-goal SPLIT 1)
+)
+
+; ============================================================
+; R07 RULE 1880 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal SPLIT 1
+; State writes: set-strategic-number sn-placement-zone-size 5; set-strategic-number sn-placement-fail-delta 0; set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-dropsite-separation-distance 10; set-escrow-percentage wood 0; set-goal SPLIT 0
+; Pending guards: none
+; Commands: release-escrow wood; up-build place-point 0 c: mining-camp
+; Placement operations: up-get-point position-object point-x; up-set-target-point point-x; up-build place-point 0 c: mining-camp
+; Completion/world observers: none
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1881;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal SPLIT 1)
+=>
+    (enable-timer t-build-delay 3)
+    ;	(chat-to-all "Krush First Gold Mining Camp")
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    ;	(up-send-flare point-x)
+    (set-strategic-number sn-placement-zone-size 5)
+    (set-strategic-number sn-placement-fail-delta 0)
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-dropsite-separation-distance 10)
+    (release-escrow wood)
+    (set-escrow-percentage wood 0)
+    (up-build place-point 0 c: mining-camp)
+    (set-goal SPLIT 0)
+)
+
+; ============================================================
+; R07 RULE 1881 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy KRUSH; dropsite-min-distance gold >= 5; up-compare-goal gl-build-progress > KrushGoldMCNumber
+; State writes: set-goal gl-build-progress KrushGoldMCNumber
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: dropsite-min-distance gold >= 5
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1882;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule	;come back if skipped
+    (goal gl-strategy KRUSH)
+    (dropsite-min-distance gold >= 5)
+    (up-compare-goal gl-build-progress > KrushGoldMCNumber)
+=>
+    (set-goal gl-build-progress KrushGoldMCNumber)
+)
+
+; ============================================================
+; R07 RULE 1882 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy KRUSH; up-compare-goal gl-current-build-item != GOLDMC1; up-compare-goal gl-build-progress == KrushGoldMCNumber
+; State writes: set-goal gl-current-build-item GOLDMC1
+; Pending guards: none
+; Commands: chat-to-player me "Krush Setting current build item to GOLDMC1"
+; Placement operations: none
+; Completion/world observers: none
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1883;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-current-build-item != GOLDMC1)
+    (up-compare-goal gl-build-progress == KrushGoldMCNumber)
+=>
+    ;	(chat-to-player me "Krush Setting current build item to GOLDMC1")
+    (set-goal gl-current-build-item GOLDMC1)
+)
+
+; ============================================================
+; R07 RULE 1883 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy KRUSH; dropsite-min-distance gold < 5; goal gl-current-build-item GOLDMC1
+; State writes: up-modify-goal gl-build-progress c:+ 1
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: dropsite-min-distance gold < 5
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1884;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-strategy KRUSH)
+    (dropsite-min-distance gold < 5)
+    (goal gl-current-build-item GOLDMC1)
+=>
+    ;	(chat-to-player me "Krush First Gold Mining Camp Built")
+    (up-modify-goal gl-build-progress c:+ 1)
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1884 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-fifth-turn 1; goal gl-strategy FLUSH; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; building-type-count-total mining-camp >= 1
+; State writes: set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-placement-fail-delta 0; set-strategic-number sn-placement-zone-size 5
+; Pending guards: none
+; Commands: up-build place-normal gl-escrow-state c: mining-camp
+; Placement operations: up-build place-normal gl-escrow-state c: mining-camp
+; Completion/world observers: building-type-count-total mining-camp >= 1
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1885;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule	;failsafe
+    (goal gl-fifth-turn 1)
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC1)
+    (building-type-count-total mining-camp >= 1)
+=>
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-placement-fail-delta 0)
+    (set-strategic-number sn-placement-zone-size 5)
+    ;	(chat-to-all "FLUSH FAILSAFE MC")
+    (up-build place-normal gl-escrow-state c: mining-camp)
+)
+
+; ============================================================
+; R07 RULE 1885 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy FLUSH; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; building-type-count-total mining-camp < 1
+; State writes: set-strategic-number sn-focus-player-number 0
+; Pending guards: none
+; Commands: none
+; Placement operations: up-full-reset-search; up-set-target-point home-x; up-find-remote c: gold-mine c: 40; up-clean-search search-remote 44 search-order-asc; up-remove-objects search-remote -1 > 0
+; Completion/world observers: building-type-count-total mining-camp < 1
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1886;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC1)
+    (building-type-count-total mining-camp < 1)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 30)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-remote c: gold-mine c: 40)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-clean-search search-remote 44 search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+)
+
+; ============================================================
+; R07 RULE 1886 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-tenth-turn 1; goal gl-strategy FLUSH; goal gl-progression-pause -1; dropsite-min-distance gold > 3; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; up-set-target-object search-remote c: 0; up-timer-status t-build-delay != timer-running
+; State writes: set-goal SPLIT 1
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: dropsite-min-distance gold > 3
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1887;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-tenth-turn 1)
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (dropsite-min-distance gold > 3)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC1)
+    (up-set-target-object search-remote c: 0)
+    (up-timer-status t-build-delay != timer-running)
+=>
+    (set-goal SPLIT 1)
+)
+
+; ============================================================
+; R07 RULE 1887 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal SPLIT 1
+; State writes: set-strategic-number sn-placement-zone-size 5; set-strategic-number sn-placement-fail-delta 0; set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-dropsite-separation-distance 10; set-escrow-percentage wood 0; set-goal SPLIT 0
+; Pending guards: none
+; Commands: release-escrow wood; up-build place-point 0 c: mining-camp
+; Placement operations: up-get-point position-object point-x; up-set-target-point point-x; up-build place-point 0 c: mining-camp
+; Completion/world observers: none
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1888;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal SPLIT 1)
+=>
+    (enable-timer t-build-delay 3)
+    ;	(chat-to-all "First Gold Mining Camp")
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    ;	(up-send-flare point-x)
+    (set-strategic-number sn-placement-zone-size 5)
+    (set-strategic-number sn-placement-fail-delta 0)
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-dropsite-separation-distance 10)
+    (release-escrow wood)
+    (set-escrow-percentage wood 0)
+    (up-build place-point 0 c: mining-camp)
+    (set-goal SPLIT 0)
+)
+
+; ============================================================
+; R07 RULE 1888 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy FLUSH; dropsite-min-distance gold >= 5; up-compare-goal gl-build-progress > GoldMC1Number
+; State writes: set-goal gl-build-progress GoldMC1Number
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: dropsite-min-distance gold >= 5
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1889;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (dropsite-min-distance gold >= 5)
+    (up-compare-goal gl-build-progress > GoldMC1Number)
+=>
+    (set-goal gl-build-progress GoldMC1Number)
+)
+
+; ============================================================
+; R07 RULE 1889 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy FLUSH; up-compare-goal gl-current-build-item != GOLDMC1; up-compare-goal gl-build-progress == GoldMC1Number
+; State writes: set-goal gl-current-build-item GOLDMC1; set-escrow-percentage wood LOW-ESCROW
+; Pending guards: none
+; Commands: chat-to-player me "Setting current build item to GOLDMC1"
+; Placement operations: none
+; Completion/world observers: none
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1890;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != GOLDMC1)
+    (up-compare-goal gl-build-progress == GoldMC1Number)
+=>
+    ;	(chat-to-player me "Setting current build item to GOLDMC1")
+    (set-goal gl-current-build-item GOLDMC1)
+    (set-escrow-percentage wood LOW-ESCROW)
+)
+
+; ============================================================
+; R07 RULE 1890 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy FLUSH; dropsite-min-distance gold < 5; goal gl-current-build-item GOLDMC1
+; State writes: up-modify-goal gl-build-progress c:+ 1
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: dropsite-min-distance gold < 5
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1891;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-strategy FLUSH)
+    (dropsite-min-distance gold < 5)
+    (goal gl-current-build-item GOLDMC1)
+=>
+    ;	(chat-to-player me "First Gold Mining Camp Built")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; ============================================================
+; R07 RULE 1891 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: none
+; State writes: none
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: none
+; Explicit jumps: up-jump-rule 5
+; Source-order semantics: fall-through successor is R07 rule 1892;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (true)
+=>
+    (up-jump-rule 5)
+)
+
+; ============================================================
+; R07 RULE 1892 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC2
+; State writes: set-strategic-number sn-focus-player-number 0
+; Pending guards: none
+; Commands: none
+; Placement operations: up-full-reset-search; up-set-target-point home-x; up-find-remote c: gold-mine c: 30; up-clean-search search-remote 44 search-order-desc
+; Completion/world observers: none
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1893;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (false)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC2)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 30)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-remote c: gold-mine c: 30)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-clean-search search-remote 44 search-order-desc)
+)
+
+; ============================================================
+; R07 RULE 1893 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC2; up-set-target-object search-remote c: 0; up-timer-status t-build-delay != timer-running
+; State writes: set-strategic-number sn-placement-zone-size 15; set-strategic-number sn-placement-fail-delta 2; set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-dropsite-separation-distance 25
+; Pending guards: none
+; Commands: release-escrow wood; up-build place-point 0 c: mining-camp
+; Placement operations: up-get-point position-object point-x; up-set-target-point point-x; up-build place-point 0 c: mining-camp
+; Completion/world observers: none
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1894;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (false)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item GOLDMC2)
+    (up-set-target-object search-remote c: 0)
+    ;	(up-timer-status t-build-delay != timer-running)
+=>
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    (chat-to-player me "Second Gold Mining Camp")
+    (set-strategic-number sn-placement-zone-size 15)
+    (set-strategic-number sn-placement-fail-delta 2)
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-dropsite-separation-distance 25)
+    (release-escrow wood)
+    (up-build place-point 0 c: mining-camp)
+    ;	(enable-timer t-build-delay 3)
+)
+
+; ============================================================
+; R07 RULE 1894 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy FLUSH; building-type-count-total mining-camp < 3; up-compare-goal gl-build-progress > GoldMC2Number
+; State writes: set-goal gl-build-progress GoldMC2Number
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: building-type-count-total mining-camp < 3
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1895;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (building-type-count-total mining-camp < 3)
+    (up-compare-goal gl-build-progress > GoldMC2Number)
+=>
+    (set-goal gl-build-progress GoldMC2Number)
+)
+
+; ============================================================
+; R07 RULE 1895 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy FLUSH; up-compare-goal gl-current-build-item != GOLDMC2; up-compare-goal gl-build-progress == GoldMC2Number
+; State writes: set-goal gl-current-build-item GOLDMC2; set-escrow-percentage wood LOW-ESCROW
+; Pending guards: none
+; Commands: chat-to-player me "Setting current build item to GOLDMC2"
+; Placement operations: none
+; Completion/world observers: none
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1896;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != GOLDMC2)
+    (up-compare-goal gl-build-progress == GoldMC2Number)
+=>
+    ;	(chat-to-player me "Setting current build item to GOLDMC2")
+    (set-goal gl-current-build-item GOLDMC2)
+    (set-escrow-percentage wood LOW-ESCROW)
+)
+
+; ============================================================
+; R07 RULE 1896 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-current-build-item GOLDMC2; building-type-count-total mining-camp >= 3
+; State writes: up-modify-goal gl-build-progress c:+ 1
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: building-type-count-total mining-camp >= 3
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1897;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-current-build-item GOLDMC2)
+    (building-type-count-total mining-camp >= 3)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "Second Gold Mining Camp Built")
+)
+
+; ============================================================
+; R07 RULE 1897 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-fifth-turn 1; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item STONEMC1
+; State writes: set-strategic-number sn-focus-player-number 0
+; Pending guards: none
+; Commands: none
+; Placement operations: up-full-reset-search; up-set-target-point home-x; up-find-remote c: stone-mine c: 40; up-clean-search search-remote object-data-distance search-order-asc; up-remove-objects search-remote -1 > 0
+; Completion/world observers: none
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1898;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-fifth-turn 1)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item STONEMC1)
+=>
+    (set-strategic-number sn-focus-player-number 0)
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 30)
+    (up-find-remote c: stone-mine c: 40)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-clean-search search-remote object-data-distance search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+)
+
+; ============================================================
+; R07 RULE 1898 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-fifth-turn 1; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item STONEMC1; building-type-count-total farm >= 12; up-set-target-object search-remote c: 0
+; State writes: set-strategic-number sn-placement-zone-size 5; set-strategic-number sn-placement-fail-delta 10; set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-dropsite-separation-distance 10; set-escrow-percentage wood 0
+; Pending guards: none
+; Commands: release-escrow wood; up-build place-point 0 c: mining-camp
+; Placement operations: up-get-point position-object point-x; up-set-target-point point-x; up-build place-point 0 c: mining-camp
+; Completion/world observers: building-type-count-total farm >= 12
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1899;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule
+    (goal gl-fifth-turn 1)
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow mining-camp)
+    (goal gl-current-build-item STONEMC1)
+    ;	(building-type-count-total farm >= 12)
+    (up-set-target-object search-remote c: 0)
+=>
+    ;	(chat-to-player me "First Stone Mining Camp")
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    ;	(up-send-flare point-x)
+    (set-strategic-number sn-placement-zone-size 5)
+    (set-strategic-number sn-placement-fail-delta 10)
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-dropsite-separation-distance 10)
+    (release-escrow wood)
+    (set-escrow-percentage wood 0)
+    (up-build place-point 0 c: mining-camp)
+)
+
+; ============================================================
+; R07 RULE 1899 -- AUTHENTICATED DONOR DOCUMENTATION
+; ============================================================
+; State reads: goal gl-strategy FLUSH; dropsite-min-distance stone >= 5; up-compare-goal gl-build-progress > StoneMC1Number
+; State writes: set-goal gl-build-progress StoneMC1Number
+; Pending guards: none
+; Commands: none
+; Placement operations: none
+; Completion/world observers: dropsite-min-distance stone >= 5
+; Explicit jumps: none
+; Source-order semantics: fall-through successor is R07 rule 1900;
+;                        explicit jump targets, if any, are preserved verbatim.
+; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
+;          mechanically extracted annotations and are not runtime proof.
+
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (dropsite-min-distance stone >= 5)
+    (up-compare-goal gl-build-progress > StoneMC1Number)
+=>
+    (set-goal gl-build-progress StoneMC1Number)
+)
