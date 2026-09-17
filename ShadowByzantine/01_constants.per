@@ -121,3 +121,36 @@
 (defconst place-forward 1)
 
 (defconst AEGIS-SPEARMAN-TARGET 3)
+
+; ============================================================
+; STRATEGIC RESERVE POLICY ABI
+; ============================================================
+;
+; The following numeric values are storage identifiers or enum
+; discriminants only. They do NOT encode resource reserve amounts.
+
+(defconst AEGIS-RESERVE-EARLY 1)
+(defconst AEGIS-RESERVE-DEVELOPMENT 2)
+(defconst AEGIS-RESERVE-MILITARY 3)
+(defconst AEGIS-RESERVE-LATE 4)
+
+(defconst AEGIS-RESERVE-POLICY-SOURCE 574)
+(defconst AEGIS-RESERVE-POLICY-READY 575)
+(defconst AEGIS-RESERVE-INPUT-FOOD 576)
+(defconst AEGIS-RESERVE-INPUT-WOOD 577)
+(defconst AEGIS-RESERVE-INPUT-GOLD 578)
+(defconst AEGIS-RESERVE-INPUT-STONE 579)
+
+(defconst AEGIS-RESERVE-UNBOUND 0)
+(defconst AEGIS-RESERVE-BOUND 1)
+
+(defconst AEGIS-CAPITAL-RESERVE-STATE 580)
+(defconst AEGIS-DISCRETIONARY-SLACK-FOOD 581)
+(defconst AEGIS-DISCRETIONARY-SLACK-WOOD 582)
+(defconst AEGIS-DISCRETIONARY-SLACK-GOLD 583)
+(defconst AEGIS-DISCRETIONARY-SLACK-STONE 584)
+(defconst AEGIS-RESERVE-CAPITAL-FEASIBILITY 585)
+
+(defconst AEGIS-RESERVE-CAPITAL-UNQUALIFIED 0)
+(defconst AEGIS-RESERVE-CAPITAL-SUFFICIENT 1)
+(defconst AEGIS-RESERVE-CAPITAL-INSUFFICIENT 2)
