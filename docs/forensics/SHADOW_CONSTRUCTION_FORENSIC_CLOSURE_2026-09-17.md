@@ -219,6 +219,17 @@ unloaded scaffolding with documented defects, untouched by this tranche.
   shipped Byzantine tree (verified against BYZANTINES tech data);
   Bloodlines/Blast Furnace do not appear in this slice. Zero
   substitutions required.
+- Identifier audit 2026-09-17 (prompted by invalid line 27,
+  `EskirmsNumber`): full mechanical sweep of every identifier read by
+  the slice found 38 donor-valued symbols without a repository
+  defconst; all registered donor-exact in `01a` (EskirmsNumber 20 plus
+  pause/tech/build-item/Number/age/tracker/timer identifiers with
+  donor line citations). Remaining unregistered tokens are engine
+  builtins (unit/building/resource IDs, engine facts/commands,
+  mathOps) needing none. Pipeline gap recorded: the module
+  qualifier's unresolved-symbol check covers only `gl-*`/SPLIT, so
+  non-goal identifiers require this manual sweep per transplanted
+  slice; added to the tranche procedure going forward.
 
 ## Amendment record 2026-09-17 — automation collision (append-duplicate)
 
