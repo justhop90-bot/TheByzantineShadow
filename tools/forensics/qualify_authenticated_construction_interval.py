@@ -106,6 +106,20 @@ def consts(text: str) -> dict[str, str]:
     return found
 
 
+def const_locations(root: Path) -> dict[str, list[tuple[str, str]]]:
+    result: dict[str, list[tuple[str, str]]] = {}
+    for path in root.rglob("*.per"):
+        if path.name == "ShadowSource.per":
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        for name, value in consts(text).items():
+            result.setdefault(name, []).append((str(path.relative_to(root)), value))
+    return result
+
+
 def main() -> None:
     sb = SOURCE.read_bytes()
     ib = IMPLEMENTATION.read_text(encoding="utf-8")
@@ -118,54 +132,40 @@ def main() -> None:
     ir = rules(ib)
     if len(sr) != EXPECTED_DONOR_RULES:
         raise SystemExit(f"DONOR_RULE_COUNT_MISMATCH={len(sr)}")
-
     expected = LAST - FIRST + 1
     if len(ir) != expected:
-        raise SystemExit(
-            f"IMPLEMENTATION_RULE_COUNT_MISMATCH={len(ir)} EXPECTED={expected}"
-        )
+        raise SystemExit(f"IMPLEMENTATION_RULE_COUNT_MISMATCH={len(ir)} EXPECTED={expected}")
 
     donor = sr[FIRST - 1 : LAST]
-    mismatches: list[int] = []
-    for rid, (d, i) in enumerate(zip(donor, ir), FIRST):
-        if norm(d) != norm(i):
-            mismatches.append(rid)
+    mismatches = [rid for rid, (d, i) in enumerate(zip(donor, ir), FIRST) if norm(d) != norm(i)]
     if mismatches:
         raise SystemExit(f"RULE_BODY_MISMATCHES={mismatches}")
 
     donor_jumps = jump_edges(donor, FIRST)
     impl_jumps = jump_edges(ir, FIRST)
     if donor_jumps != impl_jumps:
-        raise SystemExit(
-            f"JUMP_MISMATCH_DONOR={donor_jumps}_IMPLEMENTATION={impl_jumps}"
-        )
-
+        raise SystemExit(f"JUMP_MISMATCH_DONOR={donor_jumps}_IMPLEMENTATION={impl_jumps}")
     expected_jumps = [(rid, rid + delta, delta) for rid, delta in KNOWN_JUMPS.items()]
     if donor_jumps != expected_jumps:
         raise SystemExit(f"UNEXPECTED_DONOR_JUMP_TOPOLOGY={donor_jumps}")
-
     if any(src < FIRST or src > LAST or dst < FIRST or dst > LAST for src, dst, _ in donor_jumps):
         raise SystemExit(f"JUMP_TARGET_OUTSIDE_INTERVAL={donor_jumps}")
 
     fallthrough = [(rid, rid + 1) for rid in range(FIRST, LAST)]
     cross_in = (FIRST - 1, FIRST)
     cross_out = (LAST, LAST + 1)
-    cross_jump_edges = [
-        (src, dst, delta)
-        for src, dst, delta in donor_jumps
-        if src < FIRST or src > LAST or dst < FIRST or dst > LAST
-    ]
+    cross_jump_edges = [(s, d, j) for s, d, j in donor_jumps if s < FIRST or s > LAST or d < FIRST or d > LAST]
     if cross_jump_edges:
         raise SystemExit(f"CROSS_BOUNDARY_JUMP_PRESENT={cross_jump_edges}")
 
     donor_consts = consts(sb.decode("utf-8"))
     impl_consts = consts(ib)
     registry_consts = consts(cb)
+    locations = const_locations(ROOT)
+    print("COMPATIBILITY_CONSTANT_AUDIT_BEGIN")
     for name in COMPAT_CONSTANTS:
         if name not in impl_consts:
             raise SystemExit(f"MISSING_IMPLEMENTATION_COMPAT_CONSTANT={name}")
-    print("COMPATIBILITY_CONSTANT_AUDIT_BEGIN")
-    for name in COMPAT_CONSTANTS:
         iv = impl_consts[name]
         dv = donor_consts.get(name)
         rv = registry_consts.get(name)
@@ -177,8 +177,14 @@ def main() -> None:
             classification = "REGISTRY_MATCH_NO_DIRECT_DONOR_DEFINITION"
         else:
             classification = "UNRESOLVED_ENGINE_OR_PROJECT_SYMBOL"
-        print(f"COMPAT_CONSTANT {name} implementation={iv} donor={dv if dv is not None else 'ABSENT'} registry={rv if rv is not None else 'ABSENT'} class={classification}")
+        loc = locations.get(name, [])
+        print(f"COMPAT_CONSTANT {name} implementation={iv} donor={dv if dv is not None else 'ABSENT'} registry={rv if rv is not None else 'ABSENT'} class={classification} repository_defs={loc}")
     print("COMPATIBILITY_CONSTANT_AUDIT_END")
+
+    duplicate_defs = {name: vals for name, vals in locations.items() if len(vals) > 1}
+    print(f"PROJECT_DUPLICATE_DEFCONST_NAMES={len(duplicate_defs)}")
+    for name in sorted(set(COMPAT_CONSTANTS) & set(duplicate_defs)):
+        print(f"COMPAT_DUPLICATE_DEFCONST {name} definitions={duplicate_defs[name]}")
 
     print(f"AUTHENTICATED_DONOR_SHA={sha}")
     print(f"DONOR_RULE_COUNT={len(sr)}")
