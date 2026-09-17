@@ -1634,7 +1634,7 @@
     (up-set-target-point home-x)
     (up-filter-distance c: 5 c: -1)
     (up-find-local c: livestock-class c: 5)
-    (up-remove-objects search-local object-data-idling == 0)
+    ;REMOVED-DEAD-ON-DE (up-remove-objects search-local object-data-idling == 0)
     (up-remove-objects search-local object-data-id g:== sheep1-id)
     (up-get-search-state lt)
     (up-target-point home-x action-move -1 -1)

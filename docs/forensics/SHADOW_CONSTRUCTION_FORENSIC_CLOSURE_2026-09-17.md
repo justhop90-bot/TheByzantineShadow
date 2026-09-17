@@ -311,6 +311,23 @@ target reference against `goal1` — closest engine-valid form,
 behavioral parity subject to runtime observation. Deviation already
 recorded for rule 260.
 
+## Amendment record 2026-09-17 — object-data-idling (02b:1637)
+
+Engine dialog at donor rule 378's
+`(up-remove-objects search-local object-data-idling == 0)`.
+Corroborated dead three ways: registry notes it "does not work,"
+it is absent from the exe string table alongside the other
+engine-unknown object-data names, and every alternative on the line
+is engine-cleared (up-remove-objects proven via 04's `-1` uses;
+`== 0` trivially valid). Commented out (donor rule 378 deviated);
+the rule now counts found livestock minus sheep1-id without the
+idle filter — documented degradation, revisit with a DE-native
+idle test if one is ever proven. Side benefit of this run: the
+engine parsed clean through line 1636, retro-validating the
+status-resource replacements, object-data-target, up-set-target-
+object in conditions, up-target-point delete, and up-filter-include
+— all formerly theory-grade, now engine-grade.
+
 ## Amendment record 2026-09-17 — UP-era stance aliases (02b line 69)
 
 Engine dialog `ERR2005` at `(up-target-point explo-x action-move -1
