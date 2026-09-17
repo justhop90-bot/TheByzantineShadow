@@ -18,9 +18,16 @@ jobs:
           EXPECTED_SHA1: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
         run: |
           curl --fail --silent --show-error --location \
-            -H 'Accept: application/vnd.github.raw+json' \
+            -H 'Accept: application/vnd.github+json' \
             "https://api.github.com/repos/justhop90-bot/TheByzantineShadow/git/blobs/${EXPECTED_SHA1}" \
-            -o /tmp/ShadowSource.per
+            -o /tmp/blob.json
+          python3 - <<'PY'
+          import base64, json, pathlib
+          d=json.loads(pathlib.Path('/tmp/blob.json').read_text())
+          assert d['sha'] == '70a18a3b69e8ea46bd5132673fe9fcf8a36595ee'
+          assert d['encoding'] == 'base64'
+          pathlib.Path('/tmp/ShadowSource.per').write_bytes(base64.b64decode(d['content']))
+          PY
           sha1sum /tmp/ShadowSource.per
           test "$(sha1sum /tmp/ShadowSource.per | cut -d' ' -f1)" = "$EXPECTED_SHA1"
       - name: Reconstruct and verify
