@@ -160,7 +160,7 @@
 =>
     (up-full-reset-search)
     (up-filter-distance c: -1 c: 5)
-    (up-filter-status c: status-ready c: list-active)
+    (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 50)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -207,7 +207,7 @@
 =>
     (up-full-reset-search)
     (up-filter-distance c: -1 c: 5)
-    (up-filter-status c: status-ready c: list-active)
+    (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 50)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -291,7 +291,7 @@
     (up-set-target-point point-x)
     (up-filter-distance c: -1 c: 5)
     (up-filter-status c: status-resource c: list-active)
-    ;	(up-filter-status c: status-ready c: list-active)
+    ;	(up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: gold c: 1)		;gold-mine
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -351,7 +351,7 @@
 (defrule
     (goal SPLIT 1)
 =>
-    (up-filter-status c: status-ready c: list-active)
+    (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 30)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -456,7 +456,7 @@
 (defrule
     (goal SPLIT 1)
 =>
-    (up-filter-status c: status-ready c: list-active)
+    (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 30)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -535,7 +535,7 @@
     (up-full-reset-search)
     (up-set-target-point point-x)
     (up-filter-distance c: -1 c: 3)
-    (up-filter-status c: status-ready c: list-active)
+    (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 30)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
@@ -597,7 +597,7 @@
     (up-full-reset-search)
     (up-set-target-point point-x)
     (up-filter-distance c: -1 c: 10)
-    (up-filter-status c: status-ready c: list-active)
+    (up-filter-status c: status-resource c: list-active)
     (set-strategic-number sn-focus-player-number 0)
     (up-find-resource c: wood c: 30)
     (up-modify-sn sn-focus-player-number s:= sn-target-player-number)

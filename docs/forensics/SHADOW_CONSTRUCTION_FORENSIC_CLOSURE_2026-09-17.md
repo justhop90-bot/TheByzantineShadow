@@ -315,6 +315,20 @@ with `stance-*` names. Sweep confirmed no bare `aggressive` /
 `stand-ground` stance uses and no other stance-position violations
 (`gl-aggressive-vills` hits are goal-name substrings, not stances).
 
+## Amendment record 2026-09-17 — status-ready operand (02b, engine-proven)
+
+Engine dialogs (02b:163 then :210, same shape) prove DE rejects
+`status-ready` in `up-filter-status`: stock uses only
+`status-resource` there, and all 6 donor occurrences feed wood
+(resource) finds, where `status-resource` is both valid and
+semantically righter (resources carry status 3). Replaced in donor
+rules 249, 252, 262, 272, 279, 285 with deviations recorded in
+config. `status-pending` foundation-finds left untouched pending
+engine evidence (no silent lobotomies). Collateral lesson: an edit
+tool reporting success without a match count silently did nothing
+once (tab-vs-space indent) — verify every edit mechanically
+afterward.
+
 ## Amendment record 2026-09-17 — scouting slice (rules 237–480)
 
 - New `ShadowByzantine/02b_donor_scouting.per`: authenticated donor
