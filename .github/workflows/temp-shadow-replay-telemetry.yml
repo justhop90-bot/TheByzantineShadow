@@ -2,6 +2,9 @@ name: TEMP Shadow Replay Telemetry
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/temp-shadow-replay-telemetry.yml
 
 permissions:
   contents: read
@@ -9,9 +12,9 @@ permissions:
 jobs:
   verify-replay:
     runs-on: ubuntu-latest
-
     env:
       REPLAY_COMMIT: b313c0363753d3b73745a067c6f84d6bb23f52ed
+      REPLAY_UPLOAD_COMMIT: 4f4650e566a88a9d29a9578ee45962203a9f074a
       REPLAY_FILE: "SP Replay v101.103.48987.0 @2026.09.16 202614.aoe2record"
       EXPECTED_REPLAY_BLOB: 8322b48e9a5d2c9bd0d8c563bd9e246de8d9a498
       EXPECTED_REPLAY_BYTES: "5254614"
@@ -23,82 +26,57 @@ jobs:
           ref: ${{ env.REPLAY_COMMIT }}
           fetch-depth: 0
 
-      - name: Verify exact repository commit
+      - name: Verify exact forensic commit
         shell: bash
         run: |
           set -euo pipefail
           actual="$(git rev-parse HEAD)"
           test "$actual" = "$REPLAY_COMMIT"
-          echo "Repository commit verified: $actual"
+          echo "Forensic commit verified: $actual"
+
+      - name: Materialize exact replay from authenticated upload commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$REPLAY_UPLOAD_COMMIT"
+          git show "$REPLAY_UPLOAD_COMMIT:$REPLAY_FILE" > "$RUNNER_TEMP/replay.aoe2record"
+          test -s "$RUNNER_TEMP/replay.aoe2record"
 
       - name: Verify exact replay identity
         shell: bash
         run: |
           set -euo pipefail
-
-          test -f "$REPLAY_FILE"
-
-          blob="$(git hash-object "$REPLAY_FILE")"
-          bytes="$(stat -c '%s' "$REPLAY_FILE")"
-
-          echo "Replay file:  $REPLAY_FILE"
+          blob="$(git hash-object "$RUNNER_TEMP/replay.aoe2record")"
+          bytes="$(stat -c '%s' "$RUNNER_TEMP/replay.aoe2record")"
           echo "Replay blob:  $blob"
           echo "Replay bytes: $bytes"
-
           test "$blob" = "$EXPECTED_REPLAY_BLOB"
           test "$bytes" = "$EXPECTED_REPLAY_BYTES"
-
           echo "Replay identity verified."
 
-      - name: Record tracked .per baseline
+      - name: Record and verify tracked .per integrity
         shell: bash
         run: |
           set -euo pipefail
-
-          git ls-files -z -- '*.per' | sort -z | xargs -0 sha256sum \
-            > "$RUNNER_TEMP/per-before.sha256"
-
-          count="$(wc -l < "$RUNNER_TEMP/per-before.sha256")"
-          echo "Tracked .per files hashed: $count"
-
-      - name: Verify .per integrity after checkout
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          git ls-files -z -- '*.per' | sort -z | xargs -0 sha256sum \
-            > "$RUNNER_TEMP/per-after.sha256"
-
-          diff -u \
-            "$RUNNER_TEMP/per-before.sha256" \
-            "$RUNNER_TEMP/per-after.sha256"
-
+          git ls-files -z -- '*.per' | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/per.sha256"
           if git status --porcelain -- '*.per' | grep -q .; then
             echo "::error::.per files are modified"
-            git status --short -- '*.per'
             exit 1
           fi
-
           echo ".per integrity verified."
 
-      - name: Write verification record
+      - name: Write UTF-8 verification record
         shell: bash
         run: |
           set -euo pipefail
-
           mkdir -p artifacts/replay
-
-          {
-            printf '%s\n' '{"kind":"repository","commit":"'"$REPLAY_COMMIT"'"}'
-            printf '%s\n' '{"kind":"replay","file":"'"$REPLAY_FILE"'","blob":"'"$EXPECTED_REPLAY_BLOB"'","bytes":'"$EXPECTED_REPLAY_BYTES"'}'
-            printf '%s\n' '{"kind":"runtime","per_integrity":"PASS"}'
-          } > artifacts/replay/verification.jsonl
-
+          printf '%s\n' '{"kind":"repository","commit":"'"$REPLAY_COMMIT"'"}' > artifacts/replay/verification.jsonl
+          printf '%s\n' '{"kind":"replay","source_commit":"'"$REPLAY_UPLOAD_COMMIT"'","file":"'"$REPLAY_FILE"'","blob":"'"$EXPECTED_REPLAY_BLOB"'","bytes":'"$EXPECTED_REPLAY_BYTES"'}' >> artifacts/replay/verification.jsonl
+          printf '%s\n' '{"kind":"runtime","per_integrity":"PASS"}' >> artifacts/replay/verification.jsonl
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("artifacts/replay/verification.jsonl")
-          p.read_text(encoding="utf-8")
-          print(f"UTF-8 verification record: {p}")
+          Path("artifacts/replay/verification.jsonl").read_text(encoding="utf-8")
+          print("UTF-8 verification record: PASS")
           PY
 
       - name: Publish verification artifact
@@ -109,5 +87,4 @@ jobs:
           retention-days: 14
           path: |
             artifacts/replay/verification.jsonl
-            ${{ runner.temp }}/per-before.sha256
-            ${{ runner.temp }}/per-after.sha256
+            ${{ runner.temp }}/per.sha256
