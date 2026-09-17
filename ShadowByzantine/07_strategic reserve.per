@@ -1,71 +1,50 @@
 ; ============================================
-; AEGIS PROOF OF CONCEPT
-; MODULE 07 — STRATEGIC RESERVE
+; THE BYZANTINE SHADOW
+; MODULE 07 -- STRATEGIC RESERVE POLICY
 ; ============================================
 ;
 ; PURPOSE
-; -------
-; Derive resource-specific strategic reserves
-; from current engine state and explicit AEGIS
-; reserve policy.
-;
-; ARCHITECTURE
-; ------------
-; ENGINE STATE
-;     |
-;     +-- current-age
-;     |
-;     +-- military-population
-;     |
-;     v
-; RESERVE POLICY
-;     |
-;     v
-; RESOURCE-SPECIFIC RESERVE
-;     |
-;     v
-; MODULE 09
-; LIQUID - RESERVE = DISCRETIONARY
+;   Select the strategic reserve POLICY CLASS from engine state.
 ;
 ; IMPORTANT
-; ---------
-; Strategic reserve is NOT engine escrow.
+;   Policy class != reserve amount.
+;   This module no longer fabricates the missing numeric reserve
+;   constants. The four resource reserve values remain an explicit
+;   provider ABI input.
 ;
-; Engine escrow = committed capital.
-; Strategic reserve = capital AEGIS deliberately
-; protects from discretionary allocation.
+; Architecture:
 ;
-; Constants are declared centrally in
-; 01_constants.per.
+;   ENGINE STATE
+;       |
+;       +-- current-age
+;       +-- military-population
+;       v
+;   POLICY CLASS
+;       |
+;       v
+;   AUTHORITATIVE RESERVE PROVIDER [UNQUALIFIED]
+;       |
+;       v
+;   AEGIS-RESERVE-FOOD..STONE
+;       |
+;       v
+;   MODULE 09
 ;
-; This module does NOT:
-;   - modify engine escrow
-;   - build
-;   - train
-;   - research
-;   - authorize a transaction
-;   - execute a transaction
+; Engine escrow remains separate from strategic reserve.
 ;
 ; ============================================
-
-
-; ============================================
-; INITIALIZE POLICY
+; POLICY INITIALIZATION
 ; ============================================
 
 (defrule
     (true)
 =>
     (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-EARLY)
+    (set-goal AEGIS-RESERVE-POLICY-READY AEGIS-RESERVE-UNBOUND)
 )
 
-
 ; ============================================
-; DARK AGE
-; ============================================
-;
-; Protect basic transition capital.
-;
+; POLICY CLASS SELECTION
 ; ============================================
 
 (defrule
@@ -108,58 +87,20 @@
     (set-goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-LATE)
 )
 
-
 ; ============================================
-; APPLY EARLY RESERVE
+; PROVIDER HANDSHAKE
 ; ============================================
-
-(defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-EARLY)
-=>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-EARLY-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-EARLY-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-EARLY-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-EARLY-STONE-RESERVE)
-)
-
-
-; ============================================
-; APPLY DEVELOPMENT RESERVE
-; ============================================
-
-(defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-DEVELOPMENT)
-=>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-DEVELOPMENT-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-DEVELOPMENT-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-DEVELOPMENT-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-DEVELOPMENT-STONE-RESERVE)
-)
-
-
-; ============================================
-; APPLY MILITARY RESERVE
-; ============================================
-
-(defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-MILITARY)
-=>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-MILITARY-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-MILITARY-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-MILITARY-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-MILITARY-STONE-RESERVE)
-)
-
-
-; ============================================
-; APPLY LATE RESERVE
-; ============================================
-
-(defrule
-    (goal AEGIS-RESERVE-POLICY AEGIS-RESERVE-LATE)
-=>
-    (set-goal AEGIS-RESERVE-FOOD AEGIS-LATE-FOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-WOOD AEGIS-LATE-WOOD-RESERVE)
-    (set-goal AEGIS-RESERVE-GOLD AEGIS-LATE-GOLD-RESERVE)
-    (set-goal AEGIS-RESERVE-STONE AEGIS-LATE-STONE-RESERVE)
-)
+;
+; No rule in this module writes a numeric reserve amount.
+;
+; A separate authoritative provider must populate:
+;   AEGIS-RESERVE-INPUT-FOOD
+;   AEGIS-RESERVE-INPUT-WOOD
+;   AEGIS-RESERVE-INPUT-GOLD
+;   AEGIS-RESERVE-INPUT-STONE
+;
+; and only then set:
+;   AEGIS-RESERVE-POLICY-READY = AEGIS-RESERVE-BOUND
+;
+; Module 09 must treat UNBOUND as a hard stop for reserve-adjusted
+; feasibility.
