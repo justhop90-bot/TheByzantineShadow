@@ -1,1 +1,38 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; PASS 1 RUNTIME MODULE ORCHESTRATOR
+; ============================================================
+;
+; Pass 1 intentionally loads only the minimum clean dependency
+; surface required for one complete economic transaction.
+;
+; The older 05-15 modules remain in the repository as historical
+; scaffolding. They are NOT loaded by the Pass 1 runtime because
+; several are incomplete and/or represent parallel implementations
+; of the transaction lifecycle. Loading them would create competing
+; writers and destroy the forensic boundary of this pass.
+;
+; Runtime objective:
+;   Byzantine Spearman x1.
+;
+; Transaction chain:
+;   objective -> progression -> capital -> escrow -> authority
+;   -> baseline -> execution -> world verification -> release
+;   -> release observation -> idle.
+;
+; ============================================================
 
+(load "01_constants")
+(load "01b_byz_constants")
+(load "02_state")
+(load "03_economy")
+(load "04_construction")
+
+; ------------------------------------------------------------
+; PASS 1 TRANSACTION KERNEL
+; ------------------------------------------------------------
+(load "16_pass1_transaction")
+
+; ============================================================
+; END PASS 1 RUNTIME GRAPH
+; ============================================================
