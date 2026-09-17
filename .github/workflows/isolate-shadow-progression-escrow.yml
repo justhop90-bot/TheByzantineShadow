@@ -1,0 +1,21 @@
+name: Isolate Shadow progression-escrow graph
+on:
+  push:
+    paths:
+      - 'ShadowSource.per'
+      - 'tools/forensics/isolate_shadow_progression_escrow.py'
+      - '.github/workflows/isolate-shadow-progression-escrow.yml'
+  workflow_dispatch:
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build authenticated progression-escrow graph
+        run: python3 tools/forensics/isolate_shadow_progression_escrow.py ShadowSource.per shadow-progression-escrow-out
+      - name: Upload progression-escrow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadow-progression-escrow
+          path: shadow-progression-escrow-out/
