@@ -9,35 +9,28 @@
 ;   Own actual engine escrow mutation, commitment observation,
 ;   release execution, and release observation.
 ;
-; This module does NOT:
-;   - choose the objective;
-;   - determine strategic demand;
-;   - determine capital feasibility;
-;   - grant execution authority;
-;   - execute training;
-;   - verify unit completion;
-;   - perform recovery.
-;
-; Pass 1 demonstrator requirement:
-;   60 food + 40 wood.
-;
-; The physical escrow operation remains here. The literals are kept
-; in this experimental slice because the engine operand contract for
-; symbolic goal-valued escrow quantities has not yet been separately
-; qualified. Final production cost authority remains an open module
-; qualification item.
+; Module 08 owns the transaction cost vector. No resource price is
+; hard-coded here.
 ;
 ; ============================================
-; COMMITTING -> ENGINE ESCROW MUTATION
+; REQUIREMENT -> ESCROW COMMIT
 ; ============================================
-
+;
+; The four transaction goals are a contiguous UP cost-data block:
+;   475 food, 476 wood, 477 gold, 478 stone.
+;
+; The g: prefix is mandatory because the right-hand operand is a
+; goal-store value, not a constant.
+;
 (defrule
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
     (goal AEGIS-CAPITAL-FEASIBILITY 1)
     (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
 =>
-    (up-modify-escrow food c:max 60)
-    (up-modify-escrow wood c:max 40)
+    (up-modify-escrow food c:max g: AEGIS-TRANSACTION-FOOD)
+    (up-modify-escrow wood c:max g: AEGIS-TRANSACTION-WOOD)
+    (up-modify-escrow gold c:max g: AEGIS-TRANSACTION-GOLD)
+    (up-modify-escrow stone c:max g: AEGIS-TRANSACTION-STONE)
 )
 
 ; ============================================
@@ -51,8 +44,10 @@
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
     (goal AEGIS-CAPITAL-FEASIBILITY 1)
     (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
-    (escrow-amount food >= 60)
-    (escrow-amount wood >= 40)
+    (escrow-amount food >= g: AEGIS-TRANSACTION-FOOD)
+    (escrow-amount wood >= g: AEGIS-TRANSACTION-WOOD)
+    (escrow-amount gold >= g: AEGIS-TRANSACTION-GOLD)
+    (escrow-amount stone >= g: AEGIS-TRANSACTION-STONE)
 =>
     (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
     (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
@@ -61,9 +56,7 @@
 ; ============================================
 ; COMMITTED -> RELEASING
 ; ============================================
-;
-; Explicit release request is mandatory.
-;
+
 (defrule
     (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
     (goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
@@ -95,10 +88,7 @@
 ; ============================================
 ; RELEASED -> UNCOMMITTED
 ; ============================================
-;
-; Keep RELEASED observable until the transaction lifecycle reaches
-; IDLE. This preserves the reassessment/recovery boundary.
-;
+
 (defrule
     (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
