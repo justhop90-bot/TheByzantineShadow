@@ -6,7 +6,8 @@
 ;
 ; Canonical donor: ShadowSource.per
 ; Donor blob SHA: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
-; Implemented donor interval: 1794-1849
+; Implemented authenticated slices: 1794-1805, 1815-1924
+; Gap intentionally preserved: 1806-1814 remain unimplemented.
 ;
 ; SOURCE-BOUNDARY NOTE
 ;   1794-1805 = farm progression.
@@ -2171,4 +2172,509 @@
     (up-compare-goal gl-build-progress > StoneMC1Number)
 =>
     (set-goal gl-build-progress StoneMC1Number)
+)
+; ============================================================
+; R07 RULE 1900
+; ============================================================
+; State reads: goal gl-strategy FLUSH; current build item != STONEMC1; build progress == StoneMC1Number.
+; State writes: gl-current-build-item = STONEMC1; wood escrow percentage = LOW-ESCROW.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1901.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != STONEMC1)
+    (up-compare-goal gl-build-progress == StoneMC1Number)
+=>
+    ;	(chat-to-player me "Setting current build item to STONEMC1")
+    (set-goal gl-current-build-item STONEMC1)
+    (set-escrow-percentage wood LOW-ESCROW)
+)
+
+; ============================================================
+; R07 RULE 1901
+; ============================================================
+; State reads: dropsite-min-distance stone < 5; gl-current-build-item = STONEMC1.
+; State writes: gl-build-progress += 1.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observer: dropsite-min-distance stone < 5.
+; Explicit jumps: none; fall-through -> 1902.
+(defrule
+    (dropsite-min-distance stone < 5)
+    (goal gl-current-build-item STONEMC1)
+=>
+    ;	(chat-to-player me "First Stone Mining Camp Built")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; ============================================================
+; R07 RULE 1902
+; ============================================================
+; State reads: game-time >= 1480 OR (game-time >= 1140 AND gl-strategy KRUSH); t-mc status; gold/stone dropsite distances; gl-escrow-state via up-can-build.
+; State writes: adjacent-dropsite policy=0; placement-fail-delta=0; placement-zone-size=5; t-mc=280.
+; Pending guards: none.
+; Commands: up-build place-normal gl-escrow-state c: mining-camp.
+; Placement operations: NORMAL mining-camp placement.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1903.
+(defrule
+    (or	(game-time >= 1480)	;24 min
+    (and(game-time >= 1140)	;19 min
+    (goal gl-strategy KRUSH)))
+    (or	(up-timer-status t-mc != timer-running)
+    (or (dropsite-min-distance gold >= 6)
+    (dropsite-min-distance stone >= 6)))
+    (up-can-build gl-escrow-state c: mining-camp)
+=>
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-strategic-number sn-placement-fail-delta 0)
+    (set-strategic-number sn-placement-zone-size 5)
+    ;	(chat-to-player me "ADDITIONAL MC")
+    (enable-timer t-mc 280)
+    (up-build place-normal gl-escrow-state c: mining-camp)
+)
+
+; ============================================================
+; R07 RULE 1903
+; ============================================================
+; State reads: gl-progression-pause=-1; can-build-with-escrow university; gl-current-build-item=UNIVERSITY.
+; State writes: placement data; placement-zone-size=3.
+; Pending guards: none.
+; Commands: up-build place-control gl-escrow-state c: university.
+; Placement operations: CONTROL university placement.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1904.
+(defrule
+    (goal gl-progression-pause -1)
+    (can-build-with-escrow university)
+    (goal gl-current-build-item UNIVERSITY)
+=>
+    (up-chat-data-to-player me "University(%d)" g: goal)
+    (up-set-placement-data me -1 c: -5)
+    (set-strategic-number sn-placement-zone-size 3)
+    (up-build place-control gl-escrow-state c: university)
+)
+
+; ============================================================
+; R07 RULE 1904
+; ============================================================
+; State reads: gl-strategy=FLUSH; university count < 1; gl-build-progress > UniversityNumber.
+; State writes: gl-build-progress = UniversityNumber.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observer: university count < 1 is reconciliation evidence.
+; Explicit jumps: none; fall-through -> 1905.
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (building-type-count-total university < 1)
+    (up-compare-goal gl-build-progress > UniversityNumber)
+=>
+    (set-goal gl-build-progress UniversityNumber)
+)
+
+; ============================================================
+; R07 RULE 1905
+; ============================================================
+; State reads: gl-strategy=FLUSH; gl-current-build-item != UNIVERSITY; gl-build-progress == UniversityNumber.
+; State writes: gl-current-build-item = UNIVERSITY.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1906.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != UNIVERSITY)
+    (up-compare-goal gl-build-progress == UniversityNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to UNIVERSITY")
+    (set-goal gl-current-build-item UNIVERSITY)
+    ;	(set-escrow-percentage wood LOW-ESCROW)
+)
+
+; ============================================================
+; R07 RULE 1906
+; ============================================================
+; State reads: gl-strategy=FLUSH; gl-current-build-item=UNIVERSITY.
+; State writes: wood escrow=MID-ESCROW; food/gold escrow=0; releases food/gold.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1907.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item == UNIVERSITY)
+=>
+    (set-escrow-percentage wood MID-ESCROW)
+    (set-escrow-percentage food 0)
+    (set-escrow-percentage gold 0)
+    (release-escrow food)
+    (release-escrow gold)
+)
+
+; ============================================================
+; R07 RULE 1907
+; ============================================================
+; State reads: gl-current-build-item=UNIVERSITY; university count >= 1.
+; State writes: gl-build-progress += 1.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observer: university count >= 1.
+; Explicit jumps: none; fall-through -> 1908.
+(defrule
+    (goal gl-current-build-item UNIVERSITY)
+    (building-type-count-total university >= 1)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "University Built")
+)
+
+; ============================================================
+; R07 RULE 1908
+; ============================================================
+; State reads: gl-progression-pause=-1; gl-current-build-item=BALLISTICS; can-research-with-escrow ri-ballistics.
+; State writes: none.
+; Pending guards: none.
+; Commands: up-research gl-escrow-state c: ri-ballistics; chat.
+; Placement operations: none.
+; Completion observers: none in this rule.
+; Explicit jumps: none; fall-through -> 1909.
+(defrule
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item BALLISTICS)
+    (can-research-with-escrow ri-ballistics)
+=>
+    (up-research gl-escrow-state c: ri-ballistics)
+    (chat-to-player me "Ballistics")
+)
+
+; ============================================================
+; R07 RULE 1909
+; ============================================================
+; State reads: gl-strategy=FLUSH; gl-build-progress > BallisticsNumber; ri-ballistics status < research-pending.
+; State writes: gl-build-progress = BallisticsNumber.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observer: research status < pending is reconciliation evidence.
+; Explicit jumps: none; fall-through -> 1910.
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-build-progress > BallisticsNumber)
+    (up-research-status c: ri-ballistics < research-pending)
+=>
+    (set-goal gl-build-progress BallisticsNumber)
+)
+
+; ============================================================
+; R07 RULE 1910
+; ============================================================
+; State reads: gl-strategy=FLUSH; gl-current-build-item != BALLISTICS; gl-build-progress == BallisticsNumber.
+; State writes: gl-current-build-item = BALLISTICS.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1911.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != BALLISTICS)
+    (up-compare-goal gl-build-progress == BallisticsNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to BALLISTICS")
+    (set-goal gl-current-build-item BALLISTICS)
+    ;	(set-escrow-percentage wood LOW-ESCROW)
+    ;	(set-escrow-percentage gold LOW-ESCROW)
+)
+
+; ============================================================
+; R07 RULE 1911
+; ============================================================
+; State reads: gl-strategy=FLUSH; gl-current-build-item=BALLISTICS.
+; State writes: wood/gold escrow=MID-ESCROW; food escrow=0; releases food.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1912.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item == BALLISTICS)
+=>
+    (set-escrow-percentage wood MID-ESCROW)
+    (set-escrow-percentage gold MID-ESCROW)
+    (set-escrow-percentage food 0)
+    (release-escrow food)
+)
+
+; ============================================================
+; R07 RULE 1912
+; ============================================================
+; State reads: gl-current-build-item=BALLISTICS; ri-ballistics status >= research-pending.
+; State writes: gl-build-progress += 1.
+; Pending guards: none.
+; Commands: none.
+; Placement operations: none.
+; Completion observer: ri-ballistics >= research-pending.
+; Explicit jumps: none; fall-through -> 1913.
+(defrule
+    (goal gl-current-build-item BALLISTICS)
+    (up-research-status c: ri-ballistics >= research-pending)
+=>
+    ;	(chat-to-player me "Ballistics Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; ============================================================
+; R07 RULE 1913
+; ============================================================
+; End-of-script timer stamp.
+; State reads: true.
+; State writes: timer 45 = 0 via up-set-timer.
+; Pending guards: none.
+; Commands: up-set-timer; up-get-timer.
+; Placement operations: none.
+; Completion observers: timer retrieval only; no construction completion.
+; Explicit jumps: none; fall-through -> 1914.
+(defrule ;Find time stamp to compare to start of next pass
+    (true)
+=>
+    (up-set-timer c: 45 c: 0)
+    (up-get-timer c: 45 512)
+)
+
+; ============================================================
+; R07 RULE 1914
+; ============================================================
+; State reads: game-time > 45; gl-position FLANK.
+; State writes: self disabled.
+; Pending guards: none.
+; Commands: enemy chat messages; disable-self.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1915.
+(defrule
+    (game-time > 45)
+    (goal gl-position FLANK)
+=>
+    (chat-to-player every-enemy "Beware.")
+    (chat-to-player every-enemy "The descent of the Shadow has begun...")
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1915
+; ============================================================
+; State reads: game-time > 46; gl-position FLANK.
+; State writes: self disabled.
+; Pending guards: none.
+; Commands: enemy chat; disable-self.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1916.
+(defrule
+    (game-time > 46)
+    (goal gl-position FLANK)
+=>
+    (chat-to-player every-enemy "...good luck!")
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1916
+; ============================================================
+; State reads: true.
+; State writes: gl-identity = Shadow; self disabled.
+; Pending guards: none.
+; Commands: disable-self.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1917.
+(defrule
+    (true)
+=>
+    (set-goal gl-identity Shadow)
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1917
+; ============================================================
+; State reads: game-time > 20; game-time < 40; death-match-game OR current-age > dark-age OR not civ-selected viking.
+; State writes: self disabled.
+; Pending guards: none.
+; Commands: chat-to-all; disable-self.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1918.
+(defrule
+    (game-time > 20)
+    (game-time < 40)
+    (or	(death-match-game)
+    (or	(current-age > dark-age)
+    (not(civ-selected viking))))
+=>
+    (chat-to-all "Untested settings detected. My play will be weaker.")
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1918
+; ============================================================
+; State reads: gl-strategy FLUSH; taunt-detected me/any-ally/any-enemy.
+; State writes: none.
+; Pending guards: none.
+; Commands: chat-to-all; acknowledge-taunt this-any-enemy/this-any-ally/me.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1919.
+(defrule
+    (goal gl-strategy FLUSH)
+    (or	(taunt-detected me 250)
+    (or	(taunt-detected any-ally 250)
+    (taunt-detected any-enemy 250)))
+=>
+    (chat-to-all "I'm Flushing")
+    (acknowledge-taunt this-any-enemy 250)
+    (acknowledge-taunt this-any-ally 250)
+    (acknowledge-taunt me 250)
+)
+
+; ============================================================
+; R07 RULE 1919
+; ============================================================
+; State reads: gl-strategy KRUSH; taunt-detected me/any-ally/any-enemy.
+; State writes: none.
+; Pending guards: none.
+; Commands: chat-to-all; acknowledge-taunt this-any-enemy/this-any-ally/me.
+; Placement operations: none.
+; Completion observers: none.
+; Explicit jumps: none; fall-through -> 1920.
+(defrule
+    (goal gl-strategy KRUSH)
+    (or	(taunt-detected me 250)
+    (or	(taunt-detected any-ally 250)
+    (taunt-detected any-enemy 250)))
+=>
+    (chat-to-all "I'm Krushing")
+    (acknowledge-taunt this-any-enemy 250)
+    (acknowledge-taunt this-any-ally 250)
+    (acknowledge-taunt me 250)
+)
+
+; ============================================================
+; R07 RULE 1920
+; ============================================================
+; State reads: false; game-time < 660; EARLY-MINING-NOTICE != YES; target mining-camp count > 0.
+; State writes: EARLY-MINING-NOTICE = YES.
+; Pending guards: none.
+; Commands: chat-to-player.
+; Placement operations: none.
+; Completion observers: target mining-camp count > 0.
+; Explicit jumps: none; fall-through -> 1921.
+(defrule
+    (false)
+    (game-time < 660)
+    (not(goal EARLY-MINING-NOTICE YES))
+    (players-building-type-count target-player mining-camp > 0)
+=>
+    (chat-to-player me "Enemy mining early")
+    (set-goal EARLY-MINING-NOTICE YES)
+)
+
+; ============================================================
+; R07 RULE 1921
+; ============================================================
+; State reads: false; gl-enemy-strategy=-1; target age-time > 100; target current-age > dark-age.
+; State writes: self disabled.
+; Pending guards: none.
+; Commands: chat-to-player; up-chat-data-to-player; disable-self.
+; Placement operations: none.
+; Completion observers: target age/time predicates only.
+; Explicit jumps: none; fall-through -> 1922.
+(defrule
+    (false)
+    (goal gl-enemy-strategy -1)
+    (players-current-age-time target-player > 100)
+    (players-current-age target-player > dark-age)
+=>
+    (chat-to-player me "SCOUTING MISSION HAS FAILED")
+    (up-chat-data-to-player me "ENEMY STRAT STILL UNKNOWN(%d)" g: gl-enemy-strategy)
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1922
+; ============================================================
+; State reads: false; gl-enemy-strategy=-1; target current-age=dark-age; target military population > 2.
+; State writes: gl-enemy-strategy = DRUSH; self disabled.
+; Pending guards: none.
+; Commands: chat-to-player; disable-self.
+; Placement operations: none.
+; Completion observers: target age/military population predicates.
+; Explicit jumps: none; fall-through -> 1923.
+(defrule
+    (false)
+    (goal gl-enemy-strategy -1)
+    (players-current-age target-player == dark-age)
+    (players-military-population target-player > 2)
+=>
+    (chat-to-player me "12Target is drushing")
+    (set-goal gl-enemy-strategy DRUSH)
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1923
+; ============================================================
+; State reads: false; gl-enemy-strategy != RANGED-FLUSH; target current-age=feudal-age; target age-time < 100 with military-pop > 4 and range=1 OR range=2.
+; State writes: gl-enemy-strategy-type = RANGED-FLUSH; gl-enemy-strategy = FLUSH; self disabled.
+; Pending guards: none.
+; Commands: chat-to-player; disable-self.
+; Placement operations: none.
+; Completion observers: target age/time, military population, and archery-range predicates.
+; Explicit jumps: none; fall-through -> 1924.
+(defrule
+    (false)
+    (not(goal gl-enemy-strategy RANGED-FLUSH))
+    (players-current-age target-player == feudal-age)
+    (or	(and(players-current-age-time target-player < 100)
+    (and(players-military-population target-player > 4)
+    (players-building-type-count target-player archery-range == 1)))
+    (players-building-type-count target-player archery-range == 2))
+=>
+    (chat-to-player me "12ENEMY FLUSHING")
+    (set-goal gl-enemy-strategy-type RANGED-FLUSH)
+    (set-goal gl-enemy-strategy FLUSH)
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1924
+; ============================================================
+; State reads: false; gl-enemy-strategy != SCRUSH; target current-age=feudal-age; target archery-range < 2; target scout-cavalry count > 1 OR stable > 0.
+; State writes: gl-enemy-strategy-type = FLUSH; gl-enemy-strategy = SCRUSH.
+; Pending guards: none.
+; Commands: chat-to-player.
+; Placement operations: none.
+; Completion observers: target age, archery-range, scout-cavalry and stable predicates.
+; Explicit jumps: none; end of requested interval falls through to 1925.
+(defrule
+    (false)
+    (not(goal gl-enemy-strategy SCRUSH))
+    (players-current-age target-player == feudal-age)
+    (players-building-type-count target-player archery-range < 2)
+    (or	(players-unit-type-count target-player scout-cavalry-line > 1)
+    (players-building-type-count target-player stable > 0))
+=>
+    (chat-to-player me "12Target is going for a scrush")
+    (set-goal gl-enemy-strategy-type FLUSH)
+    (set-goal gl-enemy-strategy SCRUSH)
 )
