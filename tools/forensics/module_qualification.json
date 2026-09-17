@@ -49,6 +49,14 @@
       "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
     },
     {
+      "name":"gatherer_policy",
+      "implementation":"ShadowByzantine/03f_donor_gatherer_policy.per",
+      "donor_start":1142,
+      "donor_end":1164,
+      "label":"authenticated Shadow gatherer-percentage machine",
+      "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
+    },
+    {
       "name":"tech_production",
       "implementation":"ShadowByzantine/03a_donor_tech_production.per",
       "donor_start":1165,

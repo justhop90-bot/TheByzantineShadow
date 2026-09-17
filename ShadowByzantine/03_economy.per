@@ -19,16 +19,6 @@
     (train villager)
 )
 
-(defrule
-    (true)
-=>
-    (set-strategic-number sn-food-gatherer-percentage 60)
-    (set-strategic-number sn-wood-gatherer-percentage 40)
-    (set-strategic-number sn-gold-gatherer-percentage 0)
-    (set-strategic-number sn-stone-gatherer-percentage 0)
-    (disable-self)
-)
-
 ; ============================================================
 ; BYZANTINE-GENERALIZATION (project policy, no donor analogue):
 ; villager count is capped at 30 so continuous TC production cannot
@@ -38,29 +28,10 @@
 ; KrushDarkAgeVills 29) so the opening is unaffected. Revisit when
 ; the Castle-age economy transition is transplanted.
 ;
-; Gold share engages in Feudal age: the construction slice contains
-; Castle-age progression content (university/ballistics rules) whose
-; 200-gold Castle-age cost is otherwise unreachable with a static
-; 0% gold allocation. Percentages revert to food/wood priority once
-; the stockpile clears the Castle requirement.
+; Gatherer percentages were briefly owned here (static 60/40 boot +
+; Feudal gold rules) but are now owned by the authenticated donor
+; machine in 03f_donor_gatherer_policy.per (100% food open, staged
+; rebalancing incl. gold on dropsite proximity and Castle
+; progression). Static rules removed 2026-09-17 to avoid competing
+; writers on the same SNs.
 ; ============================================================
-
-(defrule
-    (current-age == feudal-age)
-    (gold-amount < 200)
-=>
-    (set-strategic-number sn-food-gatherer-percentage 50)
-    (set-strategic-number sn-wood-gatherer-percentage 35)
-    (set-strategic-number sn-gold-gatherer-percentage 15)
-    (set-strategic-number sn-stone-gatherer-percentage 0)
-)
-
-(defrule
-    (current-age == feudal-age)
-    (gold-amount >= 200)
-=>
-    (set-strategic-number sn-food-gatherer-percentage 60)
-    (set-strategic-number sn-wood-gatherer-percentage 40)
-    (set-strategic-number sn-gold-gatherer-percentage 0)
-    (set-strategic-number sn-stone-gatherer-percentage 0)
-)

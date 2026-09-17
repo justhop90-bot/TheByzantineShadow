@@ -1,0 +1,315 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; 03F -- AUTHENTICATED DONOR GATHERER POLICY (1142-1164)
+; ============================================================
+;
+; Donor rules 1142-1164 (23 rules): the staged gatherer-
+; percentage machine. Opens 100% food, shifts to wood as the
+; population grows (77/23, 75/25, 60/40), adds gold on dropsite
+; proximity and Castle progression, and rebalances per FLUSH
+; milestones (food stock, Feudal, blacksmith, fletching,
+; market, CA-loading). One-shot disable-self stages; the KRUSH
+; gate at 1145 skips to 1153 for non-KRUSH.
+;
+; Transplanted verbatim. Single in-slice jump (1145->1153).
+; Loaded before 03a_donor_tech_production (donor order).
+; Replaces the static 60/40 boot rule formerly in 03_economy.
+; ============================================================
+
+; AUTHENTICATED DONOR RULE 1142 | DONOR_LINE=13826
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 100)
+    (set-strategic-number sn-wood-gatherer-percentage 0)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1143 | DONOR_LINE=13837
+(defrule
+    (current-age-time >= 15)
+    (civilian-population >= 7)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 77)
+    (set-strategic-number sn-wood-gatherer-percentage 23)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+
+    (set-strategic-number sn-maximum-wood-drop-distance 5)
+    (set-strategic-number sn-wood-dropsite-distance 3)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1144 | DONOR_LINE=13851
+(defrule
+    (civilian-population >= 14)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 75)
+    (set-strategic-number sn-wood-gatherer-percentage 25)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1145 | DONOR_LINE=13862
+(defrule
+    (up-compare-goal gl-strategy != KRUSH)
+=>
+    (up-jump-rule 8)
+)
+
+; AUTHENTICATED DONOR RULE 1146 | DONOR_LINE=13870
+(defrule
+    (civilian-population >= 15)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 60)
+    (set-strategic-number sn-wood-gatherer-percentage 40)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    ;	(chat-to-player me "More wood krush")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1147 | DONOR_LINE=13882
+(defrule
+    (false)
+    (civilian-population >= 16)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 65)
+    (set-strategic-number sn-wood-gatherer-percentage 35)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    ;	(chat-to-player me "More wood krush 2")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1148 | DONOR_LINE=13895
+(defrule
+    (game-time > 10)
+    (dropsite-min-distance gold < 5)
+    (dropsite-min-distance gold > -1)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 63)
+    (set-strategic-number sn-wood-gatherer-percentage 32)
+    (set-strategic-number sn-gold-gatherer-percentage 5)
+    (set-strategic-number sn-stone-gatherer-percentage 0)	;3
+    ;	(chat-to-player me "KRUSH START GOLD")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1149 | DONOR_LINE=13909
+(defrule
+    (game-time > 10)
+    (dropsite-min-distance gold < 5)
+    (dropsite-min-distance gold > -1)
+    (up-research-status c: feudal-age >= research-pending)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 43)
+    (set-strategic-number sn-wood-gatherer-percentage 42)
+    (set-strategic-number sn-gold-gatherer-percentage 15)
+    (set-strategic-number sn-stone-gatherer-percentage 0)	;3
+    ;	(chat-to-player me "13KRUSH MORE GOLD 2")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1150 | DONOR_LINE=13925
+(defrule
+    (game-time > 10)
+    (up-research-status c: castle-age >= research-pending)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 36)
+    (set-strategic-number sn-wood-gatherer-percentage 38)
+    (set-strategic-number sn-gold-gatherer-percentage 26)
+    (set-strategic-number sn-stone-gatherer-percentage 0)	;3
+    ;	(chat-to-player me "13KRUSH MORE GOLD 3")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1151 | DONOR_LINE=13939
+(defrule
+    (game-time > 10)
+    (current-age >= castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 39)
+    (set-strategic-number sn-wood-gatherer-percentage 32)
+    (set-strategic-number sn-gold-gatherer-percentage 29)
+    (set-strategic-number sn-stone-gatherer-percentage 0)	;3
+    ;	(chat-to-all "13 Need Tiny More Gold/More Wood")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1152 | DONOR_LINE=13952
+(defrule
+    (game-time > 10)
+    (current-age >= castle-age)
+    (or	(current-age-time >= 220)
+    (building-type-count-total farm >= 19))
+=>
+    (set-strategic-number sn-food-gatherer-percentage 44)
+    (set-strategic-number sn-wood-gatherer-percentage 21)
+    (set-strategic-number sn-gold-gatherer-percentage 32)
+    (set-strategic-number sn-stone-gatherer-percentage 3)	;3
+    ;	(chat-to-all "13 Enough Farms (Drop Wood)")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1153 | DONOR_LINE=13967
+(defrule
+    (game-time > 10)
+    (current-age-time >= 480)
+    (current-age >= castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 43)
+    (set-strategic-number sn-wood-gatherer-percentage 17)
+    (set-strategic-number sn-gold-gatherer-percentage 35)
+    (set-strategic-number sn-stone-gatherer-percentage 5)	;3
+    ;	(chat-to-player me "13 LAST GP'S")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1154 | DONOR_LINE=13983
+(defrule
+    (civilian-population == 18)
+    (goal gl-strategy FLUSH)
+=>
+    (set-goal SPLIT 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1155 | DONOR_LINE=13991
+(defrule
+    (goal SPLIT 1)
+    (food-amount < 230)
+    (or	(up-compare-goal gl-killed-boar-count < 2)
+    (and(up-compare-goal gl-killed-deer-count < 1)
+    (up-compare-goal gl-current-sheep-count < 7)))
+=>
+    (set-strategic-number sn-food-gatherer-percentage 79)
+    (set-strategic-number sn-wood-gatherer-percentage 21)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    ;	(chat-to-player me "Need More Food")
+    (disable-self)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1156 | DONOR_LINE=14007
+(defrule
+    (goal SPLIT 1)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 72)
+    (set-strategic-number sn-wood-gatherer-percentage 28)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    ;	(chat-to-player me "Enough Food - More Wood")
+    (disable-self)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1157 | DONOR_LINE=14020
+(defrule
+    (goal gl-strategy FLUSH)
+    (or	(food-amount > 490)
+    (up-compare-goal gl-age-loading == FA-loading))
+=>
+    (set-strategic-number sn-food-gatherer-percentage 33)
+    (set-strategic-number sn-wood-gatherer-percentage 67)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1158 | DONOR_LINE=14033
+(defrule
+    (goal gl-strategy FLUSH)
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 43)
+    (set-strategic-number sn-wood-gatherer-percentage 57)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1159 | DONOR_LINE=14045
+(defrule
+    (goal gl-strategy FLUSH)
+    (building-type-count-total blacksmith >= 1)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 54)
+    (set-strategic-number sn-wood-gatherer-percentage 46)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1160 | DONOR_LINE=14057
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-research-status c: ri-fletching >= research-pending)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 44)
+    (set-strategic-number sn-wood-gatherer-percentage 56)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1161 | DONOR_LINE=14069
+(defrule
+    (game-time > 10)
+    (goal gl-strategy FLUSH)
+    (dropsite-min-distance gold < 5)
+    (dropsite-min-distance gold > -1)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 37)
+    (set-strategic-number sn-wood-gatherer-percentage 45)
+    (set-strategic-number sn-gold-gatherer-percentage 18)
+    (set-strategic-number sn-stone-gatherer-percentage 0)	;3
+    ;	(chat-to-all "13 More gold")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1162 | DONOR_LINE=14084
+(defrule
+    (game-time > 10)
+    (goal gl-strategy FLUSH)
+    (dropsite-min-distance gold < 5)
+    (dropsite-min-distance gold > -1)
+    (dropsite-min-distance stone < 5)
+    (dropsite-min-distance stone > -1)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 39)
+    (set-strategic-number sn-wood-gatherer-percentage 43)
+    (set-strategic-number sn-gold-gatherer-percentage 13)
+    (set-strategic-number sn-stone-gatherer-percentage 5)	;3
+    ;	(chat-to-all "13 More wood/gold")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1163 | DONOR_LINE=14101
+(defrule
+    (goal gl-strategy FLUSH)
+    (building-type-count-total market >= 1)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 51)
+    (set-strategic-number sn-wood-gatherer-percentage 32)
+    (set-strategic-number sn-gold-gatherer-percentage 12)
+    (set-strategic-number sn-stone-gatherer-percentage 5)	;3
+    ;	(chat-to-all "13 More food")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1164 | DONOR_LINE=14115
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-age-loading >= CA-loading)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 30)
+    (set-strategic-number sn-wood-gatherer-percentage 48)
+    (set-strategic-number sn-gold-gatherer-percentage 17)
+    (set-strategic-number sn-stone-gatherer-percentage 5)	;3
+    (disable-self)
+)

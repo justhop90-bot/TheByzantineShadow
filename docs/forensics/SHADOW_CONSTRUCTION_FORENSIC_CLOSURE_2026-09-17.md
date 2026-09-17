@@ -286,6 +286,17 @@ full identifier sweep must cover object IDs, not just goals and
 state — facts/commands are engine-provided, object IDs frequently
 are not. The sweep method is updated accordingly.
 
+## Amendment record 2026-09-17 — gatherer policy (rules 1142–1164)
+
+Symptom: all starting villagers on wood, none on food. Our static
+60/40 boot rule could not produce that distribution — but the donor
+opens 100% food and stages down by population (77/23, 75/25, 60/40)
+with gold on dropsite proximity and Castle progression. Transplanted
+as `03f_donor_gatherer_policy.per` (23/23 positional equivalence;
+single in-slice jump 1145→1153; zero new defconsts). Our static boot
+and Feudal-gold rules removed (competing writers on the same SNs);
+villager cap retained. Loaded in donor order (before 03a).
+
 ## Amendment record 2026-09-17 — boot/explorer init (rules 1430–1456, 1611–1612)
 
 Symptom: bot loads clean but the scout stands still at game start.
