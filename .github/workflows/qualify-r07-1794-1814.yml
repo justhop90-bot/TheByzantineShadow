@@ -1,0 +1,22 @@
+name: qualify-authenticated-r07-1794-1814
+
+on:
+  push:
+    paths:
+      - ShadowSource.per
+      - ShadowByzantine/04_construction.per
+      - tools/forensics/qualify_r07_1794_1814_implementation.py
+      - .github/workflows/qualify-r07-1794-1814.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Qualify authenticated R07 slice
+        run: python tools/forensics/qualify_r07_1794_1814_implementation.py
