@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'tools/forensics/qualify_authenticated_construction_interval.py'
+      - 'tools/forensics/qualify_authenticated_construction_1815_1849.py'
       - 'ShadowByzantine/04_construction.per'
       - 'ShadowSource.per'
 
@@ -24,3 +25,4 @@ jobs:
         run: |
           set -euo pipefail
           python3 tools/forensics/qualify_authenticated_construction_interval.py
+          python3 tools/forensics/qualify_authenticated_construction_1815_1849.py
