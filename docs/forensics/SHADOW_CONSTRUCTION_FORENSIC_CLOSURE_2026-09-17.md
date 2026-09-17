@@ -189,11 +189,36 @@ pause-gated mid-game rules resolve naturally once tech pauses cycle.
 writers are tech-pause regions; early interval rules do not gate on -1).
 
 Still unwritten in the loaded graph (next tranches, not this one):
-`gl-target-age*` family readers (QEAGOL rules inert without the
-enemy-age tracker), `gl-dark-build`, `rt`, `gl-allow-mill`,
+`gl-dark-build`, `rt`, `gl-allow-mill`,
 `gl-position` (except pocket), QEAGOL score machinery. No new
 centralized recovery/orchestration was introduced; modules 05–15 remain
 unloaded scaffolding with documented defects, untouched by this tranche.
+
+## Amendment record 2026-09-17 — tech/production slice + QEAGOL finding
+
+- New `ShadowByzantine/03a_donor_tech_production.per`: authenticated
+  donor rules 1165–1298 (134/134 positional body equivalence;
+  jump topology all in-slice; state-touch parity PASS). Contents:
+  R05/R06 tech-escrow pause/fire machine, Feudal (1226) and Castle
+  (1229) age-ups, and the unit-production block (monks/siege/scouts/
+  knights/archers/spearmen/villagers, 1259–1298 + 1708–1710 refs).
+  Loaded before `03b_strategy_bootstrap`, preserving donor relative
+  order. Pipeline config carries the donor mapping; 27 modules, 0 failed.
+- `01a` gained 5 tech-slice input identifiers (donor-exact values).
+  `gl-age-loading`/`gl-need-vills` are written in-slice; `gl-enemy-civ`
+  (writers 1503–1505) and `gl-skirm-total` (writer 1501) are dormant
+  inputs pending the scouting tranche; `gl-army-damage-potential` has
+  no writer anywhere in the donor (legacy input, inert by donor design).
+- QEAGOL finding: `gl-target-age-checking` is READ throughout the
+  QEAGOL tracker but never WRITTEN by any donor rule — the age tracker
+  is dormant donor code (with several `(false)`-gated siblings), not a
+  transplant gap. Deliberately NOT activated: wiring it would invent
+  behavior. Revisit only as an explicit BYZANTINE improvement with its
+  own baseline.
+- Byzantine note: every technology and unit in 1165–1298 exists in the
+  shipped Byzantine tree (verified against BYZANTINES tech data);
+  Bloodlines/Blast Furnace do not appear in this slice. Zero
+  substitutions required.
 
 ## Amendment record 2026-09-17 — automation collision (append-duplicate)
 

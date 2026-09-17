@@ -1,0 +1,1585 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; 03A -- AUTHENTICATED DONOR TECH/PRODUCTION (1165-1298)
+; ============================================================
+;
+; Donor: ShadowSource.per rules 1165-1298 (134 rules).
+; Regions: R05/R06 tech-escrow pause/fire machine (scale/chain
+; mail, forging/iron-casting, bardings, crossbow, bodkin, fletching,
+; archer armors, pikeman, loom, eco techs, elite skirm), Feudal/
+; Castle age-ups, and the unit-production block (monks, siege,
+; scouts, knights, archers, spearmen, villagers).
+;
+; Transplanted verbatim 2026-09-17. All 6 explicit jumps land
+; in-slice; no cross-boundary control edges. Loaded before
+; 03b_strategy_bootstrap, preserving donor relative order.
+;
+; Byzantine note: every technology and unit in this slice exists
+; in the Byzantine tree (verified against shipped BYZANTINES tech
+; data); no substitutions required. Bloodlines/Blast Furnace do
+; not appear in this slice.
+; ============================================================
+
+; AUTHENTICATED DONOR RULE 1165 | DONOR_LINE=14127
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-age-loading >= CA-loading)
+    (up-compare-goal gl-build-progress >= EskirmsNumber)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 34)
+    (set-strategic-number sn-wood-gatherer-percentage 40)
+    (set-strategic-number sn-gold-gatherer-percentage 22)
+    (set-strategic-number sn-stone-gatherer-percentage 4)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1166 | DONOR_LINE=14140
+(defrule
+    (current-age == castle-age)
+    (goal gl-strategy FLUSH)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 38)
+    (set-strategic-number sn-wood-gatherer-percentage 40)
+    (set-strategic-number sn-gold-gatherer-percentage 18)
+    (set-strategic-number sn-stone-gatherer-percentage 4)	;3
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1167 | DONOR_LINE=14152
+(defrule
+    (current-age-time > 300)
+    (current-age == castle-age)
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-build-progress >= ChainBardingNumber)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 36)
+    (set-strategic-number sn-wood-gatherer-percentage 35)
+    (set-strategic-number sn-gold-gatherer-percentage 26)
+    (set-strategic-number sn-stone-gatherer-percentage 3)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1168 | DONOR_LINE=14166
+(defrule
+    (current-age-time > 600)
+    (current-age == castle-age)
+    (goal gl-strategy FLUSH)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 38)
+    (set-strategic-number sn-wood-gatherer-percentage 35)
+    (set-strategic-number sn-gold-gatherer-percentage 26)
+    (set-strategic-number sn-stone-gatherer-percentage 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1169 | DONOR_LINE=14180
+(defrule
+    (goal gl-strategy SIEGE)
+    (up-compare-goal gl-age-loading >= CA-loading)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 35)
+    (set-strategic-number sn-wood-gatherer-percentage 47)
+    (set-strategic-number sn-gold-gatherer-percentage 16)
+    (set-strategic-number sn-stone-gatherer-percentage 2)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1170 | DONOR_LINE=14192
+(defrule
+    (current-age == castle-age)
+    (goal gl-strategy SIEGE)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 18)
+    (set-strategic-number sn-wood-gatherer-percentage 53)
+    (set-strategic-number sn-gold-gatherer-percentage 27)
+    (set-strategic-number sn-stone-gatherer-percentage 2)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1171 | DONOR_LINE=14204
+(defrule
+    (current-age-time > 300)
+    (current-age == castle-age)
+    (goal gl-strategy SIEGE)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 14)
+    (set-strategic-number sn-wood-gatherer-percentage 49)
+    (set-strategic-number sn-gold-gatherer-percentage 37)
+    (set-strategic-number sn-stone-gatherer-percentage 0)	;3
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1172 | DONOR_LINE=14294
+(defrule
+    (goal gl-strategy FLUSH)
+    (game-time >= 1080)	;18min
+    (current-age >= feudal-age)
+    (goal gl-progression-pause -1)
+    (building-type-count blacksmith > 0)
+    (or	(player-valid 5)	;enemy pocket
+    (or	(goal gl-enemy-strategy KRUSH)
+    (goal gl-enemy-strategy POSSIBLE-KRUSH)))
+    (up-research-status c: ri-scale-mail < research-pending)
+=>
+    (set-goal gl-progression-pause SCALEMAIL)
+    ;	(chat-to-all "Need Scale Mail")
+)
+
+; AUTHENTICATED DONOR RULE 1173 | DONOR_LINE=14309
+(defrule
+    (goal gl-progression-pause SCALEMAIL)
+=>
+    (up-modify-escrow food c:max 100)
+)
+
+; AUTHENTICATED DONOR RULE 1174 | DONOR_LINE=14315
+(defrule
+    (goal gl-progression-pause SCALEMAIL)
+    (can-research-with-escrow ri-scale-mail)
+=>
+    (up-research gl-escrow-state c: ri-scale-mail)
+    (set-goal gl-progression-pause -1)
+    (set-escrow-percentage food 0)
+    ;	(chat-to-all "Scale Mail")
+    (release-escrow food)
+)
+
+; AUTHENTICATED DONOR RULE 1175 | DONOR_LINE=14327
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (research-completed ri-pikeman)
+    (up-research-status c: ri-chain-mail < research-pending)
+    (up-research-status c: ri-scale-mail >= research-pending)
+    (up-research-status c: ri-bodkin-arrow >= research-pending)
+    (or	(players-building-type-count any-enemy stable >= 2)
+    (or	(players-unit-type-count any-enemy knight-line >= 4)
+    (players-unit-type-count any-enemy scout-cavalry-line >= 6)))
+=>
+    (set-goal gl-progression-pause CHAINMAIL)
+    ;	(chat-to-all "Need Chain Mail")
+)
+
+; AUTHENTICATED DONOR RULE 1176 | DONOR_LINE=14342
+(defrule
+    (goal gl-progression-pause CHAINMAIL)
+=>
+    (up-modify-escrow food c:max 200)
+    (up-modify-escrow gold c:max 100)
+)
+
+; AUTHENTICATED DONOR RULE 1177 | DONOR_LINE=14349
+(defrule
+    (goal gl-progression-pause CHAINMAIL)
+    (can-research-with-escrow ri-chain-mail)
+=>
+    (up-research gl-escrow-state c: ri-chain-mail)
+    (set-goal gl-progression-pause -1)
+    (set-escrow-percentage food 0)
+    (set-escrow-percentage gold 0)
+    ;	(chat-to-all "Chain Mail")
+    (release-escrow food)
+    (release-escrow gold)
+)
+
+; AUTHENTICATED DONOR RULE 1178 | DONOR_LINE=14364
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item IRONCASTING)
+    (can-research-with-escrow ri-iron-casting)
+=>
+    (up-research gl-escrow-state c: ri-iron-casting)
+    ;	(chat-to-player me "Krush Iron Casting")
+)
+
+; AUTHENTICATED DONOR RULE 1179 | DONOR_LINE=14374
+(defrule	;come back if skipped
+    (goal gl-strategy KRUSH)
+    (up-research-status c: ri-iron-casting < research-pending)
+    (up-compare-goal gl-build-progress > KrushIronCastingNumber)
+=>
+    (set-goal gl-build-progress KrushIronCastingNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1180 | DONOR_LINE=14382
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-current-build-item != IRONCASTING)
+    (up-compare-goal gl-build-progress == KrushIronCastingNumber)
+=>
+    ;	(chat-to-player me "Krush Setting current build item to IRONCASTING")
+    (set-goal gl-current-build-item IRONCASTING)
+)
+
+; AUTHENTICATED DONOR RULE 1181 | DONOR_LINE=14391
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == IRONCASTING)
+=>
+    (set-escrow-percentage food LOW-ESCROW)
+    (set-escrow-percentage gold LOW-ESCROW)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1182 | DONOR_LINE=14402
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-current-build-item IRONCASTING)
+    (up-research-status c: ri-iron-casting >= research-pending)
+=>
+    ;	(chat-to-player me "Krush Iron Casting Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1183 | DONOR_LINE=14412
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item IRONCASTING)
+    (can-research-with-escrow ri-iron-casting)
+=>
+    (up-research gl-escrow-state c: ri-iron-casting)
+    ;	(chat-to-player me "Iron Casting")
+)
+
+; AUTHENTICATED DONOR RULE 1184 | DONOR_LINE=14422
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-research-status c: ri-iron-casting < research-pending)
+    (up-compare-goal gl-build-progress > IronCastingNumber)
+=>
+    (set-goal gl-build-progress IronCastingNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1185 | DONOR_LINE=14430
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != IRONCASTING)
+    (up-compare-goal gl-build-progress == IronCastingNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to IRONCASTING")
+    (set-goal gl-current-build-item IRONCASTING)
+)
+
+; AUTHENTICATED DONOR RULE 1186 | DONOR_LINE=14439
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == IRONCASTING)
+=>
+    (up-modify-escrow food c:max 220)
+    (up-modify-escrow gold c:max 120)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1187 | DONOR_LINE=14450
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-current-build-item IRONCASTING)
+    (up-research-status c: ri-iron-casting >= research-pending)
+=>
+    ;	(chat-to-player me "Iron Casting Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1188 | DONOR_LINE=14461
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item FORGING)
+    (can-research-with-escrow ri-forging)
+=>
+    (up-research gl-escrow-state c: ri-forging)
+    ;	(chat-to-player me "Forging")
+)
+
+; AUTHENTICATED DONOR RULE 1189 | DONOR_LINE=14471
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-build-progress > ForgingNumber)
+    (up-research-status c: ri-forging < research-pending)
+=>
+    (set-goal gl-build-progress ForgingNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1190 | DONOR_LINE=14479
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != FORGING)
+    (up-compare-goal gl-build-progress == ForgingNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to FORGING")
+    (set-goal gl-current-build-item FORGING)
+    ;	(set-escrow-percentage food LOW-ESCROW)
+)
+
+; AUTHENTICATED DONOR RULE 1191 | DONOR_LINE=14489
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == FORGING)
+=>
+    (set-escrow-percentage food MID-ESCROW)
+    (set-escrow-percentage wood 0)
+    (set-escrow-percentage gold 0)
+    (release-escrow wood)
+    (release-escrow gold)
+)
+
+; AUTHENTICATED DONOR RULE 1192 | DONOR_LINE=14501
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-current-build-item FORGING)
+    (up-research-status c: ri-forging >= research-pending)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "Forging Researched")
+)
+
+; AUTHENTICATED DONOR RULE 1193 | DONOR_LINE=14511
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item FORGING)
+    (can-research-with-escrow ri-forging)
+=>
+    (up-research gl-escrow-state c: ri-forging)
+    ;	(chat-to-player me "Krush Forging")
+)
+
+; AUTHENTICATED DONOR RULE 1194 | DONOR_LINE=14521
+(defrule	;come back if skipped
+    (goal gl-strategy KRUSH)
+    (up-research-status c: ri-forging < research-pending)
+    (up-compare-goal gl-build-progress > KrushForgingNumber)
+=>
+    (set-goal gl-build-progress KrushForgingNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1195 | DONOR_LINE=14529
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-current-build-item != FORGING)
+    (up-compare-goal gl-build-progress == KrushForgingNumber)
+=>
+    ;	(chat-to-player me "Krush Setting current build item to FORGING")
+    (set-goal gl-current-build-item FORGING)
+)
+
+; AUTHENTICATED DONOR RULE 1196 | DONOR_LINE=14538
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == FORGING)
+=>
+    (set-escrow-percentage food LOW-ESCROW)
+    (set-escrow-percentage wood 0)
+    (set-escrow-percentage gold 0)
+    (release-escrow wood)
+    (release-escrow gold)
+)
+
+; AUTHENTICATED DONOR RULE 1197 | DONOR_LINE=14550
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-current-build-item FORGING)
+    (up-research-status c: ri-forging >= research-pending)
+=>
+    ;	(chat-to-player me "Krush Forging Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1198 | DONOR_LINE=14561
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item CHAINBARDING)
+    (can-research-with-escrow ri-chain-barding)
+=>
+    (up-research gl-escrow-state c: ri-chain-barding)
+    ;	(chat-to-player me "Krush Chain Barding")
+)
+
+; AUTHENTICATED DONOR RULE 1199 | DONOR_LINE=14571
+(defrule	;come back if skipped
+    (goal gl-strategy KRUSH)
+    (up-research-status c: ri-chain-barding < research-pending)
+    (up-compare-goal gl-build-progress > KrushChainBardingNumber)
+=>
+    (set-goal gl-build-progress KrushChainBardingNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1200 | DONOR_LINE=14579
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-current-build-item != CHAINBARDING)
+    (up-compare-goal gl-build-progress == KrushChainBardingNumber)
+=>
+    ;	(chat-to-player me "Krush Setting current build item to CHAINBARDING")
+    (set-goal gl-current-build-item CHAINBARDING)
+)
+
+; AUTHENTICATED DONOR RULE 1201 | DONOR_LINE=14588
+(defrule
+    (goal gl-strategy KRUSH)
+    (current-age-time >= 460)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == CHAINBARDING)
+=>
+    (set-escrow-percentage food LOW-ESCROW)
+    (set-escrow-percentage gold LOW-ESCROW)
+    ;	(chat-to-all "Start Chain Barding")
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1202 | DONOR_LINE=14601
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-current-build-item CHAINBARDING)
+    (up-research-status c: ri-chain-barding >= research-pending)
+=>
+    ;	(chat-to-player me "Krush Chain Barding Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1203 | DONOR_LINE=14611
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item CHAINBARDING)
+    (can-research-with-escrow ri-chain-barding)
+=>
+    (up-research gl-escrow-state c: ri-chain-barding)
+    ;	(chat-to-player me "Chain Barding")
+)
+
+; AUTHENTICATED DONOR RULE 1204 | DONOR_LINE=14621
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-research-status c: ri-chain-barding < research-pending)
+    (up-compare-goal gl-build-progress > ChainBardingNumber)
+=>
+    (set-goal gl-build-progress ChainBardingNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1205 | DONOR_LINE=14629
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != CHAINBARDING)
+    (up-compare-goal gl-build-progress == ChainBardingNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to CHAINBARDING")
+    (set-goal gl-current-build-item CHAINBARDING)
+)
+
+; AUTHENTICATED DONOR RULE 1206 | DONOR_LINE=14638
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == CHAINBARDING)
+=>
+    (set-escrow-percentage food MID-HIGH-ESCROW)
+    (set-escrow-percentage gold MID-HIGH-ESCROW)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1207 | DONOR_LINE=14649
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-current-build-item CHAINBARDING)
+    (up-research-status c: ri-chain-barding >= research-pending)
+=>
+    ;	(chat-to-player me "Chain Barding Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1208 | DONOR_LINE=14660
+(defrule
+    (goal gl-strategy KRUSH)
+    (current-age-time >= 180)
+    (current-age == castle-age)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item SCALEBARDING)
+    (can-research-with-escrow ri-scale-barding)
+=>
+    (up-research gl-escrow-state c: ri-scale-barding)
+    ;	(chat-to-player me "Krush Scale Barding")
+)
+
+; AUTHENTICATED DONOR RULE 1209 | DONOR_LINE=14672
+(defrule	;come back if skipped
+    (goal gl-strategy KRUSH)
+    (up-research-status c: ri-scale-barding < research-pending)
+    (up-compare-goal gl-build-progress > KrushScaleBardingNumber)
+=>
+    (set-goal gl-build-progress KrushScaleBardingNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1210 | DONOR_LINE=14680
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-current-build-item != SCALEBARDING)
+    (up-compare-goal gl-build-progress == KrushScaleBardingNumber)
+=>
+    ;	(chat-to-player me "Krush Setting current build item to SCALEBARDING")
+    (set-goal gl-current-build-item SCALEBARDING)
+)
+
+; AUTHENTICATED DONOR RULE 1211 | DONOR_LINE=14689
+(defrule
+    (goal gl-strategy KRUSH)
+    (current-age-time >= 180)
+    (current-age == castle-age)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == SCALEBARDING)
+=>
+    (set-escrow-percentage food LOW-ESCROW)
+    ;	(chat-to-all "ScaleBardingEscrow")
+    (set-escrow-percentage gold 0)
+    (set-escrow-percentage wood 0)
+    (release-escrow gold)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1212 | DONOR_LINE=14704
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-current-build-item SCALEBARDING)
+    (up-research-status c: ri-scale-barding >= research-pending)
+=>
+    ;	(chat-to-player me "Krush Scale Barding Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1213 | DONOR_LINE=14714
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item SCALEBARDING)
+    (can-research-with-escrow ri-scale-barding)
+=>
+    (up-research gl-escrow-state c: ri-scale-barding)
+    ;	(chat-to-player me "Scale Barding")
+)
+
+; AUTHENTICATED DONOR RULE 1214 | DONOR_LINE=14724
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-research-status c: ri-scale-barding < research-pending)
+    (up-compare-goal gl-build-progress > ScaleBardingNumber)
+=>
+    (set-goal gl-build-progress ScaleBardingNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1215 | DONOR_LINE=14732
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != SCALEBARDING)
+    (up-compare-goal gl-build-progress == ScaleBardingNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to SCALEBARDING")
+    (set-goal gl-current-build-item SCALEBARDING)
+)
+
+; AUTHENTICATED DONOR RULE 1216 | DONOR_LINE=14741
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == SCALEBARDING)
+=>
+    (set-escrow-percentage food MID-ESCROW)
+    (set-escrow-percentage gold 0)
+    (release-escrow gold)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1217 | DONOR_LINE=14753
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-current-build-item SCALEBARDING)
+    (up-research-status c: ri-scale-barding >= research-pending)
+=>
+    ;	(chat-to-player me "Scale Barding Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1218 | DONOR_LINE=14763
+(defrule
+    (current-age >= castle-age)
+    (goal gl-progression-pause -1)
+    (unit-type-count-total archer-line >= 4)
+    (up-compare-goal gl-build-progress >= BowsawNumber)
+    (up-research-status c: ri-crossbow < research-pending)
+=>
+    (set-goal gl-progression-pause XBOW)
+    ;	(chat-to-player me "NEED XBOWS")
+)
+
+; AUTHENTICATED DONOR RULE 1219 | DONOR_LINE=14774
+(defrule
+    (goal gl-progression-pause XBOW)
+    (up-can-research gl-escrow-state c: ri-crossbow)
+=>
+    (up-research gl-escrow-state c: ri-crossbow)
+    (set-goal gl-progression-pause -1)
+    ;	(chat-to-player me "Crossbows")
+    (research ri-crossbow)
+)
+
+; AUTHENTICATED DONOR RULE 1220 | DONOR_LINE=14785
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-enemy-civ NORMAL)
+    (current-age >= castle-age)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-build-progress > BodkinNumber)
+    (players-current-age any-enemy >= castle-age)
+    (up-research-status c: ri-pikeman < research-pending)
+    (or	(player-valid 5)
+    (or	(players-current-age-time any-enemy >= 300)
+    (players-building-type-count any-enemy stable >= 1)))
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 1221 | DONOR_LINE=14800
+(defrule
+    (goal SPLIT 1)
+=>
+    (set-escrow-percentage food HIGH-ESCROW)
+    (set-escrow-percentage gold HIGH-ESCROW)
+    (set-goal gl-progression-pause PIKES)
+    ;	(chat-to-all "NEED PIKES")
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1222 | DONOR_LINE=14810
+(defrule
+    (goal gl-progression-pause PIKES)
+    (can-research-with-escrow ri-pikeman)
+=>
+    (set-goal gl-progression-pause -1)
+    (set-escrow-percentage food 0)
+    (set-escrow-percentage gold 0)
+    ;	(chat-to-all "Pikemen")
+    (release-escrow food)
+    (release-escrow gold)
+    (research ri-pikeman)
+)
+
+; AUTHENTICATED DONOR RULE 1223 | DONOR_LINE=14825
+(defrule
+    (goal gl-strategy KRUSH)
+    (research-available feudal-age)
+    (up-compare-goal gl-need-vills != NO)
+    (unit-type-count-total villager >= KrushDarkAgeVills)
+=>
+    ;	(chat-to-all "Krush Stop Vills for fup")
+    (set-goal gl-need-vills NO)
+)
+
+; AUTHENTICATED DONOR RULE 1224 | DONOR_LINE=14835
+(defrule
+    (goal gl-strategy FLUSH)
+    (research-available feudal-age)
+    (up-compare-goal gl-need-vills != NO)
+    (unit-type-count-total villager >= FlushDarkAgeVills)
+=>
+    (set-goal gl-need-vills NO)
+)
+
+; AUTHENTICATED DONOR RULE 1225 | DONOR_LINE=14844
+(defrule
+    (goal gl-strategy FLUSH)
+    (research-available feudal-age)
+    (up-compare-goal gl-need-vills == NO)
+    (unit-type-count-total villager < FlushDarkAgeVills)
+=>
+    (chat-to-all "Start Vills for fup again")
+    (set-goal gl-need-vills YES)
+)
+
+; AUTHENTICATED DONOR RULE 1226 | DONOR_LINE=14854
+(defrule
+    (can-research feudal-age)
+    (or	(and(goal gl-strategy FLUSH)
+    (unit-type-count-total villager >= FlushDarkAgeVills))
+    (and(goal gl-strategy KRUSH)
+    (unit-type-count-total villager >= KrushDarkAgeVills)))
+=>
+    (set-goal gl-age-loading FA-loading)
+    ;	(chat-to-player me "Feudal Age")
+    (set-goal gl-need-vills YES)
+    (enable-timer t-rax 70)
+    (research feudal-age)
+)
+
+; AUTHENTICATED DONOR RULE 1227 | DONOR_LINE=14870
+(defrule
+    (goal gl-strategy KRUSH)
+    (current-age == feudal-age)
+    (up-compare-goal gl-need-vills != NO)
+    (up-research-status c: castle-age < research-pending)
+    (unit-type-count-total villager >= KrushFeudalAgeVills)
+=>
+    ;	(chat-to-all "Krush Stop vills for cup")
+    (set-goal gl-need-vills NO)
+)
+
+; AUTHENTICATED DONOR RULE 1228 | DONOR_LINE=14881
+(defrule
+    (food-amount >= 640)
+    (gold-amount >= 150)
+    (goal gl-strategy FLUSH)
+    (research-available castle-age)
+    (or (goal gl-current-build-item CUP)
+    (unit-type-count villager >= 50))
+    (up-compare-goal gl-need-vills != NO)
+=>
+    (set-goal gl-need-vills NO)
+)
+
+; AUTHENTICATED DONOR RULE 1229 | DONOR_LINE=14893
+(defrule
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item CUP)
+    (can-research-with-escrow castle-age)
+=>
+    ;	(chat-to-player me "Castle Age")
+    (release-escrow food)
+    (release-escrow gold)
+    (set-goal gl-age-loading CA-loading)
+    (enable-timer BECO-TIMER 60)
+    (set-goal gl-need-vills YES)
+    (research castle-age)
+)
+
+; AUTHENTICATED DONOR RULE 1230 | DONOR_LINE=14908
+(defrule
+    (goal gl-current-build-item CUP)
+    (up-research-status c: castle-age >= research-pending)
+=>
+    ;	(chat-to-player me "Castle Age Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1231 | DONOR_LINE=14917
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-build-progress > CupNumber)
+    (up-research-status c: castle-age < research-pending)
+=>
+    (set-goal gl-build-progress CupNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1232 | DONOR_LINE=14925
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-build-progress > KrushCupNumber)
+    (up-research-status c: castle-age < research-pending)
+=>
+    (set-goal gl-build-progress KrushCupNumber)
+    ;	(chat-to-all "Krush reset to cup")
+)
+
+; AUTHENTICATED DONOR RULE 1233 | DONOR_LINE=14934
+(defrule
+    (goal gl-strategy KRUSH)
+    (current-age == feudal-age)
+    (up-compare-goal gl-current-build-item != CUP)
+    (up-compare-goal gl-build-progress == KrushCupNumber)
+=>
+    ;	(chat-to-player me "Krush Setting current build item to CUP")
+    (set-goal gl-current-build-item CUP)
+)
+
+; AUTHENTICATED DONOR RULE 1234 | DONOR_LINE=14944
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-enemy-strategy-type FC)
+    (up-compare-goal gl-current-build-item != CUP)
+    (up-compare-goal gl-build-progress == CupNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to CUP FC")
+    (set-goal gl-current-build-item CUP)
+    (set-escrow-percentage food 95)
+    (set-escrow-percentage gold 95)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1235 | DONOR_LINE=14958
+(defrule
+    (goal gl-strategy FLUSH)
+    (research-available castle-age)
+    (goal gl-enemy-strategy-type FLUSH)
+    (up-compare-goal gl-current-build-item != CUP)
+    (up-compare-goal gl-build-progress == CupNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to CUP Flush")
+    (set-goal gl-current-build-item CUP)
+    (set-escrow-percentage food 65)
+    (set-escrow-percentage gold 65)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1236 | DONOR_LINE=14974
+(defrule
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item FLTCH)
+    (can-research-with-escrow ri-fletching)
+=>
+    (set-escrow-percentage food 0)
+    (set-escrow-percentage gold 0)
+    (chat-to-player me "Fletching")
+    (release-escrow food)
+    (release-escrow gold)
+    (research ri-fletching)
+)
+
+; AUTHENTICATED DONOR RULE 1237 | DONOR_LINE=14987
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-build-progress > 9)
+    (up-research-status c: ri-fletching < research-pending)
+=>
+    (set-goal gl-build-progress 9)
+)
+
+; AUTHENTICATED DONOR RULE 1238 | DONOR_LINE=14995
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-build-progress == 9)
+    (up-compare-goal gl-current-build-item != FLTCH)
+=>
+    ;	(chat-to-player me "Setting current build item to FLTCH")
+    (set-goal gl-current-build-item FLTCH)
+    ;	(set-escrow-percentage food LOW-ESCROW)
+    ;	(set-escrow-percentage gold LOW-ESCROW)
+)
+
+; AUTHENTICATED DONOR RULE 1239 | DONOR_LINE=15006
+(defrule
+    (goal gl-strategy FLUSH)
+    (building-type-count blacksmith >= 1)
+    (up-compare-goal gl-current-build-item == FLTCH)
+=>
+    (up-modify-escrow food c:max 100)
+    (up-modify-escrow gold c:max 50)
+    ;	(chat-to-player me "Escrow for Fltch")
+)
+
+; AUTHENTICATED DONOR RULE 1240 | DONOR_LINE=15016
+(defrule
+    (goal gl-current-build-item FLTCH)
+    (up-research-status c: ri-fletching >= research-pending)
+=>
+    ;	(chat-to-player me "Fletching Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1241 | DONOR_LINE=15025
+(defrule
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item LAA)
+    (can-research-with-escrow ri-leather-archer-armor)
+=>
+    (up-research gl-escrow-state c: ri-leather-archer-armor)
+    ;	(chat-to-player me "Leather Archer Armor")
+)
+
+; AUTHENTICATED DONOR RULE 1242 | DONOR_LINE=15034
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-research-status c: ri-leather-archer-armor < research-pending)
+    (up-compare-goal gl-build-progress > LeatherArcherArmorNumber)
+=>
+    (set-goal gl-build-progress LeatherArcherArmorNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1243 | DONOR_LINE=15042
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != LAA)
+    (up-compare-goal gl-build-progress == LeatherArcherArmorNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to LAA")
+    (set-goal gl-current-build-item LAA)
+    ;	(set-escrow-percentage food LOW-ESCROW)
+    ;	(set-escrow-percentage gold LOW-ESCROW)
+)
+
+; AUTHENTICATED DONOR RULE 1244 | DONOR_LINE=15053
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == LAA)
+=>
+    (set-escrow-percentage food MID-HIGH-ESCROW)
+    (set-escrow-percentage gold MID-HIGH-ESCROW)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+)
+
+; AUTHENTICATED DONOR RULE 1245 | DONOR_LINE=15064
+(defrule
+    (goal gl-current-build-item LAA)
+    (up-research-status c: ri-leather-archer-armor >= research-pending)
+=>
+    ;	(chat-to-player me "Leather Archer Armor Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1246 | DONOR_LINE=15073
+(defrule
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item PAA)
+    (can-research-with-escrow ri-padded-archer-armor)
+=>
+    ;	(chat-to-player me "Padded Archer Armor")
+    (set-escrow-percentage food 0)
+    (release-escrow food)
+    (research ri-padded-archer-armor)
+)
+
+; AUTHENTICATED DONOR RULE 1247 | DONOR_LINE=15084
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-build-progress > PaddedArcherArmorNumber)
+    (up-research-status c: ri-padded-archer-armor < research-pending)
+=>
+    (set-goal gl-build-progress PaddedArcherArmorNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1248 | DONOR_LINE=15092
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != PAA)
+    (up-compare-goal gl-build-progress == PaddedArcherArmorNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to PAA")
+    (set-goal gl-current-build-item PAA)
+    ;	(set-escrow-percentage food LOW-ESCROW)
+)
+
+; AUTHENTICATED DONOR RULE 1249 | DONOR_LINE=15102
+(defrule
+    (goal gl-current-build-item PAA)
+    (up-research-status c: ri-fletching >= research-complete)
+=>
+    (up-modify-escrow food c:max 100)
+    (set-escrow-percentage wood 0)
+    (set-escrow-percentage gold 0)
+    (release-escrow wood)
+    (release-escrow gold)
+)
+
+; AUTHENTICATED DONOR RULE 1250 | DONOR_LINE=15113
+(defrule
+    (goal gl-current-build-item PAA)
+    (up-research-status c: ri-padded-archer-armor >= research-pending)
+=>
+    ;	(chat-to-player me "Padded Archer Armor Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1251 | DONOR_LINE=15122
+(defrule
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item BODKIN)
+    (can-research-with-escrow ri-bodkin-arrow)
+=>
+    (up-research gl-escrow-state c: ri-bodkin-arrow)
+    ;	(chat-to-player me "Bodkin Arrow")
+)
+
+; AUTHENTICATED DONOR RULE 1252 | DONOR_LINE=15131
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (up-research-status c: ri-bodkin-arrow < research-pending)
+    (up-compare-goal gl-build-progress > BodkinNumber)
+=>
+    (set-goal gl-build-progress BodkinNumber)
+)
+
+; AUTHENTICATED DONOR RULE 1253 | DONOR_LINE=15139
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != BODKIN)
+    (up-compare-goal gl-build-progress == BodkinNumber)
+=>
+    ;	(chat-to-player me "Setting current build item to BODKIN")
+    (set-goal gl-current-build-item BODKIN)
+)
+
+; AUTHENTICATED DONOR RULE 1254 | DONOR_LINE=15148
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-progression-pause == -1)
+    (up-compare-goal gl-current-build-item == BODKIN)
+=>
+    (set-escrow-percentage food HIGH-ESCROW)
+    (set-escrow-percentage wood HIGH-ESCROW)
+    (set-escrow-percentage gold HIGH-ESCROW)
+)
+
+; AUTHENTICATED DONOR RULE 1255 | DONOR_LINE=15158
+(defrule
+    (false)
+    (up-compare-goal gl-current-build-item == BODKIN)
+=>
+    (up-modify-escrow food c:max 200)
+    (up-modify-escrow gold c:max 100)
+    (chat-to-player me "Escrow for Bodkin")
+)
+
+; AUTHENTICATED DONOR RULE 1256 | DONOR_LINE=15167
+(defrule
+    (goal gl-current-build-item BODKIN)
+    (up-research-status c: ri-bodkin-arrow >= research-pending)
+=>
+    ;	(chat-to-player me "Bodkin Arrow Researched")
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; AUTHENTICATED DONOR RULE 1257 | DONOR_LINE=15176
+(defrule
+    (research-available ri-loom)
+    (unit-type-count villager >= 9)
+    (up-timer-status t-relure != timer-running)
+    (dropsite-min-distance live-boar < max-bh-distance)
+    (dropsite-min-distance live-boar > safe-bh-distance)
+=>
+    (set-goal gl-need-vills LOOM)
+    ;	(chat-to-player me "Need loom")
+)
+
+; AUTHENTICATED DONOR RULE 1258 | DONOR_LINE=15187
+(defrule
+    (can-research ri-loom)
+    (or	(and(game-time > 35)
+    (housing-headroom < 1))
+    (or	(goal gl-need-vills LOOM)
+    (or	(current-age > dark-age)
+    (and(food-amount < 40)
+    (up-pending-objects c: villager < 1)))))
+=>
+    (set-goal gl-need-vills YES)
+    ;	(chat-to-player me "Loom")
+    (research ri-loom)
+)
+
+; AUTHENTICATED DONOR RULE 1259 | DONOR_LINE=15202
+(defrule
+    (can-train monk)
+    (unit-type-count-total monk < 3)
+=>
+    (chat-to-player me "Monk 1")
+    (disable-self)
+    (train monk)
+)
+
+; AUTHENTICATED DONOR RULE 1260 | DONOR_LINE=15211
+(defrule
+    (can-train monk)
+    (unit-type-count-total monk < 3)
+=>
+    (chat-to-player me "Monk 2")
+    (disable-self)
+    (train monk)
+)
+
+; AUTHENTICATED DONOR RULE 1261 | DONOR_LINE=15220
+(defrule
+    (can-train monk)
+    (unit-type-count-total monk < 3)
+=>
+    (chat-to-player me "Monk 3")
+    (disable-self)
+    (train monk)
+)
+
+; AUTHENTICATED DONOR RULE 1262 | DONOR_LINE=15230
+(defrule
+    (goal gl-town-safe NO)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 30)
+    (up-find-remote c: archery-class c: 20)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 1263 | DONOR_LINE=15240
+(defrule
+    (false)
+    (goal gl-town-safe NO)
+    (up-compare-goal rt >= 10)
+    (up-compare-goal SUPERIORITY < 10)
+    (can-train-with-escrow mangonel-line)
+    ;	(up-point-distance ranged-group-x home-x >= 30)
+=>
+    (up-train gl-escrow-state c: mangonel-line)
+    (chat-to-player me "EmergencyMango")
+)
+
+; AUTHENTICATED DONOR RULE 1264 | DONOR_LINE=15252
+(defrule
+    (not(goal SIEGE RAMS))
+    (can-train mangonel-line)
+    (goal gl-strategy SIEGE)
+    (unit-type-count-total scorpion-line >= 5)
+=>
+    ;	(chat-to-player me "Mangonel")
+    (train mangonel-line)
+)
+
+; AUTHENTICATED DONOR RULE 1265 | DONOR_LINE=15262
+(defrule
+    (false)
+    (goal SIEGE 3)
+    (can-train-with-escrow mangonel-line)
+=>
+    (up-train gl-escrow-state c: mangonel-line)
+    (chat-to-player me "Mangonel")
+)
+
+; AUTHENTICATED DONOR RULE 1266 | DONOR_LINE=15271
+(defrule
+    (false)
+    (goal SIEGE 3)
+    (unit-type-count-total mangonel-line >= 2)
+=>
+    (chat-to-player me "NO MORE MANGOS")
+    (set-escrow-percentage wood 0)
+    (set-escrow-percentage gold 0)
+    (release-escrow wood)
+    (release-escrow gold)
+    (set-goal SIEGE -1)
+)
+
+; AUTHENTICATED DONOR RULE 1267 | DONOR_LINE=15284
+(defrule
+    (false)
+    (goal SIEGE 3)
+    (up-pending-objects c: mangonel-line < 1)
+    (up-pending-objects c: battering-ram-line < 1)
+=>
+    (up-modify-escrow wood c:max 160)
+    (up-modify-escrow gold c:max 135)
+)
+
+; AUTHENTICATED DONOR RULE 1268 | DONOR_LINE=15294
+(defrule	;don't die to eagles/knights
+    (players-unit-type-count target-player archer-line < 10)
+    (players-unit-type-count target-player skirmisher-line < 10)
+    (or	(players-unit-type-count target-player knight-line >= 3)
+    (players-unit-type-count target-player eagle-warrior-line >= 4))
+=>
+    (up-jump-rule 1)
+)
+
+; AUTHENTICATED DONOR RULE 1269 | DONOR_LINE=15303
+(defrule
+    (false)
+    (goal SIEGE -1)
+    (current-age >= castle-age)
+    (building-type-count siege-workshop > 0)
+    (up-pending-objects c: mangonel-line < 2)
+    (unit-type-count-total mangonel-line < 2)
+    (or	(unit-type-count-total battering-ram-line >= 4)
+    (players-building-type-count target-player castle < 1))
+    (or	(players-unit-type-count target-player archer-line >= 4)
+    (or	(players-unit-type-count target-player cavalry-archer-line >= 4)
+    (players-unit-type-count target-player skirmisher-line >= 4)))
+=>
+    ;	(chat-to-player me "NEED SOME MANGOS!")
+    (set-goal SIEGE 3)
+)
+
+; AUTHENTICATED DONOR RULE 1270 | DONOR_LINE=15321
+(defrule
+    (not(goal SIEGE RAMS))
+    (can-train scorpion-line)
+    (goal gl-strategy SIEGE)
+    (or	(unit-type-count-total scorpion-line < 5)
+    (or	(and(unit-type-count-total scorpion-line < 10)
+    (unit-type-count-total mangonel-line >= 1))
+    (or	(and(unit-type-count-total scorpion-line < 15)
+    (unit-type-count-total mangonel-line >= 2))
+    (unit-type-count-total scorpion-line < 30))))
+=>
+    ;	(chat-to-player me "Scorpion")
+    (train scorpion-line)
+)
+
+; AUTHENTICATED DONOR RULE 1271 | DONOR_LINE=15337
+(defrule
+    (goal SIEGE RAMS)
+    (or	(and(players-building-type-count target-player castle < 1)
+    (up-compare-goal gl-army-damage-potential < CostOfPausingForRams))
+    (or	(and(unit-type-count-total battering-ram-line >= 3)
+    (players-building-type-count target-player castle < 1))
+    (and(unit-type-count-total battering-ram >= 4)
+    (players-building-type-count target-player castle >= 1))))
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 1272 | DONOR_LINE=15349
+(defrule
+    (goal SPLIT 1)
+=>
+    ;	(chat-to-player me "STOP RAMS")
+    (set-escrow-percentage wood 0)
+    (set-escrow-percentage gold 0)
+    (release-escrow wood)
+    (release-escrow gold)
+    (set-goal SIEGE -1)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1273 | DONOR_LINE=15361
+(defrule
+    (goal SIEGE RAMS)
+    (up-pending-objects c: mangonel-line < 1)
+    (up-pending-objects c: battering-ram-line < 1)
+=>
+    (up-modify-escrow wood c:max 160)
+    (up-modify-escrow gold c:max 75)
+)
+
+; AUTHENTICATED DONOR RULE 1274 | DONOR_LINE=15370
+(defrule
+    (goal SIEGE RAMS)
+    (can-train-with-escrow battering-ram-line)
+=>
+    ;	(chat-to-player me "RAM!!!")
+    (release-escrow wood)
+    (release-escrow gold)
+    (train battering-ram-line)
+)
+
+; AUTHENTICATED DONOR RULE 1275 | DONOR_LINE=15380
+(defrule
+    (goal SIEGE -1)
+    (current-age >= castle-age)
+    (building-type-count siege-workshop > 0)
+    (up-pending-objects c: battering-ram < 2)
+    (or	(unit-type-count-total battering-ram < 3)
+    (and(unit-type-count-total battering-ram < 4)
+    (players-building-type-count target-player castle >= 1)))
+    (or	(players-building-type-count target-player castle >= 1)
+    (up-compare-goal gl-army-damage-potential >= CostOfPausingForRams))
+=>
+    ;	(chat-to-player me "NEED SOME RAMS!")
+    (set-goal SIEGE RAMS)
+)
+
+; AUTHENTICATED DONOR RULE 1276 | DONOR_LINE=15397
+(defrule
+    (goal gl-strategy KRUSH)
+    (can-train scout-cavalry-line)
+    (unit-type-count scout-cavalry-line < 1)
+    (or (food-amount >= 100)
+    (up-pending-objects c: villager >= 2))
+=>
+    ;	(chat-to-player me "Krush Scout 1")
+    (train scout-cavalry-line)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1277 | DONOR_LINE=15411
+(defrule
+    (can-train knight-line)
+    (goal gl-strategy KRUSH)
+    (or (food-amount >= 100)
+    (up-pending-objects c: villager >= 2))
+=>
+    ;	(chat-to-player me "Krush Knight 1")
+    (train knight-line)
+)
+
+; AUTHENTICATED DONOR RULE 1278 | DONOR_LINE=15422
+(defrule
+    (can-train knight-line)
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-progression-pause != XBOW)
+    (up-compare-goal gl-current-build-item != BODKIN)
+    (up-compare-goal gl-current-build-item != ESKIRMS)
+=>
+    ;	(chat-to-player me "Knight 1")
+    (train knight-line)
+)
+
+; AUTHENTICATED DONOR RULE 1279 | DONOR_LINE=15433
+(defrule
+    (unit-type-count knight-line < 4)
+    (goal gl-strategy FLUSH)
+    (can-train-with-escrow knight-line)
+    (up-compare-goal gl-progression-pause != XBOW)
+    (up-compare-goal gl-current-build-item != BODKIN)
+    (up-compare-goal gl-current-build-item != ESKIRMS)
+=>
+    (up-train gl-escrow-state c: knight-line)
+    ;	(chat-to-player me "Escrow Knight")
+)
+
+; AUTHENTICATED DONOR RULE 1280 | DONOR_LINE=15446
+(defrule
+    ;	(or	(goal gl-progression-pause XBOW)
+    ;		(or	(goal gl-current-build-item ESKIRMS)
+    (or	(and(gold-amount < 250)
+    (food-amount >= 500))
+    (and(gold-amount < 150)
+    (food-amount >= 300)));))
+=>
+    (up-jump-rule 1)
+)
+
+; AUTHENTICATED DONOR RULE 1281 | DONOR_LINE=15457
+(defrule
+    (or	(gold-amount >= 100)
+    (research-completed ri-fletching))
+    (up-can-train gl-escrow-state c: archer-line)
+    (or (unit-type-count-total archer-line < 4)
+    (and(unit-type-count-total archer-line < 7)
+    (unit-type-count-total skirmisher-line >= 15)))
+    (or	(current-age < castle-age)
+    (and(up-compare-goal gl-progression-pause != XBOW)
+    (up-research-status c: ri-elite-skirmisher >= research-pending)))
+=>
+    (up-train gl-escrow-state c: archer-line)
+    ;	(chat-to-player me "GeneralArcher")
+)
+
+; AUTHENTICATED DONOR RULE 1282 | DONOR_LINE=15474
+(defrule
+    (current-age >= castle-age)
+=>
+    (set-goal gl-escrow-state without-escrow)
+)
+
+; AUTHENTICATED DONOR RULE 1283 | DONOR_LINE=15480
+(defrule	;fewer skirms if ahead in tg--saving for spears/castle age
+    (player-valid 5)	;have atleast one pocket
+    (not(player-valid 7))	;only one flank will have support
+    (goal gl-strategy FLUSH)
+    (up-compare-goal SUPERIORITY >= 15)
+    (up-compare-goal gl-skirm-total >= 23)
+    (unit-type-count-total skirmisher-line >= 10)
+    (up-research-status c: castle-age < research-pending)
+=>
+    (up-jump-rule 2)
+)
+
+; AUTHENTICATED DONOR RULE 1284 | DONOR_LINE=15492
+(defrule	;fewer skirms if enemy castled and not up
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-skirm-total >= 23)
+    ;	(unit-type-count-total skirmisher-line >= 10)
+    (or	(player-valid 7)	;have support from enemies
+    (or	(goal gl-enemy-strategy KRUSH)
+    (goal gl-enemy-strategy POSSIBLE-KRUSH)))
+    (up-research-status c: castle-age < research-pending)
+=>
+    (up-jump-rule 1)
+)
+
+; AUTHENTICATED DONOR RULE 1285 | DONOR_LINE=15504
+(defrule	;all
+    (goal gl-strategy FLUSH)
+    (or	(housing-headroom >= 3)
+    (up-pending-objects c: house > 0))
+    (up-pending-objects c: villager-class > 0)
+    (or	(building-type-count-total blacksmith >= 1)
+    (unit-type-count-total skirmisher-line < 16))
+    (or	(game-time < 1020)	;17min
+    (building-type-count-total mining-camp >= 1))
+    (up-can-train gl-escrow-state c: skirmisher-line)
+    (nand	(building-type-count blacksmith >= 1)
+    (up-compare-goal gl-current-build-item == FLTCH))
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 1286 | DONOR_LINE=15520
+(defrule
+    (goal SPLIT 1)
+    (or	(up-compare-goal SUPERIORITY < -5)
+    (or	(up-compare-goal gl-skirm-total < 35)
+    (up-research-status c: castle-age >= research-pending)))
+    (or	(current-age < castle-age)
+    (and(up-compare-goal gl-progression-pause != XBOW)
+    (up-research-status c: ri-elite-skirmisher >= research-pending)))
+=>
+    (set-goal SPLIT 2)
+)
+
+; AUTHENTICATED DONOR RULE 1287 | DONOR_LINE=15532
+(defrule
+    (goal SPLIT 2)
+=>
+    (up-modify-goal gl-skirm-total c:+ 1)
+    ;	(up-chat-data-to-all "GeneralSkirm (%d)" g: gl-skirm-total)
+    (up-train gl-escrow-state c: skirmisher-line)
+    (set-goal gl-escrow-state with-escrow)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1288 | DONOR_LINE=15542
+(defrule
+    (true)
+=>
+    (set-goal gl-escrow-state with-escrow)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1289 | DONOR_LINE=15550
+(defrule
+    (goal gl-enemy-civ MESO)
+    (can-train militiaman-line)
+    (or	(and(current-age < castle-age)
+    (research-completed ri-man-at-arms))
+    (and(current-age > feudal-age)
+    (research-completed ri-long-swordsman)))
+    (up-compare-goal gl-target-age >= CA-loading)
+    (unit-type-count-total militiaman-line < 10)
+=>
+    (chat-to-player me "Sword")
+    (train militiaman-line)
+)
+
+; AUTHENTICATED DONOR RULE 1290 | DONOR_LINE=15566
+(defrule
+    (goal gl-strategy FLUSH)
+    (can-train spearman-line)
+    (current-age-time >= 180)
+    (current-age < castle-age)
+    (research-completed ri-fletching)
+    (unit-type-count-total spearman-line < 8)
+    (or	(player-valid 5)	;enemy pocket
+    (or	(goal gl-enemy-strategy KRUSH)
+    (goal gl-enemy-strategy POSSIBLE-KRUSH)))
+=>
+    ;	(chat-to-all "TG Feudal Spear")
+    (train spearman-line)
+)
+
+; AUTHENTICATED DONOR RULE 1291 | DONOR_LINE=15581
+(defrule
+    (game-time >= 1080)	;18min
+    (goal gl-strategy FLUSH)
+    (goal gl-enemy-civ NORMAL)	;any enemy is non-meso
+    (unit-type-count-total spearman-line < 4)
+    (up-compare-goal gl-progression-pause != PIKES)
+    (up-can-train gl-escrow-state c: spearman-line)
+    (or	(player-valid 5)	;enemy pocket
+    (or	(goal gl-enemy-strategy KRUSH)
+    (goal gl-enemy-strategy POSSIBLE-KRUSH)))
+=>
+    (up-train gl-escrow-state c: spearman-line)
+    ;	(chat-to-all "TG EmergencySpear")
+)
+
+; AUTHENTICATED DONOR RULE 1292 | DONOR_LINE=15596
+(defrule
+    (player-valid 5)	;enemy pocket
+    (goal gl-strategy FLUSH)
+    (can-train spearman-line)
+    (current-age >= castle-age)
+    (unit-type-count-total spearman-line < 10)
+    (up-compare-goal gl-progression-pause != PIKES)
+    (or	(players-building-type-count any-enemy stable >= 2)
+    (or	(players-unit-type-count any-enemy camel-line >= 3)
+    (players-unit-type-count any-enemy knight-line >= 3)))
+=>
+    ;	(chat-to-all "TG Castle Spear")
+    (train spearman-line)
+)
+
+; AUTHENTICATED DONOR RULE 1293 | DONOR_LINE=15611
+(defrule
+    (not(player-valid 5))
+    (goal gl-strategy FLUSH)
+    (can-train spearman-line)
+    (current-age >= castle-age)
+    (unit-type-count-total spearman-line < 10)
+    (up-compare-goal gl-progression-pause != PIKES)
+    (players-current-age target-player >= castle-age)
+    (players-building-type-count target-player stable >= 2)
+=>
+    ;	(chat-to-all "Flush Castle Spear")
+    (train spearman-line)
+)
+
+; AUTHENTICATED DONOR RULE 1294 | DONOR_LINE=15626
+(defrule
+    (goal gl-strategy KRUSH)
+    ;	(or	(current-age-time < 400)
+    ;		(current-age < castle-age))
+=>
+    (up-jump-rule 4)
+)
+
+; AUTHENTICATED DONOR RULE 1295 | DONOR_LINE=15634
+(defrule
+    (not(player-valid 5))
+    (goal gl-enemy-civ MESO)
+    (players-unit-type-count target-player monk < 1)
+    (players-unit-type-count target-player knight < 1)
+=>
+    (up-jump-rule 2)
+)
+
+; AUTHENTICATED DONOR RULE 1296 | DONOR_LINE=15643
+(defrule
+    (unit-type-count-total spearman-line < 6)
+    (up-compare-goal gl-progression-pause != PIKES)
+    (up-can-train gl-escrow-state c: spearman-line)
+    (or	(goal ENEMY-STABLE YES)
+    (or	(players-building-type-count target-player stable == 1)
+    (or	(and(unit-type-count-total spearman-line < 6)
+    (players-building-type-count target-player stable >= 2))
+    (up-compare-goal gl-target-age >= CA-loading))))
+=>
+    (up-train gl-escrow-state c: spearman-line)
+    ;	(chat-to-all "EmergencySpear")
+)
+
+; AUTHENTICATED DONOR RULE 1297 | DONOR_LINE=15657
+(defrule
+    (can-train spearman-line)
+    (up-compare-goal gl-progression-pause != PIKES)
+    (or	(and(military-population >= 5)
+    (unit-type-count-total spearman-line < 1))
+    (and(current-age-time >= 220)
+    (unit-type-count-total spearman-line < 2)))
+    (or	(goal gl-enemy-civ NORMAL)
+    (players-unit-type-count target-player monk > 1))
+=>
+    ;	(chat-to-all "Spear2")
+    (train spearman-line)
+)
+
+; AUTHENTICATED DONOR RULE 1298 | DONOR_LINE=15671
+(defrule
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 6)
+    (up-compare-goal gl-progression-pause != PIKES)
+    (or	(goal gl-enemy-civ NORMAL)
+    (players-unit-type-count target-player monk > 1))
+    (or	(players-unit-type-count target-player knight-line >= 8)
+    (players-unit-type-count target-player scout-cavalry-line >= 8))
+=>
+    ;	(chat-to-all "Spear3")
+    (train spearman-line)
+)
