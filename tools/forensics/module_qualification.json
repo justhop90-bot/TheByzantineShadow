@@ -2,6 +2,14 @@
   "donor_source": "ShadowSource.per",
   "donor_blob_sha": "99a8f5de08bf31f84f418fea188ab08ab6180a67",
   "donor_rule_count": 1956,
+  "external_state_symbols": [
+    "gl-dark-build",
+    "gl-enemy-strategy-type",
+    "gl-identity",
+    "gl-my-player-number",
+    "gl-position",
+    "gl-switch"
+  ],
   "modules": [
     {
       "name":"construction",
