@@ -1,0 +1,330 @@
+```yaml
+name: TEMP Shadow Replay Telemetry
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parse-shadow-replay:
+    runs-on: ubuntu-latest
+
+    env:
+      REPLAY_COMMIT: b313c0363753d3b73745a067c6f84d6bb23f52ed
+      REPLAY_FILE: "SP Replay v101.103.48987.0 @2026.09.16 202614.aoe2record"
+      EXPECTED_REPLAY_BLOB: 8322b48e9a5d2c9bd0d8c563bd9e246de8d9a498
+      EXPECTED_REPLAY_BYTES: 5254614
+
+    steps:
+      - name: Checkout exact forensic commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REPLAY_COMMIT }}
+          fetch-depth: 0
+
+      - name: Verify repository commit
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$REPLAY_COMMIT"
+
+          echo "Verified commit: $actual"
+
+      - name: Verify replay blob and size
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f "$REPLAY_FILE"
+
+          blob="$(git hash-object "$REPLAY_FILE")"
+          bytes="$(stat -c '%s' "$REPLAY_FILE")"
+
+          echo "Replay blob:  $blob"
+          echo "Replay bytes: $bytes"
+
+          test "$blob" = "$EXPECTED_REPLAY_BLOB"
+          test "$bytes" = "$EXPECTED_REPLAY_BYTES"
+
+      - name: Record .per baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git ls-files -z -- '*.per' \
+            | xargs -0 sha256sum \
+            > /tmp/per-before.sha256
+
+          cp /tmp/per-before.sha256 \
+            "$RUNNER_TEMP/per-before.sha256"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tools/recording-tools/package.json
+
+      - name: Install Agents recording toolchain
+        working-directory: tools/recording-tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts
+
+      - name: Verify agelens installation
+        working-directory: tools/recording-tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node -e '
+            const p = require("agelens/package.json");
+            console.log("agelens version:", p.version);
+          '
+
+      - name: Inspect recording parser interface
+        working-directory: tools/recording-tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'NODE'
+          import * as agelens from "agelens";
+
+          console.log("agelens exports:");
+          console.log(Object.keys(agelens).sort().join("\n"));
+
+          if (typeof agelens.parseRecording !== "function") {
+            throw new Error("Expected agelens.parseRecording export was not found");
+          }
+          NODE
+
+      - name: Parse native replay to UTF-8 JSON
+        working-directory: tools/recording-tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/replay"
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+          import path from "node:path";
+          import { parseRecording } from "agelens";
+
+          const replay = process.env.GITHUB_WORKSPACE + "/" +
+            process.env.REPLAY_FILE;
+
+          const output =
+            process.env.GITHUB_WORKSPACE +
+            "/artifacts/replay/recording.json";
+
+          const buffer = fs.readFileSync(replay);
+
+          const recording = parseRecording(buffer);
+
+          fs.writeFileSync(
+            output,
+            JSON.stringify(recording, null, 2) + "\n",
+            { encoding: "utf8" }
+          );
+
+          console.log("Replay parsed:", replay);
+          console.log("UTF-8 output:", output);
+          NODE
+
+      - name: Generate normalized UTF-8 JSONL telemetry
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p artifacts/replay
+
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const input =
+            "artifacts/replay/recording.json";
+
+          const output =
+            "artifacts/replay/telemetry.jsonl";
+
+          const recording =
+            JSON.parse(fs.readFileSync(input, "utf8"));
+
+          const out = [];
+
+          const emit = (kind, value) => {
+            out.push(JSON.stringify({
+              kind,
+              ...value
+            }));
+          };
+
+          emit("metadata", {
+            parser: "agelens",
+            generatedAt: new Date().toISOString()
+          });
+
+          if (recording.header) {
+            emit("header", recording.header);
+          }
+
+          if (recording.players) {
+            for (const player of recording.players) {
+              emit("player", player);
+            }
+          }
+
+          if (recording.map) {
+            emit("map", recording.map);
+          }
+
+          if (recording.lobby) {
+            emit("lobby", recording.lobby);
+          }
+
+          if (recording.warnings) {
+            for (const warning of recording.warnings) {
+              emit("parser-warning", { warning });
+            }
+          }
+
+          if (recording.unknownRecords) {
+            for (const record of recording.unknownRecords) {
+              emit("unknown-record", { record });
+            }
+          }
+
+          const operations =
+            recording.operations ??
+            recording.actions ??
+            [];
+
+          for (const operation of operations) {
+            emit("operation", operation);
+          }
+
+          fs.writeFileSync(
+            output,
+            out.join("\n") + "\n",
+            { encoding: "utf8" }
+          );
+
+          console.log(`Wrote ${out.length} JSONL records`);
+          NODE
+
+          file artifacts/replay/telemetry.jsonl
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("artifacts/replay/telemetry.jsonl")
+          data = p.read_bytes()
+
+          data.decode("utf-8")
+
+          print("UTF-8 validation: PASS")
+          print("Bytes:", len(data))
+          print("Lines:", data.count(b"\n"))
+          PY
+
+      - name: Extract resource snapshots and research actions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          source = Path("artifacts/replay/telemetry.jsonl")
+          resource = Path("artifacts/replay/resource-snapshots.jsonl")
+          research = Path("artifacts/replay/research-actions.jsonl")
+
+          resources = []
+          researches = []
+
+          for line in source.read_text(encoding="utf-8").splitlines():
+              if not line:
+                  continue
+
+              row = json.loads(line)
+
+              action_id = row.get("actionId")
+
+              # Preserve the complete decoded operation whenever
+              # actionId 196 is encountered.
+              if action_id == 196:
+                  resources.append(row)
+
+              # Preserve the complete decoded operation whenever
+              # actionId 101 is encountered.
+              if action_id == 101:
+                  researches.append(row)
+
+          resource.write_text(
+              "\n".join(json.dumps(x, ensure_ascii=False)
+                        for x in resources) + "\n",
+              encoding="utf-8"
+          )
+
+          research.write_text(
+              "\n".join(json.dumps(x, ensure_ascii=False)
+                        for x in researches) + "\n",
+              encoding="utf-8"
+          )
+
+          print("action 196 records:", len(resources))
+          print("action 101 records:", len(researches))
+          PY
+
+      - name: Verify no .per modifications
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git ls-files -z -- '*.per' \
+            | xargs -0 sha256sum \
+            > /tmp/per-after.sha256
+
+          diff -u \
+            "$RUNNER_TEMP/per-before.sha256" \
+            /tmp/per-after.sha256
+
+          if git status --porcelain -- '*.per' | grep -q .; then
+            echo "::error::.per files changed during replay analysis"
+            git status --short -- '*.per'
+            exit 1
+          fi
+
+          echo ".per integrity check: PASS"
+
+      - name: Publish telemetry artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadow-replay-telemetry
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            artifacts/replay/recording.json
+            artifacts/replay/telemetry.jsonl
+            artifacts/replay/resource-snapshots.jsonl
+            artifacts/replay/research-actions.jsonl
+```
+
+### Important qualification
+
+I would **not run this exact draft blindly yet**. There is one interface detail that should be verified against the pinned `agelens` version before execution: whether `parseRecording()` accepts the raw `Buffer` directly in the installed `0.1.1` package or expects a file/path/options signature.
+
+The workflow deliberately includes an **interface inspection step before parsing**, but the final parser invocation should be adjusted to the actual exported signature rather than assuming it.
+
+The stronger version would therefore pin the exact Agents recording-toolchain dependency lockfile and use its existing `read-recording.mjs` parser entry point, then add a forensic extractor around the resulting `Recording` object. That avoids introducing an independently guessed parser invocation.
+
+Most importantly, this workflow is **read-only with respect to `.per`**: `actions/checkout` checks out the exact commit, the replay is verified by blob SHA and byte count, the parser runs in the ephemeral GitHub runner, and the only published outputs are UTF-8 forensic artifacts. It has no `contents: write` permission and cannot commit anything back to `main`.
+
+If you want, I can next turn this draft into the **repository-specific version using the exact `tools/recording-tools` package/lockfile and actual `agelens` API exposed by Agents of Empires**, so it is executable rather than merely a workflow skeleton.
