@@ -1,53 +1,68 @@
 ; ============================================
-; AEGIS
-; 10_escrow.per
+; THE BYZANTINE SHADOW
+; MODULE 10 -- ESCROW AUTHORITY
 ; ============================================
 ;
-; ESCROW
+; Closed production-slice implementation.
 ;
 ; Responsibility:
-;
-;   Own the lifecycle of actual engine escrow.
-;
-; This module:
-;
-;   - observes escrow
-;   - executes escrow release
-;   - verifies escrow release
-;   - maintains escrow lifecycle state
+;   Own actual engine escrow mutation, commitment observation,
+;   release execution, and release observation.
 ;
 ; This module does NOT:
+;   - choose the objective;
+;   - determine strategic demand;
+;   - determine capital feasibility;
+;   - grant execution authority;
+;   - execute training;
+;   - verify unit completion;
+;   - perform recovery.
 ;
-;   - choose the objective
-;   - determine transaction success
-;   - determine transaction failure
-;   - request strategic release
-;   - perform recovery
-;
-; Release authority chain:
-;
-;   TERMINAL TRANSACTION
-;          ↓
-;   RELEASE REQUEST
-;          ↓
-;   COMMITTED
-;          ↓
-;   RELEASING
-;          ↓
-;   up-release-escrow
-;          ↓
-;   OBSERVE FOUR ESCROW FACTS = 0
-;          ↓
-;   RELEASED
-;
-; IMPORTANT:
-;
-;   Issuing up-release-escrow is NOT proof
-;   that release completed.
-;
-;   RELEASED requires observed engine state.
+; Transaction resource goals 475-478 are populated by the
+; vertical demonstrator from the engine-derived requirement
+; contract used by this slice:
+;   475 = food
+;   476 = wood
+;   477 = gold
+;   478 = stone
 ;
 ; ============================================
+; COMMITTING -> ENGINE ESCROW MUTATION
+; ============================================
+;
+; Feasibility and logical transaction state are prerequisites.
+; The physical mutation occurs here, not in the demonstrator.
+;
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-CAPITAL-FEASIBILITY 1)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
+=>
+    (up-modify-escrow food c:max AEGIS-TRANSACTION-FOOD)
+    (up-modify-escrow wood c:max AEGIS-TRANSACTION-WOOD)
+    (up-modify-escrow gold c:max AEGIS-TRANSACTION-GOLD)
+    (up-modify-escrow stone c:max AEGIS-TRANSACTION-STONE)
+)
+
+; ============================================
+; COMMITTING -> COMMITTED
+; ============================================
+;
+; Command issuance is not commitment completion. The engine must
+; report the protected escrow quantities before COMMITTED is written.
+;
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-CAPITAL-FEASIBILITY 1)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
+    (escrow-amount food >= AEGIS-TRANSACTION-FOOD)
+    (escrow-amount wood >= AEGIS-TRANSACTION-WOOD)
+    (escrow-amount gold >= AEGIS-TRANSACTION-GOLD)
+    (escrow-amount stone >= AEGIS-TRANSACTION-STONE)
+=>
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
+)
 
 ; ============================================
 ; COMMITTED -> RELEASING
@@ -55,67 +70,45 @@
 ;
 ; Explicit release request is mandatory.
 ;
-; Terminal transaction state alone cannot
-; authorize engine escrow release.
-;
-; ============================================
-
 (defrule
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
-(goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
-(or
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
-)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+    (or
+        (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-COMPLETE)
+        (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+    )
 =>
-(up-release-escrow)
-(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+    (up-release-escrow)
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
 )
 
 ; ============================================
 ; RELEASING -> RELEASED
 ; ============================================
 ;
-; Verify actual engine escrow state.
+; Actual engine state is authoritative.
 ;
-; Escrow amounts are non-negative. Therefore
-; a documented relational test of < 1 establishes
-; that each escrow balance has reached zero,
-; without relying on an undocumented '='
-; compareOp for escrow-amount.
-;
-; All four resource escrow balances must
-; independently report zero.
-;
-; ============================================
-
 (defrule
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
-(escrow-amount food < 1)
-(escrow-amount wood < 1)
-(escrow-amount gold < 1)
-(escrow-amount stone < 1)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASING)
+    (escrow-amount food < 1)
+    (escrow-amount wood < 1)
+    (escrow-amount gold < 1)
+    (escrow-amount stone < 1)
 =>
-(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
 )
 
 ; ============================================
 ; RELEASED -> UNCOMMITTED
 ; ============================================
 ;
-; RELEASED is intentionally preserved until
-; the transaction lifecycle has returned to IDLE.
+; Keep RELEASED observable until the transaction lifecycle reaches
+; IDLE. This preserves the reassessment/recovery boundary.
 ;
-; This prevents Module 10 from erasing the
-; verified release state before recovery or
-; downstream lifecycle logic can observe it.
-;
-; ============================================
-
 (defrule
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
 =>
-(set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-UNCOMMITTED)
-(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
+    (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-UNCOMMITTED)
+    (set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
 )
