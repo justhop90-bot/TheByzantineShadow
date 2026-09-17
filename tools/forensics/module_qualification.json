@@ -3,18 +3,13 @@
   "donor_blob_sha": "70a18a3b69e8ea46bd5132673fe9fcf8a36595ee",
   "donor_rule_count": 1956,
   "modules": [
-    {"name":"constants","implementation":"ShadowByzantine/01_constants.per"},
-    {"name":"shadow_r07_compat","implementation":"ShadowByzantine/01a_shadow_r07_compat.per"},
-    {"name":"byz_constants","implementation":"ShadowByzantine/01b_byz_constants.per"},
-    {"name":"state","implementation":"ShadowByzantine/02_state.per"},
-    {"name":"economy","implementation":"ShadowByzantine/03_economy.per"},
-    {"name":"construction","implementation":"ShadowByzantine/04_construction.per","donor_start":1794,"donor_end":1949,"label":"authenticated Shadow construction interval","state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]},
-    {"name":"composition_policy","implementation":"ShadowByzantine/05_composition_policy.per"},
-    {"name":"production","implementation":"ShadowByzantine/05_production.per"},
-    {"name":"military","implementation":"ShadowByzantine/06_military.per"},
-    {"name":"placement","implementation":"ShadowByzantine/07_placement.per"},
-    {"name":"strategic_reserve","implementation":"ShadowByzantine/07_strategic reserve.per"},
-    {"name":"requirements","implementation":"ShadowByzantine/08_requirements.per"},
-    {"name":"requirements_transaction","implementation":"ShadowByzantine/08_requirements_transaction.per"}
+    {
+      "name":"construction",
+      "implementation":"ShadowByzantine/04_construction.per",
+      "donor_start":1794,
+      "donor_end":1949,
+      "label":"authenticated Shadow construction interval",
+      "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
+    }
   ]
 }
