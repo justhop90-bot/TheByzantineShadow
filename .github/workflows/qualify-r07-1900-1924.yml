@@ -1,0 +1,17 @@
+name: qualify-authenticated-r07-1900-1924
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ShadowSource.per'
+      - 'ShadowByzantine/04_construction.per'
+      - 'tools/forensics/qualify_r07_1900_1924_implementation.py'
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Static authenticated qualification
+        run: python3 tools/forensics/qualify_r07_1900_1924_implementation.py
