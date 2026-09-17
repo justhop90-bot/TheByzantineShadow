@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static qualification of the authenticated R07 1794-1827 transplant.
+"""Static qualification of the authenticated R07 1794-1849 transplant.
 
 The qualification compares parsed defrule bodies from the canonical donor
 against the corresponding ordered rule bodies in 04_construction.per.
@@ -17,7 +17,7 @@ IMPLEMENTATION = ROOT / "ShadowByzantine" / "04_construction.per"
 EXPECTED_BLOB = "70a18a3b69e8ea46bd5132673fe9fcf8a36595ee"
 EXPECTED_RULES = 1956
 FIRST = 1794
-LAST = 1827
+LAST = 1849
 
 
 def git_blob_sha1(data: bytes) -> str:
@@ -125,7 +125,7 @@ def main() -> int:
     print("RULE_BODY_EQUIVALENCE=PASS")
     print(f"UP_JUMP_EQUIVALENCE=PASS ({len(impl_jumps)} jumps)")
     print("SOURCE_ORDER=PASS")
-    print("STATIC_R07_1794_1827_QUALIFICATION=PASS")
+    print("STATIC_R07_1794_1849_QUALIFICATION=PASS")
     return 0
 
 
