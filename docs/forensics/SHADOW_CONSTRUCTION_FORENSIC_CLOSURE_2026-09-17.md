@@ -357,6 +357,16 @@ tool reporting success without a match count silently did nothing
 once (tab-vs-space indent) — verify every edit mechanically
 afterward.
 
+## Amendment record 2026-09-17 — tasks-count operand (02b:2767)
+
+Engine dialog at donor rule 474 on
+`(up-remove-objects search-local object-data-tasks-count > 0)`.
+Same signature as precise-distance/idling: registry-present,
+exe-absent, Naga-only precedent. Commented out; the lure-labor
+rule keeps unfiltered villager finds (may occasionally select a
+tasked villager — documented degradation). Deviation recorded
+(rule 474).
+
 ## Amendment record 2026-09-17 — explored-state queries removed (02b)
 
 Engine dialog at 02b:1890 (donor rule 401) on
