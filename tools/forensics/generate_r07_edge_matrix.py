@@ -27,9 +27,59 @@ def git_blob_sha(raw: bytes) -> str:
     return hashlib.sha1(f"blob {len(raw)}\0".encode() + raw).hexdigest()
 
 
+def mask_comments(text: str) -> str:
+    """Mask // and /* */ comments without changing length or line numbering."""
+    out = list(text)
+    i = 0
+    n = len(text)
+    in_string = False
+    escaped = False
+    while i < n:
+        ch = text[i]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            i += 1
+            continue
+        if ch == '"':
+            in_string = True
+            i += 1
+            continue
+        if ch == '/' and i + 1 < n and text[i + 1] == '/':
+            out[i] = out[i + 1] = ' '
+            i += 2
+            while i < n and text[i] != '\n':
+                out[i] = ' '
+                i += 1
+            continue
+        if ch == '/' and i + 1 < n and text[i + 1] == '*':
+            out[i] = out[i + 1] = ' '
+            i += 2
+            while i + 1 < n and not (text[i] == '*' and text[i + 1] == '/'):
+                if text[i] != '\n':
+                    out[i] = ' '
+                i += 1
+            if i < n:
+                if text[i] != '\n':
+                    out[i] = ' '
+                i += 1
+            if i < n:
+                if text[i] != '\n':
+                    out[i] = ' '
+                i += 1
+            continue
+        i += 1
+    return ''.join(out)
+
+
 def parse_rules(text: str):
     """Parse top-level defrule forms using balanced parentheses."""
-    starts = [m.start() for m in re.finditer(r"(?m)^\s*\(defrule\b", text)]
+    masked = mask_comments(text)
+    starts = [m.start() for m in re.finditer(r"(?m)^\s*\(defrule\b", masked)]
     rules = []
     for rid, start in enumerate(starts, 1):
         depth = 0
@@ -37,8 +87,8 @@ def parse_rules(text: str):
         i = start
         in_string = False
         escaped = False
-        while i < len(text):
-            ch = text[i]
+        while i < len(masked):
+            ch = masked[i]
             if in_string:
                 if escaped:
                     escaped = False
@@ -98,7 +148,7 @@ def main() -> None:
             "target_region": "R07" if target_region else "OUTSIDE_R07",
             "cross_boundary": "YES" if boundary else "NO",
             "source_fact_evidence": evidence,
-            "target_resolution_evidence": "MECHANICALLY_DERIVED" if kind == "up-jump" else "MECHANICALLY_DERIVED",
+            "target_resolution_evidence": "MECHANICALLY_DERIVED",
             "boundary_classification_evidence": "MECHANICALLY_CLASSIFIED",
             "raw_jump_or_successor": source_text,
         })
@@ -136,19 +186,17 @@ def main() -> None:
                 )
 
     # Cross-boundary fall-through at the R07 edges (entry/exit boundaries).
-    if R07_START > 1:
-        add_edge(
-            "INCOMING", R07_START - 1, R07_START, "fall-through", None,
-            by_id[R07_START - 1][1], f"rule {R07_START - 1} -> rule {R07_START}",
-            "MECHANICALLY_DERIVED_SOURCE_ORDER"
-        )
+    add_edge(
+        "INCOMING", R07_START - 1, R07_START, "fall-through", None,
+        by_id[R07_START - 1][1], f"rule {R07_START - 1} -> rule {R07_START}",
+        "MECHANICALLY_DERIVED_SOURCE_ORDER"
+    )
     add_edge(
         "OUTGOING", R07_END, R07_END + 1, "fall-through", None,
         by_id[R07_END][1], f"rule {R07_END} -> rule {R07_END + 1}",
         "MECHANICALLY_DERIVED_SOURCE_ORDER"
     )
 
-    # De-duplicate exact edge records (the R07 entry edge is intentionally represented once).
     unique = {}
     for row in rows:
         key = (row["direction"], row["source_rule"], row["target_rule"], row["edge_kind"], row["jump_delta"])
