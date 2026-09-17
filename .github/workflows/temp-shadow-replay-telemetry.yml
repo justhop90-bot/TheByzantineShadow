@@ -1,11 +1,11 @@
 name: TEMP Shadow Replay Telemetry
 
 on:
-workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-test:
-runs-on: ubuntu-latest
-steps:
-- name: Test workflow
-run: echo "GitHub Actions workflow syntax is valid"
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test workflow
+        run: echo "GitHub Actions workflow syntax is valid"
