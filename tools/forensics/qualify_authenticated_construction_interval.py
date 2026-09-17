@@ -155,13 +155,20 @@ def main() -> None:
     donor_consts=consts(sb.decode("utf-8")); impl_consts=consts(ib); registry_consts=consts(cb); locations=const_locations(ROOT)
     print("COMPATIBILITY_CONSTANT_AUDIT_BEGIN")
     for name in COMPAT_CONSTANTS:
-        if name not in impl_consts: raise SystemExit(f"MISSING_IMPLEMENTATION_COMPAT_CONSTANT={name}")
-        iv=impl_consts[name]; dv=donor_consts.get(name); rv=registry_consts.get(name); loc=locations.get(name,[])
+        if name in impl_consts:
+            iv=impl_consts[name]; src="implementation-file"
+        else:
+            repo=[(p,v) for p,v in locations.get(name,[]) if not p.endswith("04_construction.per")]
+            if not repo: raise SystemExit(f"MISSING_IMPLEMENTATION_COMPAT_CONSTANT={name}")
+            iv=repo[0][1]; src="repository-wide"
+            if len({v for _,v in repo})>1 or (name in impl_consts and impl_consts[name]!=iv):
+                raise SystemExit(f"DUPLICATE_CONFLICTING_COMPAT_CONSTANT={name}")
+        dv=donor_consts.get(name); rv=registry_consts.get(name); loc=locations.get(name,[])
         if dv is not None and iv==dv: classification="DIRECT_DONOR_TEXT"
         elif dv is not None: classification="ERROR_VALUE_DIFFERS_FROM_DONOR"
         elif rv is not None and iv==rv: classification="REGISTRY_MATCH_NO_DIRECT_DONOR_DEFINITION"
         else: classification="UNRESOLVED_ENGINE_OR_PROJECT_SYMBOL"
-        print(f"COMPAT_CONSTANT {name} implementation={iv} donor={dv if dv is not None else 'ABSENT'} registry={rv if rv is not None else 'ABSENT'} class={classification} repository_defs={loc}")
+        print(f"COMPAT_CONSTANT {name} {src} implementation={iv} donor={dv if dv is not None else 'ABSENT'} registry={rv if rv is not None else 'ABSENT'} class={classification} repository_defs={loc}")
     print("COMPATIBILITY_CONSTANT_AUDIT_END")
 
     duplicate_defs={name:vals for name,vals in locations.items() if len(vals)>1}

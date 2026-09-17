@@ -78,14 +78,6 @@
 (defconst UniversityNumber 32) ; donor :1686
 (defconst BallisticsNumber 33) ; donor :1687
 (defconst ExtraStablesNumber 31) ; donor :1685
-(defconst FARMS 34) ; donor :1614
-(defconst FARMS2 40) ; donor :1620
-(defconst MARKET1 41) ; donor :1621
-(defconst MILL1 32) ; donor :1612
-(defconst LC1 33) ; donor :1613
-(defconst LC2 36) ; donor :1616
-(defconst RAX 35) ; donor :1615
-(defconst STABLE2 39) ; donor :1619
 (defconst RANGES 1) ; donor :1582
 (defconst YES 1) ; donor :450
 (defconst NO 0) ; donor :449
@@ -112,12 +104,13 @@
 ; ============================================================
 ; AUTHENTICATED DONOR ITEM/STATE IDENTIFIERS (03a + 04 reads)
 ; Load-order audit 2026-09-17: these are read by 03a (which loads
-; before 04_construction.per, where some were previously defined
-; only locally) or by 04 rules whose symbols were never registered
-; repo-wide. All values donor-exact with defconst lines cited.
-; Same-value duplicates with 04-local bindings (ESKIRMS, SIEGE,
-; with/without-escrow, gl-town-safe) are the identical binding,
-; kept here for load-order availability.
+; before 04_construction.per) or by 04 rules whose symbols were
+; never registered repo-wide. All values donor-exact with defconst
+; lines cited. Single-definition rule (runtime-enforced): the six
+; symbols formerly duplicated in 04's local block (ESKIRMS, SIEGE,
+; with/without-escrow, gl-enemy-strategy, gl-town-safe) live ONLY
+; here now; 04's block was trimmed to match. The engine rejects
+; duplicate defconst bindings at load.
 ; ============================================================
 (defconst ESKIRMS 19) ; donor :1599
 (defconst SIEGE 184) ; donor :1527

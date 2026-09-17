@@ -243,6 +243,26 @@ unloaded scaffolding with documented defects, untouched by this tranche.
   for load-order availability. Zero load-order violations remain;
   engine builtins need nothing.
 
+## Amendment record 2026-09-17 — single-definition enforcement
+(runtime-evidence-driven)
+
+A runtime test flagged `04_construction.per:37` (`FletchingNumber`)
+as an invalid identifier. Root cause: the engine rejects duplicate
+`defconst` bindings at load, disabling the whole script — the six
+same-value duplicates between `01a` and 04's local block were fatal,
+not benign as previously assumed. The earlier "identical binding"
+reasoning was wrong; runtime evidence overruled it. Corrected: the
+six symbols live ONLY in `01a` now; 04's local block was trimmed to
+`place-control`, `place-point`, `MILL`, `FletchingNumber`, `goal`,
+`DRUSH`. The interval qualifier's compat check was upgraded from
+file-local to repository-wide (with conflicting-duplicate rejection).
+A follow-up sweep removed 8 further duplicates my own `01a`
+additions had created against `01_constants.per` (FARMS, FARMS2,
+LC1, LC2, MARKET1, MILL1, RAX, STABLE2). Remaining duplicate names
+repo-wide are confined to unloaded third-party formatter examples.
+Repository rule going forward: every `defconst` name is bound exactly
+once in the loaded graph; the qualifier now enforces value agreement.
+
 ## Amendment record 2026-09-17 — automation collision (append-duplicate)
 
 CI workflow `apply-r07-1875-1899` (bot commit `4bf2b55`) appended 25

@@ -28,18 +28,20 @@
 ; DONOR COMPATIBILITY CONSTANTS
 ; ============================================================
 ;
-(defconst with-escrow 0)
-(defconst without-escrow 1)
+; Single-definition rule (runtime-enforced): with-escrow,
+; without-escrow, ESKIRMS, gl-enemy-strategy, gl-town-safe, and
+; SIEGE live in 01a_shadow_r07_compat.per (loaded before every
+; consumer). They are NOT repeated here: the engine rejects
+; duplicate defconst bindings at load, which disabled the whole
+; script (confirmed by runtime test). The bindings below occur
+; exactly once repository-wide.
+;
 (defconst place-control 2)
 (defconst place-point 3)
 (defconst MILL 225)
-(defconst ESKIRMS 19)
 (defconst FletchingNumber 9)
 (defconst goal 165)
-(defconst gl-enemy-strategy 170)
-(defconst gl-town-safe 300)
 (defconst DRUSH -1)
-(defconst SIEGE 184)
 
 ; ============================================================
 ; R07 RULE 1794
