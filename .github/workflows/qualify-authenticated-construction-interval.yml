@@ -1,0 +1,26 @@
+name: qualify authenticated construction interval
+
+on:
+  push:
+    paths:
+      - 'tools/forensics/qualify_authenticated_construction_interval.py'
+      - 'ShadowByzantine/04_construction.per'
+      - 'ShadowSource.per'
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Authenticate and qualify donor interval
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/forensics/qualify_authenticated_construction_interval.py
