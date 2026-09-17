@@ -40,6 +40,7 @@ jobs:
         shell: bash
         run: |
           set +e
+          mkdir -p artifacts/module-qualification
           python tools/forensics/module_qualification.py \
             --config tools/forensics/module_qualification.json \
             --out artifacts/module-qualification \
