@@ -14,10 +14,20 @@
 ;
 ; Module 09 first computes GROSS capital feasibility.
 ;
-; Strategic reserve is a separate policy input. Its numeric vector is
-; deliberately not invented. The reserve-adjusted result therefore
-; remains UNQUALIFIED until Module 07's provider handshake reports a
-; bound reserve vector.
+; AUTHENTICATED SHADOW ECONOMIC FINDING
+; -------------------------------------
+; ShadowSource.per does NOT provide a four-resource strategic
+; reserve vector. Its economic control is distributed through:
+;
+;   1. objective-specific escrow percentage thresholds:
+;        LOW 25 / MID 35 / MID-HIGH 40 / HIGH 60;
+;   2. Castle/Imperial threshold constants that are defined but
+;      currently have no consuming rule in the authenticated donor;
+;   3. dynamic NET resources = current resource - current escrow,
+;      consumed by progression and gatherer rebalancing rules.
+;
+; The existing AEGIS reserve vector is therefore a Byzantine
+; adaptation boundary, not recovered Shadow behavior.
 ;
 ; ============================================================
 ; INITIALIZATION
@@ -92,22 +102,20 @@
 ; RESERVE-ADJUSTED CAPITAL -- ABI BOUNDARY ONLY
 ; ============================================================
 ;
-; Required semantic result:
+; The donor evidence above does not justify substituting a static
+; four-resource reserve vector for Shadow's distributed policy.
+; Keep the reserve-adjusted result separate from gross feasibility.
+;
+; Required semantic result for a future Byzantine policy provider:
 ;
 ;   current(resource) - transaction-cost(resource)
-;                         - reserve(resource) >= 0
+;                         - Byzantine reserve(resource) >= 0
 ;
 ; for every resource.
 ;
-; The reserve vector is not considered valid until:
-;
-;   AEGIS-RESERVE-POLICY-READY == AEGIS-RESERVE-BOUND
-;
-; and the provider has populated the four reserve input slots.
-;
-; No arithmetic implementation is asserted here until the exact
-; engine/UP operand contract is qualified. Therefore the state remains
-; UNQUALIFIED rather than silently treating reserve as zero.
+; This is Byzantine-generalization, not recovered Shadow behavior.
+; Do not populate reserve values until the Byzantine policy provider
+; is separately source-backed and qualified.
 ;
 ; ============================================================
 ; CONTRACT WITH MODULE 10
