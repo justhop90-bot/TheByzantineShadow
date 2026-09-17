@@ -1,0 +1,98 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; 03B -- AUTHENTICATED DONOR STRATEGY BOOTSTRAP (QSTRATEGY)
+; ============================================================
+;
+; Donor: ShadowSource.per rules 1416-1420 + UP-POCKET-POSITION block
+; (donor lines 16851-16920). Transplanted 2026-09-17.
+;
+; Purpose: establish gl-strategy (default FLUSH) and its KRUSH
+; overrides BEFORE the authenticated construction interval
+; (1794-1956 in 04_construction.per) reads them. Donor order is
+; preserved: strategy bootstrap (~1416) precedes construction (1794).
+; Loaded by ShadowByzantine.per between 03_economy and 04_construction.
+;
+; No new authority: default posture + donor's own override conditions.
+; Byzantine note: donor was Vikings-only; strategy ids (FLUSH/KRUSH)
+; are civilization-agnostic posture selectors. Civilization-specific
+; composition policy belongs in later tranches, explicitly labeled.
+;
+; The pocket rule keeps its donor #load-if-defined UP-POCKET-POSITION
+; guard verbatim: without it the rule would misfire in non-pocket games.
+;
+; ============================================================
+
+; AUTHENTICATED DONOR RULE 1416 | REGION=QSTRATEGY | DONOR_LINE=16853
+;WWWWWWWWWWWWWWWWWW FLUSH
+(defrule
+    (true)
+=>
+    (set-goal gl-strategy FLUSH)
+    (set-goal gl-strategy-type FLUSH)
+
+    (set-goal gl-enemy-strategy-type FLUSH)
+    (set-goal gl-enemy-strategy FLUSH)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1417 | REGION=QSTRATEGY | DONOR_LINE=16866
+;WWWWWWWWWWWWWWWWWW KRUSH
+;@@@@@@@@@@@@@@ FFA/2V1 ETC
+(defrule
+    (player-valid 3)
+    (game-time >= 5)
+    (not(player-in-game any-ally))
+    (up-compare-goal gl-strategy != KRUSH)
+=>
+    (set-strategic-number sn-home-exploration-time KrushHomeTime)	;11 min
+    (set-goal gl-strategy-type FC)
+    (chat-to-player me "Krushing")
+    (set-goal gl-strategy KRUSH)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1418 | REGION=QSTRATEGY | DONOR_LINE=16880
+;@@@@@@@@@@@@@@ TAUNT
+(defrule
+    (game-time > 10)
+    (current-age == dark-age)
+    (up-compare-goal gl-strategy != KRUSH)
+=>
+    (chat-to-all "Taunt 131 before 60 seconds if you want me to perform a Krush")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1419 | REGION=QSTRATEGY | DONOR_LINE=16889
+(defrule
+    (game-time > 5)
+    (game-time < 60)
+    (current-age == dark-age)
+    (up-compare-goal gl-strategy != KRUSH)
+    (or	(taunt-detected me 131)
+    (or	(taunt-detected any-ally 131)
+    (taunt-detected any-enemy 131)))
+=>
+    (set-strategic-number sn-home-exploration-time KrushHomeTime)
+    (chat-to-all "Git redy fer sum hosses y'all!")
+    (acknowledge-taunt this-any-enemy 131)
+    (acknowledge-taunt this-any-ally 131)
+    (set-goal gl-strategy-type FC)
+    (set-goal gl-strategy KRUSH)
+    (acknowledge-taunt me 131)
+)
+
+; AUTHENTICATED DONOR RULE 1420 | REGION=QSTRATEGY | DONOR_LINE=16910
+;@@@@@@@@@@@@@@ POCKETS (preprocessor guard preserved verbatim)
+#load-if-defined UP-POCKET-POSITION
+
+(defrule
+    (game-time > 3)
+    (game-time < 30)
+=>
+    (set-strategic-number sn-home-exploration-time KrushHomeTime)
+    (set-goal gl-strategy KRUSH)
+    (set-goal gl-strategy-type FC)
+    (set-goal gl-position POCKET)
+    (disable-self)
+)
+#end-if

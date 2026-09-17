@@ -1,14 +1,16 @@
 ;==============================================
-;BASIC BYZANTINE STATE
+;BASIC BYZANTINE STATE -- STUBBED 2026-09-17
 ;============================================
-(defrule
-    (building-type-count-total barracks > 0) 
-=>
-    (set-goal BASIC-BARRACKS-READY 1)
-)
-
-(defrule
-    (building-type-count-total barracks < 1)
-=>
-    (set-goal BASIC-ATTACK-READY 0)
-)
+;
+; The two barracks-observer rules previously here wrote
+; BASIC-BARRACKS-READY / BASIC-ATTACK-READY, which have no defconst
+; anywhere in the repository and no consumer in any loaded or
+; unloaded module (verified by repository-wide search).
+;
+; Per the operating doctrine (goals are RAM: every goal needs a
+; writer, a reader, and an owner), undefined unconsumed state was
+; removed rather than defined. Re-introduce these observers only
+; together with a consuming module that owns the goals.
+;
+; (No rules in this file. The file is retained so the load graph
+; and module manifest remain stable.)

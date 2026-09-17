@@ -1870,3 +1870,71 @@
 =>
     (up-modify-goal gl-switch c:* -1)
 )
+
+; AUTHENTICATED DONOR RULE 1950 | REGION=QSPECIAL_TIMERS_TAIL | DONOR_LINE=22548
+; Timer re-arm block + turn counter (donor rules 1950-1956). Transplanted
+; 2026-09-17: these rules self-maintain all heartbeat timers and derive the
+; gl-*-turn phase goals consumed across the construction interval. No jumps,
+; no escrow, no search; order appended after 1949 preserves donor sequence.
+(defrule
+    (up-timer-status 30SEC != timer-running)
+=>
+    (enable-timer 30SEC 30)
+)
+
+; AUTHENTICATED DONOR RULE 1951 | REGION=QSPECIAL_TIMERS_TAIL | DONOR_LINE=22554
+(defrule
+    (up-timer-status ONE-MINUTE != timer-running)
+=>
+    (enable-timer ONE-MINUTE 60)
+)
+
+; AUTHENTICATED DONOR RULE 1952 | REGION=QSPECIAL_TIMERS_TAIL | DONOR_LINE=22560
+(defrule
+    (up-timer-status THREE-MINUTE != timer-running)
+=>
+    (enable-timer THREE-MINUTE 180)
+)
+
+; AUTHENTICATED DONOR RULE 1953 | REGION=QSPECIAL_TIMERS_TAIL | DONOR_LINE=22566
+(defrule
+    (up-timer-status TWO-MINUTE != timer-running)
+=>
+    (enable-timer TWO-MINUTE 120)
+)
+
+; AUTHENTICATED DONOR RULE 1954 | REGION=QSPECIAL_TIMERS_TAIL | DONOR_LINE=22572
+(defrule
+    (up-timer-status five-seconds-timer != timer-running)
+=>
+    (enable-timer five-seconds-timer 5)
+)
+
+; AUTHENTICATED DONOR RULE 1955 | REGION=QSPECIAL_TIMERS_TAIL | DONOR_LINE=22578
+(defrule
+    (true)
+=>
+    (up-modify-goal gl-turn-count c:+ 1)
+    (up-modify-goal gl-second-turn g:= gl-turn-count)
+    (up-modify-goal gl-second-turn c:mod 2)
+    (up-modify-goal gl-fifth-turn g:= gl-turn-count)
+    (up-modify-goal gl-fifth-turn c:mod 5)
+    (up-modify-goal gl-seventh-turn g:= gl-turn-count)
+    (up-modify-goal gl-seventh-turn c:mod 7)
+    (up-modify-goal gl-tenth-turn g:= gl-turn-count)
+    (up-modify-goal gl-tenth-turn c:mod 10)
+)
+
+; AUTHENTICATED DONOR RULE 1956 | REGION=QSPECIAL_TIMERS_TAIL | DONOR_LINE=22592
+(defrule
+    (true)
+=>
+    (up-modify-goal gl-twenty-turn g:= gl-turn-count)
+    (up-modify-goal gl-twenty-turn c:mod 20)
+    (up-modify-goal gl-fifty-turn g:= gl-turn-count)
+    (up-modify-goal gl-fifty-turn c:mod 50)
+    (up-modify-goal gl-ninety-turn g:= gl-turn-count)
+    (up-modify-goal gl-ninety-turn c:mod 90)
+    (up-modify-goal gl-thirty-turn g:= gl-turn-count)
+    (up-modify-goal gl-thirty-turn c:mod 30)
+)

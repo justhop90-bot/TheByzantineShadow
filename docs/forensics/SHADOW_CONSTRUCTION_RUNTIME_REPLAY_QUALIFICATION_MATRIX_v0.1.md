@@ -566,6 +566,73 @@ If only a subset is demonstrated, the correct status is **RUNTIME-QUALIFIED-COND
 
 ---
 
+# Appendix T-A — Tranche A S01 run-book (first live probe)
+
+Status of this appendix: procedure, not evidence. No gate is claimed here.
+
+## T-A.1 Bot corpus under test
+
+- Repository: `justhop90-bot/TheByzantineShadow`, branch with Tranche A
+  (timer/turn tail 1950–1956, `03b_strategy_bootstrap.per`, compat
+  constants, `02_state` stub, `03_economy` caps).
+- Install: `ShadowByzantine.ai` (0 bytes) + `ShadowByzantine.per` (root,
+  single load line) + `ShadowByzantine/` folder (23 modules) copied to the
+  live `ai/` directory. Verify all 8 loaded modules present before launch:
+  `01_constants`, `01a_shadow_r07_compat`, `01b_byz_constants`,
+  `02_state`, `03_economy`, `03b_strategy_bootstrap`, `04_construction`,
+  `16_pass1_transaction`.
+- Record `BOT_COMMIT` (git SHA), per-file SHA-256 of the 8 loaded modules,
+  and the AoE2DE build number in every evidence packet.
+
+## T-A.2 Match setup (S01 Normal successful construction)
+
+- Map: Arabia, Tiny (2 players). Self: Byzantines + ShadowByzantine bot.
+  Opponent: Stock AI, Moderate (non-interfering baseline; no early rush
+  expected, so S01 stays a construction probe, not a defense test).
+- Speed: Normal (1.7x max for observation fidelity; faster speeds compress
+  causal order in replays). Record full replay (`.aoe2record` retained).
+- Launch flags for AI telemetry if available: `LOGSYSTEMS=AIScript`
+  `VERBOSELOGGING` `CONSTANTLOGGING` (chat-based donor telemetry —
+  e.g. "LC1", "Krush Farms Built" — is otherwise the primary trace).
+
+## T-A.3 Observation checklist (maps to rows C01–C09)
+
+1. **Timers live (G0→G1 support):** within the first minute, turn-gated
+   donor rules must become eligible — observe any `gl-fifth-turn`-gated
+   farm/house rule firing (chat trace or placement). If nothing gated on
+   turn goals ever fires, the tail transplant is not executing: stop,
+   do not promote.
+2. **Strategy default (G1):** `gl-strategy` must read FLUSH (default rule
+   1416 fires at game start; KRUSH only via FFA/taunt/pocket). Confirm via
+   FLUSH-gated farm rules (FARMS item) progressing `gl-build-progress`
+   past `FarmsNumber`.
+3. **First command (C01–C03):** first `up-build` for house/farm — record
+   T_RULE (issuing rule id), T_COMMAND (engine queue acceptance observable:
+   foundation appears / villager assigned via `up-assign-builders`).
+4. **Pending (C04):** `up-pending-objects` > 0 while foundation exists but
+   building incomplete — pending as post-acceptance, pre-completion state.
+5. **Completion (C05):** `building-type-count-total` increments with
+   pending back to 0 — world-state oracle, never the pending count.
+6. **Progression (C06):** `gl-build-progress` increments only AFTER the
+   corresponding world completion (causal order in replay frames).
+7. **Escrow (C07–C09):** wood escrow percentage/collect/release cycle
+   around the build (LOW-ESCROW set on item set, release on fire);
+   record ESCROW_BEFORE/AFTER + RESOURCES_BEFORE/AFTER.
+8. **Competing writers:** during the probe, confirm no module outside
+   `04_construction.per` writes `gl-build-progress` /
+   `gl-current-build-item` (the unloaded 05–15 set must stay unloaded).
+
+## T-A.4 Failure handling
+
+Any deviation is recorded with the ledger reason codes of this matrix
+(`COMMAND_ONLY`, `PENDING_ONLY`, `NO_WORLD_COMPLETION`,
+`NO_CAUSAL_PROGRESSION`, `NO_ESCROW_RECONCILIATION`, `COMPETING_WRITER`,
+...) — never narrated away. A failed S01 returns to static analysis;
+a passed S01 promotes exactly one branch (Dark-age farm/house) to G1,
+not the interval.
+
+---
+
 # Evidence packet schema
 
 A machine-readable or tabular evidence record should contain:

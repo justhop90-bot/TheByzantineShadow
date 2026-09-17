@@ -7,10 +7,104 @@
 ; that are not part of the existing 01_constants registry.
 ;
 ; Source: ShadowSource.per
-; Donor blob SHA: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
+; Donor blob SHA (raw bytes): 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
+; Normalized SHA (LF, as computed by tools/forensics/module_qualification.py):
+;   99a8f5de08bf31f84f418fea188ab08ab6180a67
+; Both forms denote identical content; the pipeline checks the normalized form.
 ;
 ; These are compatibility identifiers only. They do not introduce
 ; new strategic state or transaction semantics.
 ;
 (defconst me my-player-number)
 (defconst villager-class 904)
+
+; ============================================================
+; AUTHENTICATED DONOR TIMER / TURN IDENTIFIERS
+; Donor rules 1950-1956 (QSPECIAL_TIMERS tail) read and write these.
+; Values verbatim from ShadowSource.per defconst lines cited.
+; ============================================================
+(defconst t-mc 15) ; donor :276
+(defconst t-lc 16) ; donor :277
+(defconst 30SEC 17) ; donor :278 (timer namespace; shares number with gl-seventh-turn goal, distinct store)
+(defconst t-build-delay 39) ; donor :283
+(defconst ONE-MINUTE 2) ; donor :291
+(defconst TWO-MINUTE 23) ; donor :301
+(defconst THREE-MINUTE 27) ; donor :303
+(defconst five-seconds-timer 34) ; donor :308
+(defconst gl-turn-count 149) ; donor :1375
+(defconst gl-seventh-turn 17) ; donor :168 (goal namespace; shares number with 30SEC timer, distinct store)
+(defconst gl-twenty-turn 167) ; donor :1380
+(defconst gl-fifty-turn 52) ; donor :1381
+(defconst gl-ninety-turn 90) ; donor :1382
+(defconst gl-thirty-turn 150) ; donor :1379
+(defconst gl-switch 37) ; donor :169
+; gl-second-turn 140, gl-fifth-turn 141, gl-tenth-turn 166 already in 01_constants.per.
+
+; ============================================================
+; AUTHENTICATED DONOR STRATEGY-BOOTSTRAP IDENTIFIERS
+; Donor rules 1416-1420 + UP-POCKET-POSITION block (QSTRATEGY).
+; ============================================================
+(defconst KrushHomeTime 630) ; donor :422
+(defconst gl-strategy-type 211) ; donor :1502
+(defconst gl-enemy-strategy-type 51) ; donor :1505
+(defconst gl-enemy-strategy 170) ; donor :1508 (also local to 04_construction.per: same value, same binding)
+(defconst POCKET 2) ; donor :118
+(defconst FLANK 1) ; donor :117
+; FLUSH 1 / KRUSH 4 already in 01_constants.per. sn-home-exploration-time
+; is an engine strategic number (registry); no defconst required.
+
+; ============================================================
+; AUTHENTICATED DONOR PROGRESSION / TARGET-TRACKING IDENTIFIERS
+; Referenced by authenticated construction interval 1794-1949 rules
+; (LC3/LC4/GOLDMC/STONEMC/UNIVERSITY/BALLISTICS/CUP progression,
+; QEAGOL target tracking). Values verbatim from cited donor lines.
+; ============================================================
+(defconst LC3 7) ; donor :1587
+(defconst GOLDMC1 8) ; donor :1588
+(defconst CUP 12) ; donor :1592
+(defconst GOLDMINING 13) ; donor :1593
+(defconst GOLDMC2 14) ; donor :1594
+(defconst LC4 11) ; donor :1591
+(defconst STONEMC1 10) ; donor :1590
+(defconst UNIVERSITY 26) ; donor :1606
+(defconst BALLISTICS 27) ; donor :1607
+(defconst KrushStable2Number 11) ; donor :1635
+(defconst KrushLC3Number 14) ; donor :1638
+(defconst LC3Number 13) ; donor :1663
+(defconst LC4Number 15) ; donor :1665
+(defconst GoldMC1Number 10) ; donor :1660
+(defconst GoldMC2Number 18) ; donor :1669
+(defconst StoneMC1Number 12) ; donor :1662
+(defconst UniversityNumber 32) ; donor :1686
+(defconst BallisticsNumber 33) ; donor :1687
+(defconst ExtraStablesNumber 31) ; donor :1685
+(defconst FARMS 34) ; donor :1614
+(defconst FARMS2 40) ; donor :1620
+(defconst MARKET1 41) ; donor :1621
+(defconst MILL1 32) ; donor :1612
+(defconst LC1 33) ; donor :1613
+(defconst LC2 36) ; donor :1616
+(defconst RAX 35) ; donor :1615
+(defconst STABLE2 39) ; donor :1619
+(defconst RANGES 1) ; donor :1582
+(defconst YES 1) ; donor :450
+(defconst NO 0) ; donor :449
+(defconst DA 1) ; donor :1725
+(defconst FA-loading 2) ; donor :1726
+(defconst FA 3) ; donor :1727
+(defconst CA-loading 4) ; donor :1728
+(defconst CA 5) ; donor :1729
+(defconst IA-loading 6) ; donor :1730
+(defconst IA 7) ; donor :1731
+(defconst gl-target-age 118) ; donor :1724
+(defconst gl-target-age-checking 88) ; donor :1734
+(defconst gl-target-score1 86) ; donor :1732
+(defconst gl-target-score2 87) ; donor :1733
+(defconst gl-dark-build 108) ; donor :211
+(defconst gl-position 46) ; donor :116
+(defconst rt 256) ; donor :1371
+(defconst gl-allow-mill 138) ; donor :1779
+(defconst EARLY-MINING-NOTICE 60) ; donor :1560
+(defconst gl-identity 420) ; donor :94
+(defconst gl-my-player-number 115) ; donor :1771
+(defconst t-enemy-age-cancel 18) ; donor :297

@@ -19,8 +19,8 @@
       "name":"construction",
       "implementation":"ShadowByzantine/04_construction.per",
       "donor_start":1794,
-      "donor_end":1949,
-      "label":"authenticated Shadow construction interval",
+      "donor_end":1956,
+      "label":"authenticated Shadow construction interval + timer/turn tail",
       "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
     }
   ]

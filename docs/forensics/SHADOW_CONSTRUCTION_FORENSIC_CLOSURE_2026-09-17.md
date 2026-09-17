@@ -13,20 +13,25 @@ Branch: `main`
 Verified qualification checkout: `15e55df863fbebf3f4bad68256f6ba0453f8a2a5`
 
 Canonical donor: `ShadowSource.per`
-Authenticated Git blob SHA-1: `70a18a3b69e8ea46bd5132673fe9fcf8a36595ee`
+Authenticated Git blob SHA-1 (raw bytes, CRLF): `70a18a3b69e8ea46bd5132673fe9fcf8a36595ee`
+Normalized SHA-1 (LF, as computed by `tools/forensics/module_qualification.py`
+over UTF-8 text): `99a8f5de08bf31f84f418fea188ab08ab6180a67`
+Both forms denote identical content; the pipeline checks the normalized form.
 Authenticated donor rule count: `1,956`
 
 The qualification workflow explicitly checked the Git blob identity before extracting donor rules. The current `main` checkout was used by the rerun, rather than relying on the historical workflow head commit.
 
 ## Authenticated construction interval
 
-Implementation interval: **1794–1949**, exactly 156 rules.
+Implementation interval: **1794–1956**, exactly 163 rules
+(extended 2026-09-17 from 1794–1949 by the donor timer/turn tail,
+rules 1950–1956; re-qualified, see Amendment record below).
 
 Authoritative R07 boundary: **1794–1896**.
 
-Post-R07 authenticated continuation: **1897–1949**.
+Post-R07 authenticated continuation: **1897–1956**.
 
-Therefore the implementation must not be described as an R07 implementation for the entire 1794–1949 interval. Rules 1897–1949 are authenticated donor continuation beyond the R07 boundary. The interval remains one contiguous authenticated transplant slice for qualification purposes.
+Therefore the implementation must not be described as an R07 implementation for the entire interval. Rules 1897–1956 are authenticated donor continuation beyond the R07 boundary. The interval remains one contiguous authenticated transplant slice for qualification purposes.
 
 The source-boundary structure already recorded in `04_construction.per` is:
 
@@ -140,6 +145,55 @@ Documentation classification: R07 ends at 1896; 1897–1949 is donor continuatio
 Runtime status: **UNKNOWN / NOT PROVEN**.
 
 No claim is made that command issuance equals construction completion, that pending-object predicates prove completion, or that static donor equivalence establishes live AoE2DE behavioral equivalence.
+
+## Amendment record 2026-09-17 — Tranche A (machine resuscitation)
+
+Static re-qualification after implementation changes (both pipelines green,
+see tool outputs retained in CI artifacts):
+
+- `04_construction.per`: appended authenticated donor rules 1950–1956
+  (QSPECIAL_TIMERS tail: 30SEC/ONE-MINUTE/THREE-MINUTE/TWO-MINUTE/
+  five-seconds-timer re-arms + both turn counters). 163/163 positional
+  body/predicate/action/disable-self equivalence; jump topology unchanged
+  (3 edges, none cross-boundary); state-touch parity holds. Interval
+  tooling updated (`LAST=1956`, config `donor_end=1956`).
+- New `ShadowByzantine/03b_strategy_bootstrap.per`: authenticated donor
+  rules 1416–1420 (QSTRATEGY: FLUSH default, FFA/taunt/pocket KRUSH
+  overrides, preprocessor guard preserved). Loaded before
+  `04_construction.per`, preserving donor relative order. Supplies the
+  previously unwritten `gl-strategy` family writers.
+- `01a_shadow_r07_compat.per`: donor-exact timer/turn/strategy/
+  progression/target-tracking constants with donor line citations. No new
+  project state; duplicate-with-04 `gl-enemy-strategy=170` noted as the
+  same binding (load-order necessity, not a competing writer).
+- `02_state.per`: removed two rules writing undefined, unconsumed
+  `BASIC-*` goals (no defconst, no reader anywhere in the repository).
+- `03_economy.per`: BYZANTINE-GENERALIZATION — villager cap 30 (above
+  donor Dark thresholds 23/29) and Feudal gold-share rule (Castle-age
+  progression content otherwise unreachable at 0% gold). Revisit with the
+  Castle economy transplant.
+- `05_production.per`: removed a stray markdown fence line (parser poison,
+  module unloaded but fixed for safety).
+
+Pre-commit veto record (donor-topology preservation): timer tail and
+strategy bootstrap have DIRECT donor analogues (rules 1950–1956,
+1416–1420); no new authority/dispatcher; no state/jump/escrow/search/
+progression topology changes; order preserved. ACCEPT. Hygiene items
+touch no donor topology. ACCEPT.
+
+Previously dead rules now live in the loaded graph: turn-gated rules
+(173, 327, 479, 1079, 1142, 1176, 1312, 1329), 30SEC consumer (1869),
+strategy-gated farm/house/LC/mining rules (gl-strategy now written),
+pause-gated mid-game rules resolve naturally once tech pauses cycle.
+`gl-progression-pause` boot state verified unnecessary (earliest donor
+writers are tech-pause regions; early interval rules do not gate on -1).
+
+Still unwritten in the loaded graph (next tranches, not this one):
+`gl-target-age*` family readers (QEAGOL rules inert without the
+enemy-age tracker), `gl-dark-build`, `rt`, `gl-allow-mill`,
+`gl-position` (except pocket), QEAGOL score machinery. No new
+centralized recovery/orchestration was introduced; modules 05–15 remain
+unloaded scaffolding with documented defects, untouched by this tranche.
 
 ## Remaining runtime work
 

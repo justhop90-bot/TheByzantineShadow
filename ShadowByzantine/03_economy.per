@@ -13,6 +13,7 @@
 ;======================================
 
 (defrule
+    (unit-type-count-total villager < 30)
     (can-train villager)
 =>
     (train villager)
@@ -26,4 +27,40 @@
     (set-strategic-number sn-gold-gatherer-percentage 0)
     (set-strategic-number sn-stone-gatherer-percentage 0)
     (disable-self)
+)
+
+; ============================================================
+; BYZANTINE-GENERALIZATION (project policy, no donor analogue):
+; villager count is capped at 30 so continuous TC production cannot
+; silently drain the food/gold capital that transaction objectives
+; (Feudal/Castle progression) require. 30 sits above the donor's
+; Dark-age villager thresholds (FlushDarkAgeVills 23,
+; KrushDarkAgeVills 29) so the opening is unaffected. Revisit when
+; the Castle-age economy transition is transplanted.
+;
+; Gold share engages in Feudal age: the construction slice contains
+; Castle-age progression content (university/ballistics rules) whose
+; 200-gold Castle-age cost is otherwise unreachable with a static
+; 0% gold allocation. Percentages revert to food/wood priority once
+; the stockpile clears the Castle requirement.
+; ============================================================
+
+(defrule
+    (current-age == feudal-age)
+    (gold-amount < 200)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 50)
+    (set-strategic-number sn-wood-gatherer-percentage 35)
+    (set-strategic-number sn-gold-gatherer-percentage 15)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (gold-amount >= 200)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 60)
+    (set-strategic-number sn-wood-gatherer-percentage 40)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
 )
