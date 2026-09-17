@@ -1,0 +1,21 @@
+name: Resolve Shadow jump graph
+on:
+  push:
+    paths:
+      - 'ShadowSource.per'
+      - 'tools/forensics/resolve_shadow_jump_graph.py'
+      - 'docs/forensics/SHADOW_JUMP_GRAPH_RESOLUTION_v0.1.md'
+  workflow_dispatch:
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve authenticated graph
+        run: python3 tools/forensics/resolve_shadow_jump_graph.py ShadowSource.per shadow-jump-graph-out
+      - name: Upload graph artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadow-jump-graph
+          path: shadow-jump-graph-out/
