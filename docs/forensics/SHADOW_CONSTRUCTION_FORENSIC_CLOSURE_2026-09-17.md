@@ -286,6 +286,20 @@ full identifier sweep must cover object IDs, not just goals and
 state — facts/commands are engine-provided, object IDs frequently
 are not. The sweep method is updated accordingly.
 
+## Amendment record 2026-09-17 — scouting identifier sweep (02b)
+
+Prompted by the line 163 flag (valid code — `up-filter-status c:
+status-ready c: list-active` is byte-identical in shape to 12 Naga
+uses): ran the first EXHAUSTIVE token audit (every 02b token vs
+repo-defconsts AND the 2,296-symbol registry). Found 20 genuinely
+missing identifiers with donor defconsts (directions, points, unit
+IDs, timers: CLOCKWISE through villager-shepherd) and registered
+them donor-exact. Remaining unaffiliated tokens are prefixes
+(c:/g:/s:) and engine player IDs (focus-/target-player), needing
+nothing. This replaces all prior class-by-class sweeps; the method
+(token ∩ ¬repo ∩ ¬registry → donor lookup) is the standing
+procedure. Pipeline green (28 modules, 0 failed).
+
 ## Amendment record 2026-09-17 — UP-era stance aliases (02b line 69)
 
 Engine dialog `ERR2005` at `(up-target-point explo-x action-move -1
