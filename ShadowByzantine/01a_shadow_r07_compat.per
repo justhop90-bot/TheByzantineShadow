@@ -216,6 +216,20 @@
 (defconst goal1 76) ; donor :1360
 (defconst lt 254) ; donor :1369
 (defconst rt 256) ; donor :1371
+; ============================================================
+; UP-ERA STANCE ALIASES (platform adaptation, no donor analogue)
+; The donor (UP 1.6 era) uses bare `defensive` / `no-attack` as
+; AttackStance operands (9 rules in the scouting slice); DE accepts
+; only stance-defensive / stance-no-attack / stance-aggressive /
+; stance-stand-ground. Numeric ids from the engine registry:
+; aggressive 0, defensive 1, stand-ground 2, no-attack 3.
+; Aliasing (rather than rewriting 9 authenticated rule bodies)
+; preserves 244/244 positional equivalence; the engine receives
+; the identical integer. If runtime disproves numeric acceptance,
+; fall back to rewriting the 9 rules with stance-* names.
+; ============================================================
+(defconst defensive 1)
+(defconst no-attack 3)
 (defconst gl-deer-distance 220) ; donor :1578
 (defconst gl-max-coordinate-value 152) ; donor :1373
 (defconst gl-scout-added 180) ; donor :1557

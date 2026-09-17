@@ -286,6 +286,21 @@ full identifier sweep must cover object IDs, not just goals and
 state — facts/commands are engine-provided, object IDs frequently
 are not. The sweep method is updated accordingly.
 
+## Amendment record 2026-09-17 — UP-era stance aliases (02b line 69)
+
+Engine dialog `ERR2005` at `(up-target-point explo-x action-move -1
+defensive)`: DE accepts only `stance-defensive` / `stance-no-attack` /
+`stance-aggressive` / `stance-stand-ground` (registry Ids 1/3/0/2);
+the donor's bare `defensive` / `no-attack` are UP 1.6-era forms used
+in 9 scouting-slice rules. Repaired by alias defconsts
+(`defensive`=1, `no-attack`=3) rather than rewriting authenticated
+bodies: the engine receives the identical integer, 244/244 positional
+equivalence is preserved with zero deviations. Fallback recorded: if
+runtime disproves numeric stance acceptance, rewrite the 9 rules
+with `stance-*` names. Sweep confirmed no bare `aggressive` /
+`stand-ground` stance uses and no other stance-position violations
+(`gl-aggressive-vills` hits are goal-name substrings, not stances).
+
 ## Amendment record 2026-09-17 — scouting slice (rules 237–480)
 
 - New `ShadowByzantine/02b_donor_scouting.per`: authenticated donor
