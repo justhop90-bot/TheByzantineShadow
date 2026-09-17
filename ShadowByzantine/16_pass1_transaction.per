@@ -16,6 +16,7 @@
 ;
 ;   OBJECTIVE
 ;      -> REQUIREMENT
+;      -> ENGINE-DERIVED COST
 ;      -> CAPITAL FEASIBILITY
 ;      -> ESCROW COMMITMENT
 ;      -> AUTHORITY
@@ -29,6 +30,8 @@
 ;
 ; Ownership in this experiment:
 ;   Pass 1  = objective admission + transaction preparation only
+;   Module 08 = engine-derived transaction requirement
+;   Module 09 = capital feasibility
 ;   Module 10 = physical escrow commit/release + observations
 ;   Module 11 = execution authority
 ;   Module 12 = training command
@@ -39,6 +42,7 @@
 ; This file deliberately does NOT:
 ;   - become an orchestrator for the production architecture;
 ;   - perform engine escrow mutation;
+;   - hard-code resource prices;
 ;   - infer commitment from a command;
 ;   - issue training directly;
 ;   - infer completion from training issuance;
@@ -89,59 +93,19 @@
 )
 
 ; ============================================================
-; REQUIREMENT / CAPITAL CONTRACT
+; REQUIREMENT / CAPITAL HANDOFF
 ; ============================================================
 ;
-; Pass 1 uses the known Spearman transaction requirement of:
-;   60 food + 40 wood.
+; Module 08 now materializes AEGIS-TRANSACTION-FOOD..STONE from
+; the engine's current Spearman object cost. Module 09 consumes that
+; vector and owns the capital decision.
 ;
-; These values remain a demonstrator contract. They are not claimed
-; as the final production cost authority. The production requirement
-; module remains the intended future owner of engine-derived cost
-; aggregation.
+; Pass 1 therefore contains no resource-price literals.
 ;
 (defrule
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
     (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
-=>
-    (set-goal AEGIS-TRANSACTION-FOOD 60)
-    (set-goal AEGIS-TRANSACTION-WOOD 40)
-    (set-goal AEGIS-TRANSACTION-GOLD 0)
-    (set-goal AEGIS-TRANSACTION-STONE 0)
-)
-
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
-    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
-    (food-amount >= 60)
-    (wood-amount >= 40)
-=>
-    (set-goal AEGIS-CAPITAL-FEASIBILITY 1)
-)
-
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
-    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
-    (or
-        (food-amount < 60)
-        (wood-amount < 40)
-    )
-=>
-    (set-goal AEGIS-CAPITAL-FEASIBILITY 0)
-)
-
-; ============================================================
-; CAPITAL -> ESCROW COMMIT REQUEST
-; ============================================================
-;
-; Pass 1 no longer mutates engine escrow. It establishes the
-; COMMITTING state; Module 10 owns the physical mutation and the
-; subsequent observation of committed balances.
-;
-(defrule
-    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
     (goal AEGIS-CAPITAL-FEASIBILITY 1)
-    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
 =>
     (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
 )
@@ -149,10 +113,7 @@
 ; ============================================================
 ; INSUFFICIENT CAPITAL FAIL-SAFE
 ; ============================================================
-;
-; No execution authority is granted while the requirement is not
-; currently financeable.
-;
+
 (defrule
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
     (goal AEGIS-CAPITAL-FEASIBILITY 0)
