@@ -6,14 +6,12 @@
 ;
 ; Canonical donor: ShadowSource.per
 ; Donor blob SHA: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
-; Implemented donor interval: 1794-1827
+; Implemented donor interval: 1794-1849
 ;
 ; SOURCE-BOUNDARY NOTE
 ;   1794-1805 = farm progression.
-;   1806-1814 in the prior reconstruction were mislabeled: the
-;   canonical donor identifies those positions as source rules
-;   1815-1823. This file corrects that numbering drift.
-;   1815-1827 = QHOUSE construction/control region in the donor.
+;   1815-1827 = QHOUSE construction/control region.
+;   1828-1849 = QLC lumber-camp construction/progression region.
 ;
 ; IMPLEMENTATION STATUS
 ;   STATIC SOURCE TRANSPLANT: implemented
@@ -279,7 +277,7 @@
 ; Pending guard: none.
 ; Command: none.
 ; Completion observer: none.
-; Jump: none; fall-through -> 1806.
+; Jump: none; fall-through -> 1815.
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != FARMS)
@@ -609,11 +607,507 @@
 )
 
 ; ============================================================
+; R07 RULE 1828
+; ============================================================
+; QLC FIRST / lumber-camp construction.
+; Reads: gl-fifth-turn, civilian-population, housing-headroom,
+;        gl-current-build-item, can-build-with-escrow lumber-camp.
+; Writes: sn-allow-adjacent-dropsites = 1; wood escrow percentage = 0.
+; Escrow: release-escrow wood after escrow percentage reset.
+; Pending guard: none.
+; Placement operations: none; direct build command.
+; Command: build lumber-camp.
+; Completion observer: none in this rule.
+; Jump: none; fall-through -> 1829.
+(defrule
+    (goal gl-fifth-turn 1)
+    (civilian-population >= 7)
+    (or	(housing-headroom >= 5)
+    (civilian-population >= 15))
+    (goal gl-current-build-item LC1)
+    (can-build-with-escrow lumber-camp)
+=>
+    (set-strategic-number sn-allow-adjacent-dropsites 1)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+    (build lumber-camp)
+)
+
+; ============================================================
+; R07 RULE 1829
+; ============================================================
+; QLC skipped-state reconciliation.
+; Reads: gl-dark-build, gl-build-progress, lumber-camp count.
+; Writes: gl-build-progress = 1 when LumberFirst is active.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp < 1 is rollback/reconciliation evidence.
+; Jump: none; fall-through -> 1830.
+(defrule
+    (goal gl-dark-build LumberFirst)
+    (up-compare-goal gl-build-progress > 1)
+    (building-type-count-total lumber-camp < 1)
+=>
+    (set-goal gl-build-progress 1)
+)
+
+; ============================================================
+; R07 RULE 1830
+; ============================================================
+; QLC skipped-state reconciliation.
+; Reads: gl-dark-build, gl-build-progress, lumber-camp count.
+; Writes: gl-build-progress = 2 when MillFirst is active.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp < 1 is rollback/reconciliation evidence.
+; Jump: none; fall-through -> 1831.
+(defrule
+    (goal gl-dark-build MillFirst)
+    (up-compare-goal gl-build-progress > 2)
+    (building-type-count-total lumber-camp < 1)
+=>
+    (set-goal gl-build-progress 2)
+)
+
+; ============================================================
+; R07 RULE 1831
+; ============================================================
+; QLC progression arbitration to LC1.
+; Reads: gl-current-build-item, gl-dark-build, gl-build-progress.
+; Writes: wood escrow percentage = LOW-ESCROW; gl-current-build-item = LC1.
+; Escrow: set-escrow-percentage wood LOW-ESCROW.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1832.
+(defrule
+    (up-compare-goal gl-current-build-item != LC1)
+    (or	(and(goal gl-dark-build MillFirst)
+    (up-compare-goal gl-build-progress == 2))
+    (and(goal gl-dark-build LumberFirst)
+    (up-compare-goal gl-build-progress == 1)))
+=>
+    (set-escrow-percentage wood LOW-ESCROW)
+    (set-goal gl-current-build-item LC1)
+)
+
+; ============================================================
+; R07 RULE 1832
+; ============================================================
+; QLC LC1 completion/progression observer.
+; Reads: gl-current-build-item, lumber-camp count.
+; Writes: gl-build-progress += 1.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp >= 1.
+; Jump: none; fall-through -> 1833.
+(defrule
+    (goal gl-current-build-item LC1)
+    (building-type-count-total lumber-camp >= 1)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; ============================================================
+; R07 RULE 1833
+; ============================================================
+; QLC alternate LC1 construction path.
+; Reads: can-build lumber-camp, current-age >= feudal-age,
+;        Gaia wood count > 20, lumber-camp count < 1.
+; Writes: none; disables self.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none; direct build command.
+; Command: build lumber-camp.
+; Completion observer: lumber-camp < 1 is an entry guard, not completion proof.
+; Jump: none; fall-through -> 1834.
+(defrule
+    (can-build lumber-camp)
+    (current-age >= feudal-age)
+    (up-gaia-type-count c: wood > 20)
+    (building-type-count-total lumber-camp < 1)
+=>
+    (chat-to-player me "LC1 B")
+    (build lumber-camp)
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1834
+; ============================================================
+; QLC FLUSH LC2 completion/progression observer.
+; Reads: gl-strategy, gl-current-build-item, lumber-camp count.
+; Writes: gl-build-progress += 1.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp >= 2.
+; Jump: none; fall-through -> 1835.
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-current-build-item LC2)
+    (building-type-count-total lumber-camp >= 2)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; ============================================================
+; R07 RULE 1835
+; ============================================================
+; QLC FLUSH LC2 construction.
+; Reads: gl-strategy, gl-current-build-item, game-time,
+;        wood, housing-headroom, can-build-with-escrow lumber-camp,
+;        lumber-camp count.
+; Writes: sn-dropsite-separation-distance = 3;
+;         sn-allow-adjacent-dropsites = 1; wood escrow percentage = 0.
+; Escrow: release-escrow wood.
+; Pending guard: none.
+; Placement operations: none; direct build command.
+; Command: build lumber-camp.
+; Completion observer: lumber-camp < 2 is a construction guard.
+; Jump: none; fall-through -> 1836.
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-current-build-item LC2)
+    (or	(game-time >= 480)
+    (or	(wood-amount >= 110)
+    (housing-headroom >= 5)))
+    (can-build-with-escrow lumber-camp)
+    (building-type-count-total lumber-camp < 2)
+=>
+    (set-strategic-number sn-dropsite-separation-distance 3)
+    (set-strategic-number sn-allow-adjacent-dropsites 1)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+    (build lumber-camp)
+)
+
+; ============================================================
+; R07 RULE 1836
+; ============================================================
+; QLC FLUSH skipped-state reconciliation.
+; Reads: gl-strategy, gl-build-progress, lumber-camp count.
+; Writes: gl-build-progress = LC2Number.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp < 2 is rollback/reconciliation evidence.
+; Jump: none; fall-through -> 1837.
+(defrule
+    (goal gl-strategy FLUSH)
+    (building-type-count-total lumber-camp < 2)
+    (up-compare-goal gl-build-progress > LC2Number)
+=>
+    (set-goal gl-build-progress LC2Number)
+)
+
+; ============================================================
+; R07 RULE 1837
+; ============================================================
+; QLC FLUSH progression arbitration to LC2.
+; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
+; Writes: wood escrow percentage = LOW-ESCROW; gl-current-build-item = LC2.
+; Escrow: set-escrow-percentage wood LOW-ESCROW.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1838.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != LC2)
+    (up-compare-goal gl-build-progress == LC2Number)
+=>
+    (set-escrow-percentage wood LOW-ESCROW)
+    (set-goal gl-current-build-item LC2)
+)
+
+; ============================================================
+; R07 RULE 1838
+; ============================================================
+; QLC KRUSH LC2 completion/progression observer.
+; Reads: gl-strategy, gl-current-build-item, lumber-camp count.
+; Writes: gl-build-progress += 1.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp >= 2.
+; Jump: none; fall-through -> 1839.
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-current-build-item LC2)
+    (building-type-count-total lumber-camp >= 2)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; ============================================================
+; R07 RULE 1839
+; ============================================================
+; QLC KRUSH LC2 construction.
+; Reads: gl-strategy, gl-current-build-item, game-time, wood,
+;        housing-headroom, can-build-with-escrow lumber-camp,
+;        lumber-camp count.
+; Writes: sn-dropsite-separation-distance = 3;
+;         sn-allow-adjacent-dropsites = 1; wood escrow percentage = 0.
+; Escrow: release-escrow wood.
+; Pending guard: none.
+; Placement operations: none; direct build command.
+; Command: build lumber-camp.
+; Completion observer: lumber-camp < 2 is a construction guard.
+; Jump: none; fall-through -> 1840.
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-current-build-item LC2)
+    (or	(game-time >= 480)
+    (or	(wood-amount >= 110)
+    (housing-headroom >= 5)))
+    (can-build-with-escrow lumber-camp)
+    (building-type-count-total lumber-camp < 2)
+=>
+    (set-strategic-number sn-dropsite-separation-distance 3)
+    (set-strategic-number sn-allow-adjacent-dropsites 1)
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+    (build lumber-camp)
+)
+
+; ============================================================
+; R07 RULE 1840
+; ============================================================
+; QLC KRUSH skipped-state reconciliation.
+; Reads: gl-strategy, gl-build-progress, lumber-camp count.
+; Writes: gl-build-progress = KrushLC2Number.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp < 2 is rollback/reconciliation evidence.
+; Jump: none; fall-through -> 1841.
+(defrule
+    (goal gl-strategy KRUSH)
+    (building-type-count-total lumber-camp < 2)
+    (up-compare-goal gl-build-progress > KrushLC2Number)
+=>
+    (set-goal gl-build-progress KrushLC2Number)
+)
+
+; ============================================================
+; R07 RULE 1841
+; ============================================================
+; QLC KRUSH progression arbitration to LC2.
+; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
+; Writes: gl-current-build-item = LC2.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1842.
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-current-build-item != LC2)
+    (up-compare-goal gl-build-progress == KrushLC2Number)
+=>
+    (set-goal gl-current-build-item LC2)
+)
+
+; ============================================================
+; R07 RULE 1842
+; ============================================================
+; QLC FLUSH LC3 construction.
+; Reads: gl-strategy, gl-progression-pause, gl-current-build-item,
+;        can-build-with-escrow lumber-camp.
+; Writes: wood escrow percentage = 0;
+;         sn-dropsite-separation-distance = 3;
+;         sn-allow-adjacent-dropsites = 1.
+; Escrow: release-escrow wood.
+; Pending guard: none.
+; Placement operations: none; direct build command.
+; Command: build lumber-camp.
+; Completion observer: none in this rule.
+; Jump: none; fall-through -> 1843.
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item LC3)
+    (can-build-with-escrow lumber-camp)
+=>
+    (set-escrow-percentage wood 0)
+    (set-strategic-number sn-dropsite-separation-distance 3)
+    (set-strategic-number sn-allow-adjacent-dropsites 1)
+    (release-escrow wood)
+    (build lumber-camp)
+)
+
+; ============================================================
+; R07 RULE 1843
+; ============================================================
+; QLC FLUSH LC3 skipped-state reconciliation.
+; Reads: gl-strategy, gl-build-progress, lumber-camp count.
+; Writes: gl-build-progress = LC3Number.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp < 3 is rollback/reconciliation evidence.
+; Jump: none; fall-through -> 1844.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-build-progress > LC3Number)
+    (building-type-count-total lumber-camp < 3)
+=>
+    (set-goal gl-build-progress LC3Number)
+)
+
+; ============================================================
+; R07 RULE 1844
+; ============================================================
+; QLC FLUSH progression arbitration to LC3.
+; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
+; Writes: wood escrow percentage = LOW-ESCROW; gl-current-build-item = LC3.
+; Escrow: set-escrow-percentage wood LOW-ESCROW.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1845.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != LC3)
+    (up-compare-goal gl-build-progress == LC3Number)
+=>
+    (set-escrow-percentage wood LOW-ESCROW)
+    (set-goal gl-current-build-item LC3)
+)
+
+; ============================================================
+; R07 RULE 1845
+; ============================================================
+; QLC FLUSH LC3 completion/progression observer.
+; Reads: gl-strategy, gl-current-build-item, lumber-camp count.
+; Writes: gl-build-progress += 1.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp >= 3.
+; Jump: none; fall-through -> 1846.
+(defrule
+    (goal gl-strategy FLUSH)
+    (goal gl-current-build-item LC3)
+    (building-type-count-total lumber-camp >= 3)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; ============================================================
+; R07 RULE 1846
+; ============================================================
+; QLC KRUSH LC3 construction.
+; Reads: gl-strategy, gl-progression-pause, gl-current-build-item,
+;        can-build-with-escrow lumber-camp.
+; Writes: wood escrow percentage = 0;
+;         sn-dropsite-separation-distance = 3;
+;         sn-allow-adjacent-dropsites = 1.
+; Escrow: release-escrow wood.
+; Pending guard: none.
+; Placement operations: none; direct build command.
+; Command: build lumber-camp.
+; Completion observer: none in this rule.
+; Jump: none; fall-through -> 1847.
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item LC3)
+    (can-build-with-escrow lumber-camp)
+=>
+    (set-escrow-percentage wood 0)
+    (set-strategic-number sn-dropsite-separation-distance 3)
+    (set-strategic-number sn-allow-adjacent-dropsites 1)
+    (release-escrow wood)
+    (build lumber-camp)
+)
+
+; ============================================================
+; R07 RULE 1847
+; ============================================================
+; QLC KRUSH LC3 skipped-state reconciliation.
+; Reads: gl-strategy, gl-build-progress, lumber-camp count.
+; Writes: gl-build-progress = KrushLC3Number.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp < 3 is rollback/reconciliation evidence.
+; Jump: none; fall-through -> 1848.
+(defrule
+    (goal gl-strategy KRUSH)
+    (building-type-count-total lumber-camp < 3)
+    (up-compare-goal gl-build-progress > KrushLC3Number)
+=>
+    (set-goal gl-build-progress KrushLC3Number)
+)
+
+; ============================================================
+; R07 RULE 1848
+; ============================================================
+; QLC KRUSH progression arbitration to LC3.
+; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
+; Writes: wood escrow percentage = LOW-ESCROW; gl-current-build-item = LC3.
+; Escrow: set-escrow-percentage wood LOW-ESCROW.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: none.
+; Jump: none; fall-through -> 1849.
+(defrule
+    (goal gl-strategy KRUSH)
+    (up-compare-goal gl-current-build-item != LC3)
+    (up-compare-goal gl-build-progress == KrushLC3Number)
+=>
+    (set-escrow-percentage wood LOW-ESCROW)
+    (set-goal gl-current-build-item LC3)
+)
+
+; ============================================================
+; R07 RULE 1849
+; ============================================================
+; QLC KRUSH LC3 completion/progression observer.
+; Reads: gl-strategy, gl-current-build-item, lumber-camp count.
+; Writes: gl-build-progress += 1.
+; Escrow: none.
+; Pending guard: none.
+; Placement operations: none.
+; Command: none.
+; Completion observer: lumber-camp >= 3.
+; Jump: none; fall-through -> 1850.
+(defrule
+    (goal gl-strategy KRUSH)
+    (goal gl-current-build-item LC3)
+    (building-type-count-total lumber-camp >= 3)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+)
+
+; ============================================================
 ; R07 SOURCE-ORDER / CONTROL-FLOW NOTE
 ; ============================================================
-; No explicit up-jump-rule occurs in 1794-1827.
-; Therefore the donor fall-through chain is preserved:
-;   1794 -> 1795 -> ... -> 1827 -> 1828.
-; Builder assignment is execution authority, not completion evidence.
-; CONTROL placement is spatial realization; it does not advance
-; construction progression by itself.
+; 1794-1849 contains no explicit up-jump-rule in the authenticated donor.
+; The source-order fall-through successor after rule 1849 is 1850.
+; QLC preserves the donor's distributed progression topology:
+;   objective/build item -> feasibility -> escrow -> build command
+;   -> world-state lumber-camp observer -> progression/reconciliation
+;   -> current-build-item re-entry.
+; Build commands and builder/placement operations remain execution
+; mechanisms; they are not completion proof without world-state evidence.
