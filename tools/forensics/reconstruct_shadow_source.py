@@ -2,7 +2,7 @@
 import hashlib, json, re, sys, urllib.request
 from pathlib import Path
 
-EXPECTED_SHA1 = "70a18a3b69e8ea46bd5132673fe9fcf8a36595ee"
+EXPECTED_GIT_BLOB_SHA = "70a18a3b69e8ea46bd5132673fe9fcf8a36595ee"
 URL = "https://raw.githubusercontent.com/justhop90-bot/TheByzantineShadow/main/ShadowSource.per"
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else "shadow-source-rule-index.json")
 SOURCE = Path(sys.argv[2]) if len(sys.argv) > 2 else None
@@ -12,13 +12,13 @@ if SOURCE is None:
     raw = urllib.request.urlopen(URL, timeout=30).read()
 else:
     raw = SOURCE.read_bytes()
-sha1 = hashlib.sha1(raw).hexdigest()
-if sha1 != EXPECTED_SHA1:
-    raise SystemExit(f"SHA1 MISMATCH: got {sha1}, expected {EXPECTED_SHA1}")
+raw_sha1 = hashlib.sha1(raw).hexdigest()
+git_blob_sha1 = hashlib.sha1(b"blob " + str(len(raw)).encode("ascii") + b"\0" + raw).hexdigest()
+if git_blob_sha1 != EXPECTED_GIT_BLOB_SHA:
+    raise SystemExit(f"GIT BLOB SHA1 MISMATCH: got {git_blob_sha1}, expected {EXPECTED_GIT_BLOB_SHA}")
 RAW.write_bytes(raw)
 text = raw.decode("utf-8")
 
-# Mask comments/strings while preserving byte length/newlines so offsets remain exact.
 def mask_source(s):
     out = list(s)
     i = 0
@@ -95,9 +95,7 @@ for ordinal, start in enumerate(starts, 1):
         'research-status','can-build-with-escrow','can-research-with-escrow',
         'can-train-with-escrow'
     ]
-    refs = []
-    for t in tokens:
-        if re.search(r'\b' + re.escape(t) + r'\b', body): refs.append(t)
+    refs = [t for t in tokens if re.search(r'\b' + re.escape(t) + r'\b', body)]
     rules.append({
         'ordinal': ordinal,
         'byte_start': byte_offset(start),
@@ -110,15 +108,14 @@ for ordinal, start in enumerate(starts, 1):
         'actions': norm['actions']
     })
 
-# Explicit fall-through is source-order successor; jump target interpretation is retained raw
-# because AoE2 UP jump semantics must be resolved against the donor's actual rule numbering.
 for r in rules:
     r['fall_through_ordinal'] = r['ordinal'] + 1 if r['ordinal'] < len(rules) else None
 
 payload = {
     'source_url': URL,
-    'expected_sha1': EXPECTED_SHA1,
-    'actual_sha1': sha1,
+    'expected_git_blob_sha1': EXPECTED_GIT_BLOB_SHA,
+    'actual_git_blob_sha1': git_blob_sha1,
+    'raw_content_sha1': raw_sha1,
     'byte_length': len(raw),
     'decoded_char_length': len(text),
     'line_count': text.count('\n') + 1,
