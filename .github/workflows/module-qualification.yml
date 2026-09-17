@@ -1,0 +1,58 @@
+name: Consolidated Module Qualification
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ShadowSource.per'
+      - 'ShadowByzantine/**/*.per'
+      - 'tools/forensics/**/*.py'
+      - 'tools/forensics/module_qualification.json'
+      - '.github/workflows/module-qualification.yml'
+  pull_request:
+    paths:
+      - 'ShadowSource.per'
+      - 'ShadowByzantine/**/*.per'
+      - 'tools/forensics/**/*.py'
+      - 'tools/forensics/module_qualification.json'
+      - '.github/workflows/module-qualification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run consolidated qualification
+        run: |
+          python tools/forensics/module_qualification.py \
+            --config tools/forensics/module_qualification.json \
+            --out artifacts/module-qualification
+
+      - name: Publish qualification summary
+        if: always()
+        run: |
+          if [ -f artifacts/module-qualification/MODULE_QUALIFICATION_REPORT.md ]; then
+            cat artifacts/module-qualification/MODULE_QUALIFICATION_REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload forensic reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: module-qualification-${{ github.sha }}
+          path: artifacts/module-qualification/
+          if-no-files-found: error
+          retention-days: 30
