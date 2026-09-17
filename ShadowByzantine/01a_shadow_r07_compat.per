@@ -110,6 +110,35 @@
 (defconst t-enemy-age-cancel 18) ; donor :297
 
 ; ============================================================
+; AUTHENTICATED DONOR ITEM/STATE IDENTIFIERS (03a + 04 reads)
+; Load-order audit 2026-09-17: these are read by 03a (which loads
+; before 04_construction.per, where some were previously defined
+; only locally) or by 04 rules whose symbols were never registered
+; repo-wide. All values donor-exact with defconst lines cited.
+; Same-value duplicates with 04-local bindings (ESKIRMS, SIEGE,
+; with/without-escrow, gl-town-safe) are the identical binding,
+; kept here for load-order availability.
+; ============================================================
+(defconst ESKIRMS 19) ; donor :1599
+(defconst SIEGE 184) ; donor :1527
+(defconst gl-town-safe 300) ; donor :120
+(defconst with-escrow 0) ; donor :848
+(defconst without-escrow 1) ; donor :849
+(defconst LumberFirst 1) ; donor :212
+(defconst MillFirst 2) ; donor :213
+(defconst RANGED-FLUSH 1) ; donor :1509
+(defconst SCRUSH 2) ; donor :1511
+(defconst SkipMillTime 240) ; donor :360
+(defconst current-score 20) ; donor :582
+(defconst object-data-distance 44) ; donor :1093
+(defconst player-number 22) ; donor :584
+(defconst position-object 12) ; donor :954
+(defconst search-order-asc 1) ; donor :1143
+(defconst search-order-desc 2) ; donor :1144
+(defconst search-remote 2) ; donor :958
+(defconst Shadow 2048) ; donor :95
+
+; ============================================================
 ; AUTHENTICATED DONOR TECH-SLICE SUPPORT IDENTIFIERS (03a)
 ; Full-sweep audit 2026-09-17: every non-engine identifier read by
 ; donor rules 1165-1298 is registered here with its donor-exact

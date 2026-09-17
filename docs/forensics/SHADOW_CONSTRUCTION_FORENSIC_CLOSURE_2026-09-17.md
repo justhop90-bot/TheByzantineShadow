@@ -230,6 +230,18 @@ unloaded scaffolding with documented defects, untouched by this tranche.
   qualifier's unresolved-symbol check covers only `gl-*`/SPLIT, so
   non-goal identifiers require this manual sweep per transplanted
   slice; added to the tranche procedure going forward.
+- Load-order audit 2026-09-17 (prompted by invalid `(goal gl-strategy
+  SIEGE)`, 03a line 77): `SIEGE` was defined only in
+  `04_construction.per`'s local block, which loads AFTER 03a. Fixed
+  with 18 donor-exact registrations in `01a` covering both the 03a
+  reads (`SIEGE`, `ESKIRMS`, `gl-town-safe`, `with/without-escrow`)
+  and 04's own unregistered reads (`LumberFirst`, `MillFirst`,
+  `RANGED-FLUSH`, `SCRUSH`, `SkipMillTime`, `current-score`,
+  `object-data-distance`, `player-number`, `position-object`,
+  `search-order-asc/desc`, `search-remote`, `Shadow`). Same-value
+  duplicates with 04-local bindings are the identical binding, kept
+  for load-order availability. Zero load-order violations remain;
+  engine builtins need nothing.
 
 ## Amendment record 2026-09-17 — automation collision (append-duplicate)
 
