@@ -18,5 +18,5 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Qualify authenticated R07 slice
+      - name: Qualify authenticated R07 1794-1849 slice
         run: python tools/forensics/qualify_r07_1794_1814_implementation.py
