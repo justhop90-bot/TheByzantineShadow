@@ -1,0 +1,25 @@
+name: Extract Shadow R07 construction ledger
+on:
+  push:
+    paths:
+      - 'ShadowSource.per'
+      - 'tools/forensics/extract_shadow_r07_ledger.py'
+      - '.github/workflows/extract-shadow-r07-ledger.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract authenticated R07 ledger
+        run: python3 tools/forensics/extract_shadow_r07_ledger.py ShadowSource.per docs/forensics/SHADOW_R07_CONSTRUCTION_PROGRESSION_RULE_LEDGER_v0.1.csv
+      - name: Commit generated ledger
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/forensics/SHADOW_R07_CONSTRUCTION_PROGRESSION_RULE_LEDGER_v0.1.csv
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'forensics: generate authenticated R07 rule ledger'
+          git push
