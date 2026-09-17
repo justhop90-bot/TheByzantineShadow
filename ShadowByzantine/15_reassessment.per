@@ -1,54 +1,25 @@
-```lisp
 ; ============================================
-; AEGIS
-; 15_reassessment.per
+; THE BYZANTINE SHADOW
+; MODULE 15 -- REASSESSMENT
 ; ============================================
-;
-; REASSESSMENT
 ;
 ; Responsibility:
-;
-;   Close a terminal transaction only after
-;   its result and escrow release are observed.
+;   Close a terminal transaction only after its result and escrow
+;   release are observed, then return strategic control to IDLE.
 ;
 ; Lifecycle boundary:
 ;
 ;   TERMINAL RESULT
-;        ↓
-;   ESCROW RELEASED
-;        ↓
-;   RECOVERY CLEARED
-;        ↓
-;   TRANSACTION IDLE
-;        ↓
-;   STRATEGIC CONTROL AVAILABLE
+;        -> ESCROW RELEASED
+;        -> RECOVERY CLEARED (failure path)
+;        -> IDLE
+;        -> STRATEGIC CONTROL AVAILABLE
 ;
-; This module does NOT:
-;
-;   - execute engine commands
-;   - modify engine escrow
-;   - release engine escrow
-;   - grant authority
-;   - determine execution success
-;   - create a new objective
-;   - select a strategy
-;
-; It establishes the clean boundary at which
-; the next objective cycle may begin.
+; This module does NOT execute engine commands, mutate escrow,
+; determine success, or choose the next strategy.
 ;
 ; ============================================
-
-
-; ============================================
-; SUCCESSFUL TRANSACTION -> REASSESSMENT
-; ============================================
-;
-; A successful transaction may be closed only
-; after:
-;
-;   - verification succeeded
-;   - engine escrow is actually released
-;
+; SUCCESSFUL TRANSACTION -> IDLE
 ; ============================================
 
 (defrule
@@ -59,20 +30,17 @@
     (set-goal AEGIS-AUTHORITY AEGIS-AUTHORITY-DENIED)
     (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
     (set-goal AEGIS-VERIFICATION AEGIS-UNVERIFIED)
+    (set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
+    (set-goal AEGIS-TRANSACTION-ACTIVE 0)
     (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
 )
 
-
 ; ============================================
-; FAILED TRANSACTION -> REASSESSMENT
+; FAILED TRANSACTION -> IDLE
 ; ============================================
 ;
-; A failed transaction may be closed only
-; after recovery has observed the release and
-; declared recovery CLEARED.
+; Failure cannot bypass RECOVERY-CLEARED.
 ;
-; ============================================
-
 (defrule
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
     (goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-CLEARED)
@@ -82,6 +50,7 @@
     (set-goal AEGIS-EXECUTION-STATE AEGIS-EXECUTION-IDLE)
     (set-goal AEGIS-VERIFICATION AEGIS-UNVERIFIED)
     (set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+    (set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-NO)
+    (set-goal AEGIS-TRANSACTION-ACTIVE 0)
     (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
 )
-```
