@@ -6,6 +6,7 @@ on:
       - tools/forensics/append_r07_1828_1849.py
       - ShadowSource.per
       - ShadowByzantine/04_construction.per
+      - .github/workflows/apply-r07-1828-1849.yml
   workflow_dispatch:
 
 permissions:
