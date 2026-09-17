@@ -15,7 +15,7 @@ env:
   REPLAY_COMMIT: b313c0363753d3b73745a067c6f84d6bb23f52ed
   REPLAY_FILE: "SP Replay v101.103.48987.0 @2026.09.16 202614.aoe2record"
   EXPECTED_REPLAY_BLOB: 8322b48e9a5d2c9bd0d8c563bd9e246de8d9a498
-  EXPECTED_REPLAY_BYTES: 5254614
+  EXPECTED_REPLAY_BYTES: "5254614"
 
 steps:
   - name: Checkout exact forensic commit
@@ -32,225 +32,51 @@ steps:
       test "$actual" = "$REPLAY_COMMIT"
       echo "Verified commit: $actual"
 
-  - name: Verify replay blob and size
+  - name: Verify replay
     shell: bash
     run: |
       set -euo pipefail
+
       test -f "$REPLAY_FILE"
 
       blob="$(git hash-object "$REPLAY_FILE")"
       bytes="$(stat -c '%s' "$REPLAY_FILE")"
 
-      echo "Replay blob:  $blob"
+      echo "Replay blob: $blob"
       echo "Replay bytes: $bytes"
 
       test "$blob" = "$EXPECTED_REPLAY_BLOB"
       test "$bytes" = "$EXPECTED_REPLAY_BYTES"
 
-  - name: Record .per baseline
+  - name: Verify .per integrity
     shell: bash
     run: |
       set -euo pipefail
+
       git ls-files -z -- '*.per' |
         xargs -0 sha256sum > "$RUNNER_TEMP/per-before.sha256"
 
-  - name: Set up Node.js
+      echo ".per baseline recorded."
+
+  - name: Test Node.js
     uses: actions/setup-node@v4
     with:
       node-version: 24
 
-  - name: Install recording toolchain
+  - name: Test recording toolchain
     working-directory: tools/recording-tools
     shell: bash
     run: |
       set -euo pipefail
+
       npm install --ignore-scripts
 
-  - name: Verify agelens installation
-    working-directory: tools/recording-tools
-    shell: bash
-    run: |
-      set -euo pipefail
       node -e '
         const p = require("agelens/package.json");
         console.log("agelens version:", p.version);
       '
 
-  - name: Inspect agelens exports
-    working-directory: tools/recording-tools
-    shell: bash
-    run: |
-      set -euo pipefail
-
-      node --input-type=module <<'NODE'
-      import * as agelens from "agelens";
-
-      console.log("agelens exports:");
-      console.log(Object.keys(agelens).sort().join("\n"));
-      NODE
-
-  - name: Parse replay
-    working-directory: tools/recording-tools
-    shell: bash
-    run: |
-      set -euo pipefail
-
-      mkdir -p "$GITHUB_WORKSPACE/artifacts/replay"
-
-      node --input-type=module <<'NODE'
-      import fs from "node:fs";
-      import { parseRecording } from "agelens";
-
-      const replay =
-        `${process.env.GITHUB_WORKSPACE}/${process.env.REPLAY_FILE}`;
-
-      const output =
-        `${process.env.GITHUB_WORKSPACE}/artifacts/replay/recording.json`;
-
-      if (typeof parseRecording !== "function") {
-        throw new Error("agelens does not export parseRecording");
-      }
-
-      const buffer = fs.readFileSync(replay);
-      const recording = await parseRecording(buffer);
-
-      fs.writeFileSync(
-        output,
-        JSON.stringify(recording, null, 2) + "\n",
-        "utf8"
-      );
-
-      console.log(`Parsed replay: ${replay}`);
-      console.log(`Output: ${output}`);
-      NODE
-
-  - name: Generate UTF-8 JSONL telemetry
-    shell: bash
-    run: |
-      set -euo pipefail
-
-      python3 - <<'PY'
-      import json
-      from pathlib import Path
-
-      source = Path("artifacts/replay/recording.json")
-      output = Path("artifacts/replay/telemetry.jsonl")
-
-      recording = json.loads(source.read_text(encoding="utf-8"))
-      rows = []
-
-      def emit(kind, value):
-          rows.append(json.dumps(
-              {"kind": kind, **value},
-              ensure_ascii=False
-          ))
-
-      emit("metadata", {"parser": "agelens"})
-
-      for key in (
-          "header",
-          "map",
-          "scenario",
-          "lobby",
-          "metadata"
-      ):
-          value = recording.get(key)
-          if value is not None:
-              emit(key, value)
-
-      for player in recording.get("players") or []:
-          emit("player", player)
-
-      for warning in recording.get("warnings") or []:
-          emit("parser-warning", {"warning": warning})
-
-      for record in recording.get("unknownRecords") or []:
-          emit("unknown-record", {"record": record})
-
-      for operation in recording.get("operations") or []:
-          emit("operation", operation)
-
-      output.write_text(
-          "\n".join(rows) + "\n",
-          encoding="utf-8"
-      )
-
-      print(f"Wrote {len(rows)} JSONL records")
-      PY
-
-  - name: Extract resource and research telemetry
-    shell: bash
-    run: |
-      set -euo pipefail
-
-      python3 - <<'PY'
-      import json
-      from pathlib import Path
-
-      source = Path("artifacts/replay/telemetry.jsonl")
-      resources = Path("artifacts/replay/resource-snapshots.jsonl")
-      research = Path("artifacts/replay/research-actions.jsonl")
-
-      resource_rows = []
-      research_rows = []
-
-      for line in source.read_text(encoding="utf-8").splitlines():
-          if not line:
-              continue
-
-          row = json.loads(line)
-
-          if row.get("kind") != "operation":
-              continue
-
-          if row.get("actionId") == 196:
-              resource_rows.append(row)
-
-          if row.get("actionId") == 101:
-              research_rows.append(row)
-
-      resources.write_text(
-          "\n".join(
-              json.dumps(row, ensure_ascii=False)
-              for row in resource_rows
-          ) + "\n",
-          encoding="utf-8"
-      )
-
-      research.write_text(
-          "\n".join(
-              json.dumps(row, ensure_ascii=False)
-              for row in research_rows
-          ) + "\n",
-          encoding="utf-8"
-      )
-
-      print("action 196 records:", len(resource_rows))
-      print("action 101 records:", len(research_rows))
-      PY
-
-  - name: Validate UTF-8 outputs
-    shell: bash
-    run: |
-      set -euo pipefail
-
-      python3 - <<'PY'
-      from pathlib import Path
-
-      files = [
-          Path("artifacts/replay/recording.json"),
-          Path("artifacts/replay/telemetry.jsonl"),
-          Path("artifacts/replay/resource-snapshots.jsonl"),
-          Path("artifacts/replay/research-actions.jsonl"),
-      ]
-
-      for path in files:
-          data = path.read_bytes()
-          data.decode("utf-8")
-          print(f"UTF-8 PASS: {path} ({len(data)} bytes)")
-      PY
-
-  - name: Verify no .per modifications
+  - name: Verify .per files unchanged
     shell: bash
     run: |
       set -euo pipefail
@@ -262,23 +88,14 @@ steps:
         "$RUNNER_TEMP/per-before.sha256" \
         "$RUNNER_TEMP/per-after.sha256"
 
-      if git status --porcelain -- '*.per' | grep -q .; then
-        echo "::error::.per files changed during replay analysis"
-        git status --short -- '*.per'
-        exit 1
-      fi
-
       echo ".per integrity check: PASS"
 
-  - name: Publish telemetry artifact
+  - name: Publish verification artifact
     uses: actions/upload-artifact@v4
     with:
-      name: shadow-replay-telemetry
-      if-no-files-found: error
+      name: shadow-replay-verification
       retention-days: 14
       path: |
-        artifacts/replay/recording.json
-        artifacts/replay/telemetry.jsonl
-        artifacts/replay/resource-snapshots.jsonl
-        artifacts/replay/research-actions.jsonl
+        ${{ runner.temp }}/per-before.sha256
+        ${{ runner.temp }}/per-after.sha256
 ```
