@@ -5,9 +5,13 @@ from pathlib import Path
 EXPECTED_SHA1 = "70a18a3b69e8ea46bd5132673fe9fcf8a36595ee"
 URL = "https://raw.githubusercontent.com/justhop90-bot/TheByzantineShadow/main/ShadowSource.per"
 OUT = Path(sys.argv[1] if len(sys.argv) > 1 else "shadow-source-rule-index.json")
+SOURCE = Path(sys.argv[2]) if len(sys.argv) > 2 else None
 RAW = Path("ShadowSource.per")
 
-raw = urllib.request.urlopen(URL, timeout=30).read()
+if SOURCE is None:
+    raw = urllib.request.urlopen(URL, timeout=30).read()
+else:
+    raw = SOURCE.read_bytes()
 sha1 = hashlib.sha1(raw).hexdigest()
 if sha1 != EXPECTED_SHA1:
     raise SystemExit(f"SHA1 MISMATCH: got {sha1}, expected {EXPECTED_SHA1}")
@@ -83,7 +87,6 @@ for ordinal, start in enumerate(starts, 1):
     body = text[start:end]
     norm = normalize(body)
     jumps = re.findall(r'\(up-jump-rule\s+([^\)]+)\)', body)
-    refs = []
     tokens = [
         'gl-build-progress','gl-current-build-item','gl-progression-pause',
         'gl-strategy','SPLIT','set-escrow-percentage','up-modify-escrow',
@@ -92,6 +95,7 @@ for ordinal, start in enumerate(starts, 1):
         'research-status','can-build-with-escrow','can-research-with-escrow',
         'can-train-with-escrow'
     ]
+    refs = []
     for t in tokens:
         if re.search(r'\b' + re.escape(t) + r'\b', body): refs.append(t)
     rules.append({
