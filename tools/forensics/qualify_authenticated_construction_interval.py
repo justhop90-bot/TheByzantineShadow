@@ -19,6 +19,11 @@ COMPAT_CONSTANTS = (
     "MILL", "ESKIRMS", "FletchingNumber", "goal", "gl-enemy-strategy",
     "gl-town-safe", "DRUSH", "SIEGE"
 )
+STATE_SYMBOLS = (
+    "gl-current-build-item", "gl-build-progress", "gl-progression-pause",
+    "gl-escrow-state", "SPLIT", "gl-strategy", "gl-target-age",
+    "gl-target-age-checking", "gl-target-score1", "gl-target-score2",
+)
 
 
 def blob(data: bytes) -> str:
@@ -92,6 +97,29 @@ def const_locations(root: Path) -> dict[str,list[tuple[str,str]]]:
     return result
 
 
+def halves(rule: str) -> tuple[str,str]:
+    masked = mask(rule)
+    if "=>" not in masked:
+        return norm(rule), ""
+    left, right = rule.split("=>", 1)
+    return norm(left), norm(right)
+
+
+def disable_self(rule: str) -> bool:
+    return "(disable-self)" in norm(rule)
+
+
+def state_touches(rule: str) -> dict[str,str]:
+    n = norm(rule)
+    out={}
+    for symbol in STATE_SYMBOLS:
+        reads = bool(re.search(rf"\b{re.escape(symbol)}\b", n))
+        writes = bool(re.search(rf"\((?:set-goal|up-modify-goal)\s+{re.escape(symbol)}\b", n))
+        if reads or writes:
+            out[symbol] = f"read={'YES' if reads else 'NO'},write={'YES' if writes else 'NO'}"
+    return out
+
+
 def main() -> None:
     sb=SOURCE.read_bytes(); ib=IMPLEMENTATION.read_text(encoding="utf-8"); cb=CONSTANTS.read_text(encoding="utf-8")
     sha=blob(sb)
@@ -100,9 +128,21 @@ def main() -> None:
     if len(sr)!=EXPECTED_DONOR_RULES: raise SystemExit(f"DONOR_RULE_COUNT_MISMATCH={len(sr)}")
     expected=LAST-FIRST+1
     if len(ir)!=expected: raise SystemExit(f"IMPLEMENTATION_RULE_COUNT_MISMATCH={len(ir)} EXPECTED={expected}")
+
     donor=sr[FIRST-1:LAST]
     mismatches=[rid for rid,(d,i) in enumerate(zip(donor,ir),FIRST) if norm(d)!=norm(i)]
     if mismatches: raise SystemExit(f"RULE_BODY_MISMATCHES={mismatches}")
+
+    predicate_mismatches=[]; action_mismatches=[]; disable_mismatches=[]
+    for rid,(d,i) in enumerate(zip(donor,ir),FIRST):
+        dp,da=halves(d); ip,ia=halves(i)
+        if dp != ip: predicate_mismatches.append(rid)
+        if da != ia: action_mismatches.append(rid)
+        if disable_self(d) != disable_self(i): disable_mismatches.append(rid)
+    if predicate_mismatches: raise SystemExit(f"PREDICATE_MISMATCHES={predicate_mismatches}")
+    if action_mismatches: raise SystemExit(f"ACTION_MISMATCHES={action_mismatches}")
+    if disable_mismatches: raise SystemExit(f"DISABLE_SELF_MISMATCHES={disable_mismatches}")
+
     donor_jumps=jump_edges(donor,FIRST); impl_jumps=jump_edges(ir,FIRST)
     if donor_jumps!=impl_jumps: raise SystemExit(f"JUMP_MISMATCH_DONOR={donor_jumps}_IMPLEMENTATION={impl_jumps}")
     expected_jumps=[(rid,rid+delta,delta) for rid,delta in KNOWN_JUMPS.items()]
@@ -110,7 +150,7 @@ def main() -> None:
     if any(src<FIRST or src>LAST or dst<FIRST or dst>LAST for src,dst,_ in donor_jumps): raise SystemExit(f"JUMP_TARGET_OUTSIDE_INTERVAL={donor_jumps}")
     fallthrough=[(rid,rid+1) for rid in range(FIRST,LAST)]
     cross_in=(FIRST-1,FIRST); cross_out=(LAST,LAST+1)
-    if [(s,d,j) for s,d,j in donor_jumps if s<FIRST or s>LAST or d<FIRST or d>LAST]: raise SystemExit("CROSS_BOUNDARY_JUMP_PRESENT")
+    if [x for x in donor_jumps if x[0]<FIRST or x[0]>LAST or x[1]<FIRST or x[1]>LAST]: raise SystemExit("CROSS_BOUNDARY_JUMP_PRESENT")
 
     donor_consts=consts(sb.decode("utf-8")); impl_consts=consts(ib); registry_consts=consts(cb); locations=const_locations(ROOT)
     print("COMPATIBILITY_CONSTANT_AUDIT_BEGIN")
@@ -123,9 +163,16 @@ def main() -> None:
         else: classification="UNRESOLVED_ENGINE_OR_PROJECT_SYMBOL"
         print(f"COMPAT_CONSTANT {name} implementation={iv} donor={dv if dv is not None else 'ABSENT'} registry={rv if rv is not None else 'ABSENT'} class={classification} repository_defs={loc}")
     print("COMPATIBILITY_CONSTANT_AUDIT_END")
+
     duplicate_defs={name:vals for name,vals in locations.items() if len(vals)>1}
     print(f"PROJECT_DUPLICATE_DEFCONST_NAMES={len(duplicate_defs)}")
     for name in sorted(duplicate_defs): print(f"DUPLICATE_DEFCONST {name} definitions={duplicate_defs[name]}")
+
+    for symbol in STATE_SYMBOLS:
+        d_count=sum(symbol in state_touches(r) for r in donor)
+        i_count=sum(symbol in state_touches(r) for r in ir)
+        if d_count != i_count: raise SystemExit(f"STATE_TOUCH_COUNT_MISMATCH {symbol} donor={d_count} implementation={i_count}")
+        print(f"STATE_TOUCH_COUNT {symbol} donor={d_count} implementation={i_count}")
 
     print(f"AUTHENTICATED_DONOR_SHA={sha}")
     print(f"DONOR_RULE_COUNT={len(sr)}")
@@ -135,7 +182,9 @@ def main() -> None:
     print(f"IMPLEMENTATION_RULE_COUNT={len(ir)}")
     print("RULE_IDENTITY=PASS (source-order identity)")
     print("RULE_BODY_EQUIVALENCE=PASS")
-    print("PREDICATE_ACTION_SEQUENCE=PASS")
+    print("PREDICATE_EQUIVALENCE=PASS")
+    print("ACTION_EQUIVALENCE=PASS")
+    print("DISABLE_SELF_EQUIVALENCE=PASS")
     print("UP_JUMP_EQUIVALENCE=PASS")
     print(f"EXPLICIT_JUMP_EDGE_COUNT={len(donor_jumps)}")
     print(f"EXPLICIT_JUMP_EDGES={donor_jumps}")
