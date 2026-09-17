@@ -1,235 +1,104 @@
-*; ============================================================*
-
-*; THE BYZANTINE SHADOW*
-
-*; MODULE 09 -- CAPITAL FEASIBILITY*
-
-*; ============================================================*
-
-*;*
-
-*; PURPOSE*
-*; -------*
-*; Determine whether the active Module 08 production requirement*
-*; can be financed while preserving the protected strategic reserve*
-*; established by Module 07.*
-
-*;*
-
-*; ARCHITECTURE*
-*; ------------*
-*;*
-*; MODULE 08*
-*;   ENGINE-DERIVED REQUIREMENT VECTOR*
-*;              |*
-*;              v*
-*;      up-get-cost-delta*
-*;              |*
-*;              v*
-*;   GROSS CAPITAL SLACK*
-*;              |*
-*;              v*
-*;   SUBTRACT PROTECTED RESERVE*
-*;              |*
-*;              v*
-*;   RESERVE-ADJUSTED CAPITAL SLACK*
-*;              |*
-*;              v*
-*;      FEASIBILITY STATE*
-*;*
-*; CAPITAL FEASIBILITY DOES NOT:*
-*;   - change composition targets*
-*;   - change production deficits*
-*;   - change reserve policy*
-*;   - modify escrow*
-*;   - release escrow*
-*;   - train units*
-*;   - build infrastructure*
-*;   - execute market trades*
-*;   - authorize execution*
-*;   - claim that a future income stream exists*
-*;*
-*; It answers one question only:*
-*;*
-*;   "Can the currently requested production package be funded*
-*;    from the current stockpile without consuming the protected*
-*;    strategic reserve?"*
-
-*; ============================================================*
-
-*; INITIALIZATION*
-*; ============================================================*
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 09 -- CAPITAL FEASIBILITY
+; ============================================================
+;
+; CLOSED SLICE CONTRACT
+; ---------------------
+; Module 08 owns the engine-derived transaction cost vector:
+;
+;   475 food
+;   476 wood
+;   477 gold
+;   478 stone
+;
+; Module 09 answers only:
+;
+;   Can the current stockpile finance that requirement?
+;
+; It does not hard-code unit prices and it does not mutate escrow.
+;
+; The strategic-reserve subtraction remains an explicit downstream
+; policy input. This first closed slice therefore qualifies the
+; gross capital boundary first; reserve-policy qualification is not
+; silently fabricated here.
+;
+; ============================================================
+; INITIALIZATION
+; ============================================================
 
 (defrule
-    (goal SHADOW-CAPITAL-INITIALIZED -1)
+    (goal AEGIS-CAPITAL-STATE -1)
 =>
-    (set-goal SHADOW-CAPITAL-INITIALIZED 1)
-    (set-goal SHADOW-CAPITAL-SLACK-FOOD 0)
-    (set-goal SHADOW-CAPITAL-SLACK-WOOD 0)
-    (set-goal SHADOW-CAPITAL-SLACK-STONE 0)
-    (set-goal SHADOW-CAPITAL-SLACK-GOLD 0)
-    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
-    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-INACTIVE)
+    (set-goal AEGIS-CAPITAL-STATE 0)
+    (set-goal AEGIS-CAPITAL-SLACK-FOOD 0)
+    (set-goal AEGIS-CAPITAL-SLACK-WOOD 0)
+    (set-goal AEGIS-CAPITAL-SLACK-GOLD 0)
+    (set-goal AEGIS-CAPITAL-SLACK-STONE 0)
 )
 
-*; ============================================================*
-*; CAPITAL SNAPSHOT*
-*; ============================================================*
-
-*;*
-*; Module 08 owns the current four-resource cost vector:*
-*;*
-*;   SHADOW-PROD-COST-FOOD*
-*;   SHADOW-PROD-COST-WOOD*
-*;   SHADOW-PROD-COST-STONE*
-*;   SHADOW-PROD-COST-GOLD*
-*;*
-*; These are 500-503.*
-*;*
-*; up-get-cost-delta returns:*
-*;*
-*;   current stockpile - current cost vector*
-*;*
-*; into four consecutive goals.*
-*;*
-*; Because the engine requires the cost-delta output to occupy*
-*; extended goals in the 41-508 range, the calculation uses the*
-*; existing 500-503 cost vector as the temporary engine output.*
-*; The resulting values are immediately copied into the Module 09*
-*; capital goals below.*
-*;*
-*; ============================================================*
-
+; ============================================================
+; REQUIREMENT -> GROSS CAPITAL DELTA
+; ============================================================
+;
+; 41-44 are scratch extended goals. We copy the Module 08 cost
+; vector into that cost-data block and ask the engine for:
+;
+;   current stockpile - required cost
+;
+; up-get-cost-delta does not account for escrow; this module runs
+; before escrow commitment, so that is the intended observation.
+;
 (defrule
-    (true)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
 =>
-    (up-get-cost-delta SHADOW-PROD-COST-FOOD)
-    (up-modify-goal SHADOW-CAPITAL-SLACK-FOOD g:= SHADOW-PROD-COST-FOOD)
-    (up-modify-goal SHADOW-CAPITAL-SLACK-WOOD g:= SHADOW-PROD-COST-WOOD)
-    (up-modify-goal SHADOW-CAPITAL-SLACK-STONE g:= SHADOW-PROD-COST-STONE)
-    (up-modify-goal SHADOW-CAPITAL-SLACK-GOLD g:= SHADOW-PROD-COST-GOLD)
+    (up-setup-cost-data 1 41)
+    (up-add-cost-data AEGIS-TRANSACTION-FOOD c: 1)
+    (up-get-cost-delta 41)
+    (up-modify-goal AEGIS-CAPITAL-SLACK-FOOD g:= 41)
+    (up-modify-goal AEGIS-CAPITAL-SLACK-WOOD g:= 42)
+    (up-modify-goal AEGIS-CAPITAL-SLACK-GOLD g:= 43)
+    (up-modify-goal AEGIS-CAPITAL-SLACK-STONE g:= 44)
 )
 
-*; ============================================================*
-*; RESERVE PROTECTION*
-*; ============================================================*
-
-*;*
-*; The raw cost delta answers:*
-*;*
-*;   stockpile - production requirement*
-*;*
-*; Capital feasibility must answer the stricter question:*
-*;*
-*;   stockpile - production requirement - protected reserve*
-*;*
-*; Module 07's reserve goals are therefore subtracted here.*
-*;*
-*; The reserve goals are policy outputs, not escrow balances.*
-*; This module deliberately does not touch escrow.*
-*;*
-*; ============================================================*
-
+; ============================================================
+; CAPITAL STATE
+; ============================================================
+;
+; Every resource must have a non-negative gross delta.
+;
 (defrule
-    (true)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
+    (up-compare-goal AEGIS-CAPITAL-SLACK-FOOD >= 0)
+    (up-compare-goal AEGIS-CAPITAL-SLACK-WOOD >= 0)
+    (up-compare-goal AEGIS-CAPITAL-SLACK-GOLD >= 0)
+    (up-compare-goal AEGIS-CAPITAL-SLACK-STONE >= 0)
 =>
-    (up-modify-goal SHADOW-CAPITAL-SLACK-FOOD c:- SHADOW-RESERVE-FOOD)
-    (up-modify-goal SHADOW-CAPITAL-SLACK-WOOD c:- SHADOW-RESERVE-WOOD)
-    (up-modify-goal SHADOW-CAPITAL-SLACK-STONE c:- SHADOW-RESERVE-STONE)
-    (up-modify-goal SHADOW-CAPITAL-SLACK-GOLD c:- SHADOW-RESERVE-GOLD)
-)
-
-*; ============================================================*
-*; CAPITAL ACTIVITY*
-*; ============================================================*
-
-*;*
-*; No production requirement means there is nothing to finance.*
-*; Capital feasibility is therefore inactive when Module 08 has*
-*; no positive deficit.*
-*;*
-*; ============================================================*
-
-(defrule
-    (true)
-=>
-    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-INACTIVE)
-    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
+    (set-goal AEGIS-CAPITAL-STATE 1)
+    (set-goal AEGIS-CAPITAL-FEASIBILITY 1)
 )
 
 (defrule
-    (goal SHADOW-REQ-ACTIVE SHADOW-REQ-ACTIVE-VALUE)
-=>
-    (set-goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-ACTIVE-VALUE)
-)
-
-*; ============================================================*
-*; CAPITAL FEASIBILITY*
-*; ============================================================*
-
-*;*
-*; Every protected resource must remain non-negative after paying*
-*; the complete Module 08 requirement.*
-*;*
-*; This is intentionally conjunctive:*
-*;*
-*;   FOOD >= 0*
-*;   AND WOOD >= 0*
-*;   AND STONE >= 0*
-*;   AND GOLD >= 0*
-*;*
-*; A surplus in one resource cannot compensate for a deficit in*
-*; another. Market conversion is a later/subordinate decision.*
-*;*
-*; IMPORTANT: up-compare-goal takes exactly three arguments here:*
-*;   goal, comparator, value.*
-*; The literal zero is therefore written as 0, not c: 0.*
-*;*
-*; ============================================================*
-
-(defrule
-    (goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-ACTIVE-VALUE)
-    (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD >= 0)
-    (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD >= 0)
-    (up-compare-goal SHADOW-CAPITAL-SLACK-STONE >= 0)
-    (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD >= 0)
-=>
-    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-SUFFICIENT)
-)
-
-*; ============================================================*
-*; EXPLICIT INSUFFICIENT STATE*
-*; ============================================================*
-
-*;*
-*; This rule is intentionally explicit rather than relying on the*
-*; initialization value. A capital deficit in ANY protected resource*
-*; makes the current package infeasible.*
-*;*
-*; The engine/parser requires binary OR. The four-resource condition*
-*; is therefore represented as a nested binary tree without changing*
-*; the intended truth table:*
-*;*
-*;   FOOD deficit OR WOOD deficit OR STONE deficit OR GOLD deficit*
-*;*
-*; ============================================================*
-
-(defrule
-    (goal SHADOW-CAPITAL-ACTIVE SHADOW-CAPITAL-ACTIVE-VALUE)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
     (or
-        (or
-            (up-compare-goal SHADOW-CAPITAL-SLACK-FOOD < 0)
-            (up-compare-goal SHADOW-CAPITAL-SLACK-WOOD < 0)
-        )
-        (or
-            (up-compare-goal SHADOW-CAPITAL-SLACK-STONE < 0)
-            (up-compare-goal SHADOW-CAPITAL-SLACK-GOLD < 0)
-        )
+        (up-compare-goal AEGIS-CAPITAL-SLACK-FOOD < 0)
+        (up-compare-goal AEGIS-CAPITAL-SLACK-WOOD < 0)
+        (up-compare-goal AEGIS-CAPITAL-SLACK-GOLD < 0)
+        (up-compare-goal AEGIS-CAPITAL-SLACK-STONE < 0)
     )
 =>
-    (set-goal SHADOW-CAPITAL-FEASIBILITY SHADOW-CAPITAL-INSUFFICIENT)
+    (set-goal AEGIS-CAPITAL-STATE 2)
+    (set-goal AEGIS-CAPITAL-FEASIBILITY 0)
 )
 
-*; ============================================================*
-*; END MODULE 09*
-*; ============================================================*
+; ============================================================
+; CONTRACT WITH MODULE 10
+; ============================================================
+;
+; AEGIS-CAPITAL-FEASIBILITY=1 is the only capital output consumed
+; by the escrow commit path. Module 09 never calls escrow commands.
+;
+; ============================================================
