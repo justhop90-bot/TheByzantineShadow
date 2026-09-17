@@ -18,30 +18,26 @@
 ;   - verify unit completion;
 ;   - perform recovery.
 ;
-; Transaction resource goals 475-478 are populated by the
-; vertical demonstrator from the engine-derived requirement
-; contract used by this slice:
-;   475 = food
-;   476 = wood
-;   477 = gold
-;   478 = stone
+; Pass 1 demonstrator requirement:
+;   60 food + 40 wood.
+;
+; The physical escrow operation remains here. The literals are kept
+; in this experimental slice because the engine operand contract for
+; symbolic goal-valued escrow quantities has not yet been separately
+; qualified. Final production cost authority remains an open module
+; qualification item.
 ;
 ; ============================================
 ; COMMITTING -> ENGINE ESCROW MUTATION
 ; ============================================
-;
-; Feasibility and logical transaction state are prerequisites.
-; The physical mutation occurs here, not in the demonstrator.
-;
+
 (defrule
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
     (goal AEGIS-CAPITAL-FEASIBILITY 1)
     (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
 =>
-    (up-modify-escrow food c:max AEGIS-TRANSACTION-FOOD)
-    (up-modify-escrow wood c:max AEGIS-TRANSACTION-WOOD)
-    (up-modify-escrow gold c:max AEGIS-TRANSACTION-GOLD)
-    (up-modify-escrow stone c:max AEGIS-TRANSACTION-STONE)
+    (up-modify-escrow food c:max 60)
+    (up-modify-escrow wood c:max 40)
 )
 
 ; ============================================
@@ -55,10 +51,8 @@
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
     (goal AEGIS-CAPITAL-FEASIBILITY 1)
     (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTING)
-    (escrow-amount food >= AEGIS-TRANSACTION-FOOD)
-    (escrow-amount wood >= AEGIS-TRANSACTION-WOOD)
-    (escrow-amount gold >= AEGIS-TRANSACTION-GOLD)
-    (escrow-amount stone >= AEGIS-TRANSACTION-STONE)
+    (escrow-amount food >= 60)
+    (escrow-amount wood >= 40)
 =>
     (set-goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
     (set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-READY)
