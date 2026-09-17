@@ -8,7 +8,11 @@
     "gl-identity",
     "gl-my-player-number",
     "gl-position",
-    "gl-switch"
+    "gl-switch",
+    "gl-target-age",
+    "gl-target-age-checking",
+    "gl-target-score1",
+    "gl-target-score2"
   ],
   "modules": [
     {
