@@ -195,6 +195,22 @@ enemy-age tracker), `gl-dark-build`, `rt`, `gl-allow-mill`,
 centralized recovery/orchestration was introduced; modules 05–15 remain
 unloaded scaffolding with documented defects, untouched by this tranche.
 
+## Amendment record 2026-09-17 — automation collision (append-duplicate)
+
+CI workflow `apply-r07-1875-1899` (bot commit `4bf2b55`) appended 25
+duplicate rules (donor 1875–1899 bodies already present in the
+authenticated interval) to `04_construction.per` (188 rules), because its
+idempotency guard only compared the file tail while Tranche A had
+legitimately extended the file past the slice. Duplicates double-fire
+side effects and break interval qualification. Resolved: removed the 692
+appended lines (file restored to 163 positional rules ending with donor
+1956); hardened `tools/forensics/append_r07_1875_1899.py` to refuse when
+the slice occurs as a contiguous subsequence anywhere in the target
+(verified: now reports SLICE_ALREADY_PRESENT=YES, no diff). Both
+qualifiers re-run green after the repair. Lesson recorded: applier
+guard-clauses must be containment checks, not tail checks, whenever the
+target file has more than one legitimate writer.
+
 ## Remaining runtime work
 
 The static construction slice is closed. The next qualification tier is runtime/replay evidence. That work must establish actual engine acceptance, pending-object behavior, world-state completion, progression advancement, escrow release/reallocation, placement/search behavior, interruption/re-entry, and recovery under live AoE2DE execution. Those facts are intentionally not promoted from static evidence in this closure artifact.

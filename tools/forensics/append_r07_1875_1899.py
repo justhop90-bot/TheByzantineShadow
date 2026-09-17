@@ -160,11 +160,15 @@ def main():
     if len(slice_rules) != LAST - FIRST + 1:
         raise SystemExit("SLICE EXTRACTION FAILURE")
 
-    # Refuse duplicate application when the target already ends with the exact
-    # authenticated slice.
+    # Refuse duplicate application when the exact authenticated slice already
+    # occurs as a contiguous subsequence ANYWHERE in the target (tail-only
+    # comparison re-appended the slice after later rules were legitimately
+    # added past it -- 2026-09-17 duplication incident, 25 duplicate rules).
     existing_norm = [normalize(r) for r in target_rules]
     wanted_norm = [normalize(r) for r in slice_rules]
-    if len(existing_norm) >= len(wanted_norm) and existing_norm[-len(wanted_norm):] == wanted_norm:
+    n, m = len(existing_norm), len(wanted_norm)
+    present = any(existing_norm[i:i + m] == wanted_norm for i in range(n - m + 1)) if n >= m else False
+    if present:
         print("SLICE_ALREADY_PRESENT=YES")
         print(f"AUTHENTICATED_DONOR_SHA={sha}")
         print(f"IMPLEMENTED_RULE_INTERVAL={FIRST}-{LAST}")
