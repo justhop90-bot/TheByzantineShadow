@@ -12,16 +12,12 @@
 ;   477 gold
 ;   478 stone
 ;
-; Module 09 answers only:
+; Module 09 first computes GROSS capital feasibility.
 ;
-;   Can the current stockpile finance that requirement?
-;
-; It does not hard-code unit prices and it does not mutate escrow.
-;
-; The strategic-reserve subtraction remains an explicit downstream
-; policy input. This first closed slice therefore qualifies the
-; gross capital boundary first; reserve-policy qualification is not
-; silently fabricated here.
+; Strategic reserve is a separate policy input. Its numeric vector is
+; deliberately not invented. The reserve-adjusted result therefore
+; remains UNQUALIFIED until Module 07's provider handshake reports a
+; bound reserve vector.
 ;
 ; ============================================================
 ; INITIALIZATION
@@ -35,19 +31,19 @@
     (set-goal AEGIS-CAPITAL-SLACK-WOOD 0)
     (set-goal AEGIS-CAPITAL-SLACK-GOLD 0)
     (set-goal AEGIS-CAPITAL-SLACK-STONE 0)
+    (set-goal AEGIS-CAPITAL-RESERVE-STATE AEGIS-RESERVE-CAPITAL-UNQUALIFIED)
+    (set-goal AEGIS-RESERVE-CAPITAL-FEASIBILITY AEGIS-RESERVE-CAPITAL-UNQUALIFIED)
 )
 
 ; ============================================================
 ; REQUIREMENT -> GROSS CAPITAL DELTA
 ; ============================================================
 ;
-; 41-44 are scratch extended goals. We copy the Module 08 cost
-; vector into that cost-data block and ask the engine for:
+; 41-44 are scratch extended goals. The engine computes:
 ;
-;   current stockpile - required cost
+;   current stockpile - required transaction cost
 ;
-; up-get-cost-delta does not account for escrow; this module runs
-; before escrow commitment, so that is the intended observation.
+; up-get-cost-delta does not account for strategic reserve or escrow.
 ;
 (defrule
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
@@ -63,11 +59,9 @@
 )
 
 ; ============================================================
-; CAPITAL STATE
+; GROSS CAPITAL STATE
 ; ============================================================
-;
-; Every resource must have a non-negative gross delta.
-;
+
 (defrule
     (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
     (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
@@ -95,10 +89,32 @@
 )
 
 ; ============================================================
+; RESERVE-ADJUSTED CAPITAL -- ABI BOUNDARY ONLY
+; ============================================================
+;
+; Required semantic result:
+;
+;   current(resource) - transaction-cost(resource)
+;                         - reserve(resource) >= 0
+;
+; for every resource.
+;
+; The reserve vector is not considered valid until:
+;
+;   AEGIS-RESERVE-POLICY-READY == AEGIS-RESERVE-BOUND
+;
+; and the provider has populated the four reserve input slots.
+;
+; No arithmetic implementation is asserted here until the exact
+; engine/UP operand contract is qualified. Therefore the state remains
+; UNQUALIFIED rather than silently treating reserve as zero.
+;
+; ============================================================
 ; CONTRACT WITH MODULE 10
 ; ============================================================
 ;
-; AEGIS-CAPITAL-FEASIBILITY=1 is the only capital output consumed
-; by the escrow commit path. Module 09 never calls escrow commands.
+; Current AEGIS-CAPITAL-FEASIBILITY remains the GROSS feasibility
+; output used by the experimental closed slice.
 ;
-; ============================================================
+; Reserve-adjusted feasibility is a distinct future authorization
+; input. It must not be aliased to gross feasibility.
