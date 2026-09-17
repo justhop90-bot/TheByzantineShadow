@@ -243,6 +243,32 @@ unloaded scaffolding with documented defects, untouched by this tranche.
   for load-order availability. Zero load-order violations remain;
   engine builtins need nothing.
 
+## Amendment record 2026-09-17 — documented deviation 1820
+(runtime-evidence-driven, game dialog screenshot)
+
+The DE engine aborts the whole script with `ERR2005: Invalid identifier`
+at `04_construction.per:379`: `(up-gaia-type-count c: sheep > 1)` inside
+authenticated donor rule 1820. Root cause: `up-gaia-type-count` accepts
+only resources (registry syntax + Naga corpus: gold/stone/wood/classes,
+never units); `sheep` is not a valid operand. The UP 1.6-era parser
+tolerated the gaia-unit form; DE does not. My prior defenses of this line
+(registry presence of the command name, Naga usage counts) checked the
+command instead of the operand — wrong level, owned here.
+
+Repair (minimal, intent-preserving): removed the dead disjunct; the
+surviving `(up-object-type-count c: sheep > 0)` (ObjectId operand,
+registry-valid) keeps the rule's meaning (sheep visible → place 2nd
+house). Both qualifiers carry the deviation explicitly
+(`ALLOWED_DEVIATIONS` / config `allowed_deviations`): body/predicate
+equivalence skip rule 1820 only; order, jumps, counts, and state-touch
+parity still enforced. Sweep confirmed this is the sole gaia-with-unit
+call in the loaded set.
+
+Note: line 377 (`civilian-population`) flagged in the same session is
+NOT reproduced by engine evidence — registry documents it, Naga uses it
+in live conditions, donor-verbatim. Verdict: harness false positive
+pending contrary engine output.
+
 ## Amendment record 2026-09-17 — single-definition enforcement
 (runtime-evidence-driven)
 

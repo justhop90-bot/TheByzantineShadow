@@ -371,13 +371,20 @@
 )
 
 ; AUTHENTICATED DONOR RULE 1820 | REGION=R07 | BODY_SHA256=7fec2a29152d80358128664f494ce8040cdfcd556ba7ed5b19a06d069dd5f3c0
+; DOCUMENTED DEVIATION 2026-09-17 (runtime-evidence-driven): donor
+; line `(or	(up-gaia-type-count c: sheep > 1)` removed.
+; up-gaia-type-count accepts only resources (registry + Naga corpus:
+; gold/stone/wood/classes, never units); DE engine aborts the whole
+; script with ERR2005 on `sheep` (screenshot-proven, game dialog).
+; The surviving disjunct (up-object-type-count c: sheep > 0) preserves
+; the rule's intent (sheep visible -> place 2nd house). UP 1.6-era
+; parser tolerated the gaia-unit form; DE does not. See closure.
 (defrule
     ;	(game-time < 15)
     (can-build house)
     (civilian-population < 6)
     (building-type-count-total house > 0)
-    (or	(up-gaia-type-count c: sheep > 1)
-    (up-object-type-count c: sheep > 0))
+    (up-object-type-count c: sheep > 0)
 =>
     (up-set-placement-data me villager-class c: 1)
     (up-build place-control 0 c: house)

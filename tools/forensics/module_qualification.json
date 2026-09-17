@@ -21,6 +21,7 @@
       "donor_start":1794,
       "donor_end":1956,
       "label":"authenticated Shadow construction interval + timer/turn tail",
+      "allowed_deviations":[1820],
       "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
     },
     {

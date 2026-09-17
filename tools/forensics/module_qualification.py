@@ -66,8 +66,9 @@ def qualify(name,path,text,donor,spec,repo_defs,external_state_symbols):
     out={"module":name,"implementation":str(path.relative_to(ROOT)),"implementation_sha256":sha256(text),"implementation_rule_count":len(rs),"parser_balance":"PASS","jump_edges":edges,"out_of_module_jumps":bad,"symbol_audit":{"unresolved_state_symbols":unresolved,"status":"PASS" if not unresolved else "FAIL"},"state_touch_counts":state_counts(rs),"escrow_primitive_counts":escrow_counts(rs),"runtime_qualification":"NOT_PROVEN","evidence_class":"STATIC_FORENSIC_EXTRACTION"}
     if spec:
         a,b=spec["donor_start"],spec["donor_end"]; ds=slice_rules(donor,a,b)
+        dev=set(spec.get("allowed_deviations",[]))
         body=[] if len(rs)==len(ds) else list(range(a,min(b,a+len(rs)-1)+1))
-        if len(rs)==len(ds): body=[a+i for i,(x,y) in enumerate(zip(ds,rs)) if norm(x.text)!=norm(y.text)]
+        if len(rs)==len(ds): body=[a+i for i,(x,y) in enumerate(zip(ds,rs)) if (a+i) not in dev and norm(x.text)!=norm(y.text)]
         de=[]
         for r in ds:
             for d in jumps(r): de.append([r.id,r.id+d,d])

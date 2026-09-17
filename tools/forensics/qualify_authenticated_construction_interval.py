@@ -13,6 +13,13 @@ EXPECTED_DONOR_RULES = 1956
 FIRST = 1794
 LAST = 1956
 R07_LAST = 1896
+# Documented runtime-driven deviations (donor rule id -> reason).
+# Excluded from body/predicate/action equivalence only; order, jumps,
+# state-touch parity, and counts still enforced. Each entry must cite
+# the closure amendment that justifies it with runtime evidence.
+ALLOWED_DEVIATIONS = {
+    1820: "ERR2005 gaia-unit operand removed; closure 2026-09-17",
+}
 KNOWN_JUMPS = {1795: 1, 1850: 4, 1891: 5}
 COMPAT_CONSTANTS = (
     "with-escrow", "without-escrow", "place-control", "place-point",
@@ -130,11 +137,16 @@ def main() -> None:
     if len(ir)!=expected: raise SystemExit(f"IMPLEMENTATION_RULE_COUNT_MISMATCH={len(ir)} EXPECTED={expected}")
 
     donor=sr[FIRST-1:LAST]
-    mismatches=[rid for rid,(d,i) in enumerate(zip(donor,ir),FIRST) if norm(d)!=norm(i)]
+    strict=[rid for rid in range(FIRST,LAST+1) if rid not in ALLOWED_DEVIATIONS]
+    dev_present=[rid for rid in ALLOWED_DEVIATIONS if FIRST<=rid<=LAST]
+    for rid in dev_present:
+        print(f"DOCUMENTED_DEVIATION {rid} reason={ALLOWED_DEVIATIONS[rid]}")
+    mismatches=[rid for rid,(d,i) in enumerate(zip(donor,ir),FIRST) if rid in strict and norm(d)!=norm(i)]
     if mismatches: raise SystemExit(f"RULE_BODY_MISMATCHES={mismatches}")
 
     predicate_mismatches=[]; action_mismatches=[]; disable_mismatches=[]
     for rid,(d,i) in enumerate(zip(donor,ir),FIRST):
+        if rid not in strict: continue
         dp,da=halves(d); ip,ia=halves(i)
         if dp != ip: predicate_mismatches.append(rid)
         if da != ia: action_mismatches.append(rid)
