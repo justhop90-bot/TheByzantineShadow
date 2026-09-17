@@ -7,12 +7,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "ShadowSource.per"
 IMPLEMENTATION = ROOT / "ShadowByzantine" / "04_construction.per"
+CONSTANTS = ROOT / "ShadowByzantine" / "01_constants.per"
 EXPECTED_BLOB = "70a18a3b69e8ea46bd5132673fe9fcf8a36595ee"
 EXPECTED_DONOR_RULES = 1956
 FIRST = 1794
 LAST = 1949
 R07_LAST = 1896
 KNOWN_JUMPS = {1795: 1, 1850: 4, 1891: 5}
+COMPAT_CONSTANTS = (
+    "with-escrow", "without-escrow", "place-control", "place-point",
+    "MILL", "ESKIRMS", "FletchingNumber", "goal", "gl-enemy-strategy",
+    "gl-town-safe", "DRUSH", "SIEGE"
+)
 
 
 def blob(data: bytes) -> str:
@@ -92,9 +98,18 @@ def jump_edges(rule_list: list[str], first: int) -> list[tuple[int, int, int]]:
     return edges
 
 
+def consts(text: str) -> dict[str, str]:
+    masked = mask(text)
+    found: dict[str, str] = {}
+    for m in re.finditer(r"\(defconst\s+([^\s()]+)\s+([^()\s]+)\)", masked):
+        found[m.group(1)] = m.group(2)
+    return found
+
+
 def main() -> None:
     sb = SOURCE.read_bytes()
     ib = IMPLEMENTATION.read_text(encoding="utf-8")
+    cb = CONSTANTS.read_text(encoding="utf-8")
     sha = blob(sb)
     if sha != EXPECTED_BLOB:
         raise SystemExit(f"DONOR_SHA_MISMATCH={sha}")
@@ -125,9 +140,8 @@ def main() -> None:
             f"JUMP_MISMATCH_DONOR={donor_jumps}_IMPLEMENTATION={impl_jumps}"
         )
 
-    if [x[:2] for x in donor_jumps] != [
-        (rid, rid + delta) for rid, delta in KNOWN_JUMPS.items()
-    ]:
+    expected_jumps = [(rid, rid + delta, delta) for rid, delta in KNOWN_JUMPS.items()]
+    if donor_jumps != expected_jumps:
         raise SystemExit(f"UNEXPECTED_DONOR_JUMP_TOPOLOGY={donor_jumps}")
 
     if any(src < FIRST or src > LAST or dst < FIRST or dst > LAST for src, dst, _ in donor_jumps):
@@ -141,9 +155,30 @@ def main() -> None:
         for src, dst, delta in donor_jumps
         if src < FIRST or src > LAST or dst < FIRST or dst > LAST
     ]
-
     if cross_jump_edges:
         raise SystemExit(f"CROSS_BOUNDARY_JUMP_PRESENT={cross_jump_edges}")
+
+    donor_consts = consts(sb.decode("utf-8"))
+    impl_consts = consts(ib)
+    registry_consts = consts(cb)
+    for name in COMPAT_CONSTANTS:
+        if name not in impl_consts:
+            raise SystemExit(f"MISSING_IMPLEMENTATION_COMPAT_CONSTANT={name}")
+    print("COMPATIBILITY_CONSTANT_AUDIT_BEGIN")
+    for name in COMPAT_CONSTANTS:
+        iv = impl_consts[name]
+        dv = donor_consts.get(name)
+        rv = registry_consts.get(name)
+        if dv is not None and iv == dv:
+            classification = "DIRECT_DONOR_TEXT"
+        elif dv is not None:
+            classification = "ERROR_VALUE_DIFFERS_FROM_DONOR"
+        elif rv is not None and iv == rv:
+            classification = "REGISTRY_MATCH_NO_DIRECT_DONOR_DEFINITION"
+        else:
+            classification = "UNRESOLVED_ENGINE_OR_PROJECT_SYMBOL"
+        print(f"COMPAT_CONSTANT {name} implementation={iv} donor={dv if dv is not None else 'ABSENT'} registry={rv if rv is not None else 'ABSENT'} class={classification}")
+    print("COMPATIBILITY_CONSTANT_AUDIT_END")
 
     print(f"AUTHENTICATED_DONOR_SHA={sha}")
     print(f"DONOR_RULE_COUNT={len(sr)}")
