@@ -1,0 +1,72 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; MODULE 08 EXTENSION -- TRANSACTION REQUIREMENT
+; ============================================================
+;
+; This file is part of Module 08's requirement authority.
+; It closes the requirement -> capital boundary for the first
+; vertical production slice without hard-coding the Spearman price.
+;
+; ENGINE AUTHORITY
+; ----------------
+; The engine defines the current cost of spearman-line through
+; up-add-object-cost. The resulting four-resource vector is stored
+; in AEGIS-TRANSACTION-FOOD..STONE.
+;
+; Cost-vector order is:
+;   food, wood, stone, gold
+;
+; AEGIS-TRANSACTION-FOOD = 475
+; AEGIS-TRANSACTION-WOOD = 476
+; AEGIS-TRANSACTION-GOLD = 477
+; AEGIS-TRANSACTION-STONE = 478
+;
+; These are extended goals and therefore also form a valid UP
+; cost-data block. No literal resource price appears below.
+;
+; This module does NOT:
+;   - determine capital feasibility;
+;   - modify escrow;
+;   - grant authority;
+;   - train the unit;
+;   - verify completion.
+;
+; ============================================================
+; SPEARMAN TRANSACTION COST
+; ============================================================
+
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
+=>
+    ; Reset the transaction cost vector, then ask the engine for the
+    ; cost of exactly one Spearman-line object.
+    (up-setup-cost-data 1 AEGIS-TRANSACTION-FOOD)
+    (up-add-object-cost c: spearman-line c: 1)
+)
+
+; ============================================================
+; REQUIREMENT READY
+; ============================================================
+;
+; The requirement is ready only after the transaction cost block has
+; been materialized. The rule does not assert the numeric cost.
+;
+(defrule
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-RESERVING)
+    (goal AEGIS-REQUIREMENT AEGIS-REQUIREMENT-SPEARMAN)
+    (up-compare-goal AEGIS-TRANSACTION-FOOD >= 0)
+    (up-compare-goal AEGIS-TRANSACTION-WOOD >= 0)
+    (up-compare-goal AEGIS-TRANSACTION-GOLD >= 0)
+    (up-compare-goal AEGIS-TRANSACTION-STONE >= 0)
+=>
+    (set-goal AEGIS-REQUIREMENT  AEGIS-REQUIREMENT-SPEARMAN)
+)
+
+; ============================================================
+; INVARIANT
+; ============================================================
+;
+; If the engine changes the Spearman cost, the vector changes with it.
+; The capital module must consume this vector rather than a copied
+; 60F/40W assumption.
