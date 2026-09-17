@@ -1,115 +1,78 @@
 ; ============================================
-; AEGIS
-; 14_recovery.per
+; THE BYZANTINE SHADOW
+; MODULE 14 -- RECOVERY
 ; ============================================
-;
-; RECOVERY
 ;
 ; Responsibility:
+;   Convert a failed transaction into a controlled recovery state.
 ;
-;   Convert a FAILED transaction into a
-;   controlled recovery state.
+; Recovery boundary:
 ;
-; Recovery is downstream of:
-;
-;   VERIFICATION
-;       ->
-;   FAILURE
-;       ->
-;   RECOVERY
-;       ->
-;   ESCROW RELEASE REQUEST
-;       ->
-;   REASSESSMENT
+;   FAILED
+;      -> REQUIRED
+;      -> RELEASE REQUESTED
+;      -> RELEASE OBSERVED
+;      -> RECOVERY-CLEARED
+;      -> REASSESSMENT
 ;
 ; This module does NOT:
+;   - choose a new objective;
+;   - mutate engine escrow directly;
+;   - release engine escrow directly;
+;   - grant authority;
+;   - execute production;
+;   - declare world-state success.
 ;
-;   - choose a new objective
-;   - modify escrow directly
-;   - release escrow directly
-;   - grant execution authority
-;   - execute production commands
-;   - declare world-state success
+; Module 10 remains the sole owner of actual engine escrow release.
 ;
-; Module 10 remains the sole owner of the
-; actual engine escrow-release operation.
-;
-; ============================================
-
 ; ============================================
 ; ENTER RECOVERY
 ; ============================================
-;
-; A failed transaction is explicitly marked
-; for recovery.
-;
-; No engine command is issued here.
-;
-; ============================================
 
 (defrule
-(goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
-(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+    (goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
 =>
-(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-REQUIRED)
+    (set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-REQUIRED)
 )
 
 ; ============================================
 ; REQUEST ESCROW RELEASE
 ; ============================================
-;
-; Recovery does not execute up-release-escrow.
-;
-; It requests release through the existing
-; escrow authority boundary.
-;
-; Module 10 observes the request and performs
-; the actual engine operation.
-;
-; ============================================
 
 (defrule
-(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-REQUIRED)
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
+    (goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-REQUIRED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-COMMITTED)
 =>
-(set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
-(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASING)
+    (set-goal AEGIS-ESCROW-RELEASE-REQUEST AEGIS-ESCROW-RELEASE-YES)
+    (set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASING)
 )
 
 ; ============================================
-; RECOVERY RELEASE OBSERVED
+; OBSERVE RELEASE
 ; ============================================
 ;
-; Recovery is not considered complete merely
-; because release was requested.
+; Recovery does not infer completion from the request. Module 10
+; must first observe all escrow balances at zero.
 ;
-; Module 10 owns the observation of actual
-; escrow state and transitions the escrow
-; lifecycle to RELEASED.
-;
-; ============================================
-
 (defrule
-(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASING)
-(goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
+    (goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASING)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
 =>
-(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASED)
+    (set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASED)
 )
 
 ; ============================================
-; RECOVERY COMPLETE
+; RELEASED -> RECOVERY-CLEARED
 ; ============================================
 ;
-; Once engine escrow release has actually
-; been observed, recovery is complete.
+; This is the explicit lifecycle boundary consumed by Module 15.
+; Recovery must not reset the transaction to IDLE itself.
 ;
-; Reassessment owns what happens next.
-;
-; ============================================
-
 (defrule
-(goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASED)
+    (goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-RELEASED)
+    (goal AEGIS-TRANSACTION AEGIS-TRANSACTION-FAILED)
+    (goal AEGIS-ESCROW-STATUS AEGIS-ESCROW-RELEASED)
 =>
-(set-goal AEGIS-TRANSACTION AEGIS-TRANSACTION-IDLE)
-(set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-IDLE)
+    (set-goal AEGIS-RECOVERY-STATE AEGIS-RECOVERY-CLEARED)
 )
