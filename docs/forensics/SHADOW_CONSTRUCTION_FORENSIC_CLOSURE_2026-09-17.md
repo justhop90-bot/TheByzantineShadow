@@ -286,6 +286,21 @@ full identifier sweep must cover object IDs, not just goals and
 state — facts/commands are engine-provided, object IDs frequently
 are not. The sweep method is updated accordingly.
 
+## Amendment record 2026-09-17 — boot/explorer init (rules 1430–1456, 1611–1612)
+
+Symptom: bot loads clean but the scout stands still at game start.
+Root cause: the engine assigns zero explorers unless told otherwise —
+donor rules 1611–1612 (`sn-total-number-explorers` /
+`sn-number-explore-groups` := 1 at game-time 50) were never
+transplanted, nor the exploration/gatherer/boar-hunting SN defaults
+(1438/1442/1448/1454/1456) that configure the opening. Transplanted
+as `03d_donor_boot_init.per` (27 rules, positional equivalence PASS)
+plus `03e_donor_explorers.per` (2 rules, PASS); 12 identifiers
+registered donor-exact. FactId aliases deliberately NOT duplicated
+(engine resolves fact names natively). Also verified along the way:
+`gl-dark-build` has no `-1` writer anywhere in the donor (dead
+selectors; 1438 sets LumberFirst directly) — recorded, not "fixed."
+
 ## Amendment record 2026-09-17 — scouting identifier sweep (02b)
 
 Prompted by the line 163 flag (valid code — `up-filter-status c:

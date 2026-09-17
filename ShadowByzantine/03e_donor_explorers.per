@@ -1,0 +1,31 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; 03E -- AUTHENTICATED DONOR EXPLORER COUNTS (1611-1612)
+; ============================================================
+;
+; Donor rules 1611-1612 (2 rules): sn-total-number-explorers and
+; sn-number-explore-groups tasking (game-time >= 50, plus the 25-min
+; re-task failsafe). This is the direct engine lever that moves the
+; scout; without it the engine assigns zero explorers.
+; Loaded after 03d_donor_boot_init, before 04_construction.
+; ============================================================
+
+; AUTHENTICATED DONOR RULE 1611 | DONOR_LINE=19033
+(defrule
+    (game-time >= 50)
+=>
+    (set-strategic-number sn-total-number-explorers 1)
+    (set-strategic-number sn-number-explore-groups 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1612 | DONOR_LINE=19041
+(defrule
+    (game-time >= 1500)	;25 min
+    (strategic-number sn-total-number-explorers < 1)
+=>
+    (set-strategic-number sn-total-number-explorers 1)
+    (set-strategic-number sn-number-explore-groups 1)
+    (chat-to-player me "START SCOUTING AGAIN")
+    (chat-to-player me "START SCOUTING AGAIN")
+)

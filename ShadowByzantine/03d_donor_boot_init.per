@@ -1,0 +1,335 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; 03D -- AUTHENTICATED DONOR BOOT/EXPLORATION INIT
+; ============================================================
+;
+; Donor rules 1430-1456 (27 rules) + 1611-1612 (explorer counts).
+; Contents: dark-build selection, exploration setup
+; (sn-initial-exploration-required, civilian explorers, mill
+; placement, gatherer percentages, livestock-to-TC, threat-data
+; snapshot, villager counts, build-system SNs incl.
+; sn-enable-boar-hunting, boar-unit id, early-garrison logic).
+; This slice is WHY the scout moves: sn-total-number-explorers
+; and sn-number-explore-groups (1611-1612) task the engine
+; explorer; 1438/1442/1448/1454/1456 establish exploration,
+; gatherer, boar-hunting, and build-system SN defaults.
+;
+; Transplanted verbatim. No explicit jumps in range.
+; Loaded after 03c_byzantine_uu_doctrine (donor order).
+; ============================================================
+
+; AUTHENTICATED DONOR RULE 1430 | DONOR_LINE=17026
+(defrule
+    (goal gl-dark-build -1)
+    (or (current-age >= feudal-age)
+    (and(game-time > 80)
+    (up-compare-goal gl-current-sheep-count >= 6)))
+=>
+    (set-goal gl-dark-build LumberFirst)
+    ;	(chat-to-player me "Lumber First 1")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1431 | DONOR_LINE=17037
+(defrule
+    (game-time > 50)
+    (wood-amount >= 200)
+    (goal gl-dark-build MillFirst)
+    (building-type-count-total mill < 1)
+=>
+    (set-goal gl-dark-build LumberFirst)
+    ;	(chat-to-player me "Lumber First 2")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1432 | DONOR_LINE=17048
+(defrule
+    (true)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 35)
+)
+
+; AUTHENTICATED DONOR RULE 1433 | DONOR_LINE=17056
+(defrule
+    (game-time > 37)
+    (goal gl-dark-build -1)
+    (not(up-find-remote c: sheep c: 1))
+    (up-compare-goal gl-current-sheep-count < 1)
+=>
+    (set-goal gl-dark-build MillFirst)
+    ;	(chat-to-player me "Mill First 1")
+    (up-assign-builders c: mill c: 2)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1434 | DONOR_LINE=17068
+(defrule
+    (goal gl-dark-build -1)
+    (not(up-find-remote c: sheep c: 1))
+    (or	(and(game-time > 80)
+    (unit-type-count sheep < 1))
+    (and(game-time > 120)
+    (up-compare-goal gl-current-sheep-count < 5)))
+=>
+    (set-goal gl-dark-build MillFirst)
+    ;	(chat-to-player me "Mill First 2")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1435 | DONOR_LINE=17082
+(defrule
+    (taunt-detected me 93)
+    (goal gl-second-turn 1)
+=>
+    (up-chat-data-to-player me "LC Distance: %d" s: sn-lumber-camp-max-distance)
+    (acknowledge-taunt me 93)
+)
+
+; AUTHENTICATED DONOR RULE 1436 | DONOR_LINE=17090
+(defrule
+    (taunt-detected me 94)
+=>
+    (acknowledge-taunt me 93)
+    (acknowledge-taunt me 94)
+)
+
+; AUTHENTICATED DONOR RULE 1437 | DONOR_LINE=17098
+(defrule
+    (true)
+=>
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1438 | DONOR_LINE=17104
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-initial-exploration-required 0)
+    (set-strategic-number sn-percent-exploration-required 0)
+    (set-strategic-number sn-safe-town-size 10)
+    (up-modify-goal gl-build-progress c:= 1)
+    ;	(set-goal gl-dark-build LumberFirst)
+    (set-goal gl-killed-deer-count 0)
+    (set-strategic-number sn-disable-defend-groups 0)
+    (set-strategic-number sn-consecutive-idle-unit-limit 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1439 | DONOR_LINE=17119
+(defrule
+    (true)
+=>
+    (up-get-threat-data gl-threat-time gl-threat-player gl-threat-source gl-threat-target)
+    (up-get-fact unit-type-count villager-hunter goal)
+    (up-get-fact unit-type-count villager-shepherd goal1)
+    (up-modify-goal goal g:+ goal1)
+    (up-modify-goal gl-vills-under-tc g:= goal)
+)
+
+; AUTHENTICATED DONOR RULE 1440 | DONOR_LINE=17129
+(defrule
+    (taunt-detected me 87)
+=>
+    (up-chat-data-to-player me "Vills under TC: %d" g: gl-vills-under-tc)
+    (acknowledge-taunt me 87)
+)
+
+; AUTHENTICATED DONOR RULE 1441 | DONOR_LINE=17138
+(defrule
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-preferred-mill-placement 2)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1442 | DONOR_LINE=17146
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-percent-civilian-explorers 100)
+    (set-strategic-number sn-cap-civilian-explorers 5)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1443 | DONOR_LINE=17154
+(defrule
+    (unit-type-count villager > 6)
+=>
+    (set-goal gl-early-gar 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1444 | DONOR_LINE=17161
+(defrule
+    (game-time < 50)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 7)
+    (up-find-local c: livestock-class c: 1)
+    (up-get-search-state lt)
+    (up-modify-goal goal g:= lt)
+    ;	(up-chat-data-to-player me "gl-early-gar: %d" g: gl-early-gar)
+    ;	(set-goal gl-early-gar -1)
+    ;	(up-full-reset-search)
+    ;	(up-set-target-point home-x)
+    ;	(up-filter-distance c: 7 c: -1)
+    ;	(up-find-local c: livestock-class c: 1)
+    ;	(up-get-search-state lt)
+    ;	(up-modify-goal goal g:= lt)
+)
+
+; AUTHENTICATED DONOR RULE 1445 | DONOR_LINE=17180
+(defrule
+    (game-time > 7)
+    (game-time < 50)
+    (goal gl-early-gar -1)
+    (current-age == dark-age)
+    (or (game-time > 30)
+    (up-compare-goal goal > 0))
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 1446 | DONOR_LINE=17191
+(defrule
+    (goal SPLIT 1)
+=>
+    ;	(chat-to-player me "No explo")
+    (set-strategic-number sn-percent-civilian-explorers 0)
+    (set-strategic-number sn-cap-civilian-explorers 0)
+    (up-full-reset-search)
+    (up-filter-exclude -1 actionid-build -1 -1)
+    (up-find-local c: villager-class c: 240)
+    (up-set-target-by-id g: home-id)
+    (up-target-objects 1 action-garrison -1 -1)
+    (enable-timer t-relure 1)
+    (set-goal gl-early-gar 0)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1447 | DONOR_LINE=17207
+(defrule
+    (goal gl-early-gar 0)
+    (current-age == dark-age)
+    (timer-triggered t-relure)
+=>
+    ;	(chat-to-player me "No explo2")
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: 6 c: -1)
+    (up-filter-exclude -1 actionid-build -1 -1)
+    (up-find-local c: villager-class c: 240)
+    (up-set-target-by-id g: home-id)
+    (up-target-objects 1 action-garrison -1 -1)
+    (disable-timer t-relure)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1448 | DONOR_LINE=17224
+(defrule
+    (true)
+=>
+    (set-goal gl-age-loading 0)
+    (set-strategic-number sn-percent-civilian-gatherers 100)
+    (set-strategic-number sn-percent-civilian-builders 100)
+    (set-strategic-number sn-cap-civilian-builders 100)
+    (set-strategic-number sn-preferred-mill-placement 0)
+    (set-strategic-number sn-livestock-to-town-center 1)
+    (set-strategic-number sn-maximum-gaia-attack-response 3)
+    (set-strategic-number sn-zero-priority-distance 100)
+    (set-strategic-number sn-enable-training-queue 1)
+    (set-goal gl-getting-sheep NO)
+    (set-goal gl-need-vills YES)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1449 | DONOR_LINE=17241
+(defrule
+    (unit-type-count villager >= 37)
+=>
+    (set-strategic-number sn-enable-training-queue 1)
+    ;	(chat-to-player me "ALLOW TRAINING QUEUE")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1450 | DONOR_LINE=17249
+(defrule
+    (current-age >= feudal-age)
+    (goal gl-strategy FLUSH)
+=>
+    (set-strategic-number sn-enable-training-queue 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1451 | DONOR_LINE=17257
+(defrule
+    (building-type-count mill > 0)
+=>
+    (set-strategic-number sn-preferred-mill-placement 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1452 | DONOR_LINE=17265
+(defrule
+    (true)
+=>
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1453 | DONOR_LINE=17272
+(defrule
+    (or (taunt-detected me 14)
+    (taunt-detected any-enemy 14))
+=>
+    (up-chat-data-to-player me "Adjacent dropsites? %d" s: sn-allow-adjacent-dropsites)
+    (up-chat-data-to-player me "Dropsite separation distance: %d" s: sn-dropsite-separation-distance)
+    (acknowledge-taunt this-any-enemy 14)
+    (acknowledge-taunt me 14)
+)
+
+; AUTHENTICATED DONOR RULE 1454 | DONOR_LINE=17283
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-dropsite-separation-distance 3)
+    (set-strategic-number sn-enable-new-building-system 1)
+    (set-strategic-number sn-disable-builder-assistance 1)
+    (set-strategic-number sn-livestock-defend-priority 1)
+    (set-strategic-number sn-use-by-type-max-gathering 0)
+    (set-strategic-number sn-allow-adjacent-dropsites 1)
+    (set-strategic-number sn-forage-defend-priority 1)
+    (set-strategic-number sn-intelligent-gathering 0)
+    (set-strategic-number sn-stone-defend-priority 1)
+    (set-strategic-number sn-gold-defend-priority 1)
+    (set-goal gl-boar-unit wild-boar)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1455 | DONOR_LINE=17300
+(defrule
+    (cc-players-unit-type-count 0 javelina > 0)
+=>
+    (set-goal gl-boar-unit javelina)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 1456 | DONOR_LINE=17308
+(defrule
+    (true)
+=>
+    ;From Horde
+    (set-strategic-number sn-build-frequency 1);try to build somewhere else when interrupted, 	sometimes it helps when AI tries to build next to enemy
+    (set-strategic-number sn-number-build-attempts-before-skip 5)
+    (set-strategic-number sn-max-skips-per-attempt 5)
+    (set-strategic-number sn-minimum-dropsite-buffer 1)
+    (set-strategic-number sn-maximum-food-drop-distance 3)
+    (set-strategic-number sn-food-dropsite-distance 4)
+    (set-strategic-number sn-maximum-hunt-drop-distance 5)
+    (set-strategic-number sn-enable-boar-hunting 1)
+    (set-strategic-number sn-mill-max-distance MAX-MILL-DISTANCE)
+    (set-strategic-number sn-maximum-fish-boat-drop-distance 30)
+    (disable-self)
+)

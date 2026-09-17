@@ -33,6 +33,22 @@
       "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
     },
     {
+      "name":"boot_init",
+      "implementation":"ShadowByzantine/03d_donor_boot_init.per",
+      "donor_start":1430,
+      "donor_end":1456,
+      "label":"authenticated Shadow boot/exploration init slice",
+      "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
+    },
+    {
+      "name":"explorers",
+      "implementation":"ShadowByzantine/03e_donor_explorers.per",
+      "donor_start":1611,
+      "donor_end":1612,
+      "label":"authenticated Shadow explorer-count slice",
+      "state_symbols":["gl-current-build-item","gl-build-progress","gl-progression-pause","gl-escrow-state","SPLIT","gl-strategy","gl-target-age","gl-target-age-checking","gl-target-score1","gl-target-score2"]
+    },
+    {
       "name":"tech_production",
       "implementation":"ShadowByzantine/03a_donor_tech_production.per",
       "donor_start":1165,
