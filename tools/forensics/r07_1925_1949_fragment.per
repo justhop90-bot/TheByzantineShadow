@@ -1,0 +1,406 @@
+; ============================================================
+; AUTHENTICATED DONOR RULES 1925-1949
+; NOTE: In ShadowSource.per this interval begins the QEAGOL region
+; immediately after the preceding enemy-strategy rule. It is retained
+; verbatim as a donor interval; the R07 construction boundary itself
+; terminates earlier. No semantic reinterpretation is introduced.
+; ============================================================
+
+; 1925 -- QEAGOL setup
+; Reads: none beyond true.
+; Writes: gl-my-player-number from player-number fact; disables self.
+; Jumps: none; fall-through -> 1926.
+; Pending guards: none.
+; Commands: up-get-fact, disable-self.
+; Placement: none.
+; Completion/world observers: none.
+(defrule
+    (true)
+=>
+    (up-get-fact player-number 0 gl-my-player-number)
+    (disable-self)
+)
+
+; 1926 -- initialize target age to Dark Age.
+; Reads: none beyond true.
+; Writes: gl-target-age = DA; disables self.
+; Jumps: none; fall-through -> 1927.
+; Pending guards: none.
+; Commands: disable-self.
+; Placement: none.
+; Completion observer: none.
+(defrule
+    (true)
+=>
+    (set-goal gl-target-age DA)
+    (disable-self)
+)
+
+; 1927 -- target Feudal loading announcement.
+; Reads: gl-target-age == FA-loading.
+; Writes: none; disables self.
+; Jumps: none; fall-through -> 1928.
+; Pending guards: none.
+; Commands: chat-to-player, disable-self.
+; Placement: none.
+; Completion observer: target-age state.
+(defrule
+    (goal gl-target-age FA-loading)
+=>
+    (chat-to-player me "Target upping to Feudal Age")
+    (disable-self)
+)
+
+; 1928 -- observe target reaching Feudal Age.
+; Reads: gl-target-age < FA; target current age == feudal-age.
+; Writes: gl-target-age = FA.
+; Jumps: none; fall-through -> 1929.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: players-current-age target-player.
+(defrule
+    (up-compare-goal gl-target-age < FA)
+    (players-current-age target-player == feudal-age)
+=>
+    ; (enable-timer t-scout-enemy 30) ; donor comment retained semantically inert
+    (set-goal gl-target-age FA)
+)
+
+; 1929 -- target Castle loading announcement.
+; Reads: gl-target-age == CA-loading.
+; Writes: none; disables self.
+; Jumps: none; fall-through -> 1930.
+; Pending guards: none.
+; Commands: chat-to-player, disable-self.
+; Placement: none.
+; Completion observer: target-age state.
+(defrule
+    (goal gl-target-age CA-loading)
+=>
+    (chat-to-player me "Target upping to Castle Age")
+    (disable-self)
+)
+
+; 1930 -- observe target reaching Castle Age.
+; Reads: gl-target-age < CA; target current age >= castle-age.
+; Writes: gl-target-age = CA.
+; Jumps: none; fall-through -> 1931.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: players-current-age target-player.
+(defrule
+    (up-compare-goal gl-target-age < CA)
+    (players-current-age target-player >= castle-age)
+=>
+    (set-goal gl-target-age CA)
+)
+
+; 1931 -- target Imperial loading announcement.
+; Reads: gl-target-age == IA-loading.
+; Writes: none; disables self.
+; Jumps: none; fall-through -> 1932.
+; Pending guards: none.
+; Commands: chat-to-player, disable-self.
+; Placement: none.
+; Completion observer: target-age state.
+(defrule
+    (goal gl-target-age IA-loading)
+=>
+    (chat-to-player me "Target upping to Imperial Age")
+    (disable-self)
+)
+
+; 1932 -- observe target reaching Imperial Age.
+; Reads: gl-target-age < IA; target current age >= imperial-age.
+; Writes: gl-target-age = IA.
+; Jumps: none; fall-through -> 1933.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: players-current-age target-player.
+(defrule
+    (up-compare-goal gl-target-age < IA)
+    (players-current-age target-player >= imperial-age)
+=>
+    (set-goal gl-target-age IA)
+)
+
+; 1933 -- acquire initial target score samples.
+; Reads: game-time > 10; target player valid; target building count > 0.
+; Writes: gl-target-score1, gl-target-score2; disables self.
+; Jumps: none; fall-through -> 1934.
+; Pending guards: none.
+; Commands: up-get-target-fact, disable-self.
+; Placement: none.
+; Completion observer: target building count.
+(defrule
+    (game-time > 10)
+    (player-valid target-player)
+    (players-building-count target-player > 0)
+=>
+    (up-get-target-fact current-score 0 gl-target-score1)
+    (up-get-target-fact current-score 0 gl-target-score2)
+    ; (up-modify-goal goal s:= sn-target-player-number) ; donor comment
+    (disable-self)
+)
+
+; 1934 -- refresh target score while age checking.
+; Reads: gl-target-age-checking == YES.
+; Writes: gl-target-score1.
+; Jumps: none; fall-through -> 1935.
+; Pending guards: none.
+; Commands: up-get-target-fact.
+; Placement: none.
+; Completion observer: target current score.
+(defrule
+    (goal gl-target-age-checking YES)
+=>
+    (up-get-target-fact current-score 0 gl-target-score1)
+)
+
+; 1935 -- derive score difference.
+; Reads: gl-target-score2.
+; Writes: gl-target-score1 = score1 - score2.
+; Jumps: none; fall-through -> 1936.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: none.
+(defrule
+    (true)
+=>
+    (up-modify-goal gl-target-score1 g:- gl-target-score2)
+    ; (up-chat-data-to-player me "target score difference: %d" g: gl-target-score1)
+)
+
+; 1936 -- establish Dark Age target state.
+; Reads: target-age-checking; target current age == dark-age.
+; Writes: gl-target-age = DA.
+; Jumps: none; fall-through -> 1937.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: target current age.
+(defrule
+    (goal gl-target-age-checking YES)
+    (players-current-age target-player == dark-age)
+=>
+    (set-goal gl-target-age DA)
+)
+
+; 1937 -- detect Feudal transition from score delta.
+; Reads: target-age-checking; score1 > 37; target-age < FA-loading.
+; Writes: gl-target-age = FA-loading.
+; Jumps: none; fall-through -> 1938.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: score/target-age state.
+(defrule
+    (goal gl-target-age-checking YES)
+    (up-compare-goal gl-target-score1 > 37)
+    (up-compare-goal gl-target-age < FA-loading)
+=>
+    ; (enable-timer t-enemy-age-cancel 120) ; donor comment
+    (set-goal gl-target-age FA-loading)
+)
+
+; 1938 -- disabled Feudal cancellation branch.
+; Reads: false; target-age-checking; target-age FA-loading; score1 < -37; cancel timer running.
+; Writes: gl-target-age = DA.
+; Jumps: none; fall-through -> 1939.
+; Pending guards: false predicate is a donor guard.
+; Commands: chat-to-player.
+; Placement: none.
+; Completion observer: score/timer state.
+(defrule
+    (false)
+    (goal gl-target-age-checking YES)
+    (goal gl-target-age FA-loading)
+    (up-compare-goal gl-target-score1 < -37)
+    (up-timer-status t-enemy-age-cancel == timer-running)
+=>
+    (chat-to-player me "p1 cancelled Feudal Age")
+    (set-goal gl-target-age DA)
+)
+
+; 1939 -- confirm Feudal completion.
+; Reads: target-age FA-loading; target-age-checking; target current age == feudal-age.
+; Writes: gl-target-age = FA.
+; Jumps: none; fall-through -> 1940.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: target current age.
+(defrule
+    (goal gl-target-age FA-loading)
+    (goal gl-target-age-checking YES)
+    (players-current-age target-player == feudal-age)
+=>
+    (set-goal gl-target-age FA)
+)
+
+; 1940 -- disabled Castle transition trigger.
+; Reads: target-age FA; false; score1 > 65; target age-time > 30.
+; Writes: none (donor timer action is commented).
+; Jumps: none; fall-through -> 1941.
+; Pending guards: false predicate is a donor guard.
+; Commands: none.
+; Placement: none.
+; Completion observer: target age/time and score.
+(defrule
+    (goal gl-target-age FA)
+    (false)
+    (up-compare-goal gl-target-score1 > 65)
+    (players-current-age-time target-player > 30)
+=>
+    ; (enable-timer t-enemy-age-cancel 150)
+    (set-goal gl-target-age CA-loading)
+)
+
+; 1941 -- disabled Castle cancellation branch.
+; Reads: false; CA-loading; age-checking; score1 < -65; cancel timer running.
+; Writes: gl-target-age = FA.
+; Jumps: none; fall-through -> 1942.
+; Pending guards: false predicate is a donor guard.
+; Commands: none; donor chat is commented.
+; Placement: none.
+; Completion observer: score/timer state.
+(defrule
+    (false)
+    (goal gl-target-age CA-loading)
+    (goal gl-target-age-checking YES)
+    (up-compare-goal gl-target-score1 < -65)
+    (up-timer-status t-enemy-age-cancel == timer-running)
+=>
+    ; (chat-to-player me "Target cancelled Castle Age")
+    (set-goal gl-target-age FA)
+)
+
+; 1942 -- confirm Castle completion.
+; Reads: CA-loading; age-checking; target current age == castle-age.
+; Writes: gl-target-age = CA.
+; Jumps: none; fall-through -> 1943.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: target current age.
+(defrule
+    (goal gl-target-age CA-loading)
+    (goal gl-target-age-checking YES)
+    (players-current-age target-player == castle-age)
+=>
+    (set-goal gl-target-age CA)
+)
+
+; 1943 -- trigger Imperial transition.
+; Reads: target-age CA; score1 > 100; target age-time > 30.
+; Writes: gl-target-age = IA-loading.
+; Jumps: none; fall-through -> 1944.
+; Pending guards: none.
+; Commands: none; donor timer action is commented.
+; Placement: none.
+; Completion observer: target age/time and score.
+(defrule
+    (goal gl-target-age CA)
+    (up-compare-goal gl-target-score1 > 100)
+    (players-current-age-time target-player > 30)
+=>
+    ; (enable-timer t-enemy-age-cancel 200)
+    (set-goal gl-target-age IA-loading)
+)
+
+; 1944 -- disabled Imperial cancellation branch.
+; Reads: false; age-checking; IA-loading; score1 < -100; cancel timer running.
+; Writes: gl-target-age = CA.
+; Jumps: none; fall-through -> 1945.
+; Pending guards: false predicate is a donor guard.
+; Commands: chat-to-player.
+; Placement: none.
+; Completion observer: score/timer state.
+(defrule
+    (false)
+    (goal gl-target-age-checking YES)
+    (goal gl-target-age IA-loading)
+    (up-compare-goal gl-target-score1 < -100)
+    (up-timer-status t-enemy-age-cancel == timer-running)
+=>
+    (chat-to-player me "Target cancelled Imperial Age")
+    (set-goal gl-target-age CA)
+)
+
+; 1945 -- confirm Imperial completion.
+; Reads: IA-loading; age-checking; target current age == imperial-age.
+; Writes: gl-target-age = IA.
+; Jumps: none; fall-through -> 1946.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: target current age.
+(defrule
+    (goal gl-target-age IA-loading)
+    (goal gl-target-age-checking YES)
+    (players-current-age target-player == imperial-age)
+=>
+    (set-goal gl-target-age IA)
+)
+
+; 1946 -- refresh both score samples when changed.
+; Reads: target-age-checking; gl-target-score2 != gl-target-score1.
+; Writes: gl-target-score1, gl-target-score2.
+; Jumps: none; fall-through -> 1947.
+; Pending guards: none.
+; Commands: up-get-target-fact twice.
+; Placement: none.
+; Completion observer: target current score.
+(defrule	;update the score
+    (goal gl-target-age-checking YES)
+    (up-compare-goal gl-target-score2 g:!= gl-target-score1)
+=>
+    (up-get-target-fact current-score 0 gl-target-score1)
+    (up-get-target-fact current-score 0 gl-target-score2)
+)
+
+; 1947 -- periodic 30-second timer trigger.
+; Reads: timer 30SEC triggered.
+; Writes: gl-switch *= -1.
+; Jumps: none; fall-through -> 1948.
+; Pending guards: none.
+; Commands: none.
+; Placement: none.
+; Completion observer: timer trigger.
+(defrule
+    (timer-triggered 30SEC)
+=>
+    (up-modify-goal gl-switch c:* -1)
+)
+
+; 1948 -- arm 30-second timer when idle.
+; Reads: 30SEC timer not running.
+; Writes: 30SEC timer running for 30 seconds.
+; Jumps: none; fall-through -> 1949.
+; Pending guards: timer-not-running guard.
+; Commands: enable-timer.
+; Placement: none.
+; Completion observer: timer status.
+(defrule
+    (up-timer-status 30SEC != timer-running)
+=>
+    (enable-timer 30SEC 30)
+)
+
+; 1949 -- arm one-minute timer when idle.
+; Reads: ONE-MINUTE timer not running.
+; Writes: ONE-MINUTE timer running for 60 seconds.
+; Jumps: none; end of requested interval -> 1950.
+; Pending guards: timer-not-running guard.
+; Commands: enable-timer.
+; Placement: none.
+; Completion observer: timer status.
+(defrule
+    (up-timer-status ONE-MINUTE != timer-running)
+=>
+    (enable-timer ONE-MINUTE 60)
+)
