@@ -6,13 +6,15 @@
 ;
 ; Canonical donor: ShadowSource.per
 ; Donor blob SHA: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
-; Implemented authenticated donor slices: 1794-1805, 1815-1949
-; Gap intentionally preserved: 1806-1814 remain unimplemented.
+; Authenticated donor interval: 1794-1949 (R07 1794-1896; post-R07 continuation 1897-1949)
+; No donor-rule gap inside the authenticated interval; 1806-1814 are QHOUSE donor rules and are restored at their actual IDs.
 ;
 ; SOURCE-BOUNDARY NOTE
-;   1794-1805 = farm progression.
-;   1815-1827 = QHOUSE construction/control region.
-;   1828-1849 = QLC lumber-camp construction/progression region.
+;   1794-1805 = R07 farm progression.
+;   1806-1823 = R07 QHOUSE construction/control.
+;   1824-1858 = R07 QLC and construction/progression continuation.
+;   1859-1896 = R07 placement/search/construction continuation.
+;   1897-1949 = authenticated donor continuation beyond the R07 boundary.
 ;
 ; IMPLEMENTATION STATUS
 ;   STATIC SOURCE TRANSPLANT: implemented
@@ -50,6 +52,123 @@
 ; Command: up-build place-normal gl-escrow-state c: farm.
 ; Completion observer: none.
 ; Jump: none; fall-through -> 1795.
+
+; ============================================================
+; AUTHENTICATED DONOR TRANSPLANT 1794-1949
+; Canonical donor blob SHA: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
+; Rule bodies below are copied from the authenticated donor interval in
+; exact source order. Comments identify evidence only; they do not alter
+; donor semantics. Runtime qualification remains pending.
+; ============================================================
+
+; AUTHENTICATED DONOR RULE 1794 | REGION=R07 | BODY_SHA256=2b3e8112fc8d52890acdcb8ca33967a2ef851790bf82221d3bafdad65a7b73b6
+(defrule
+    (idle-farm-count < 2)
+    (goal gl-strategy KRUSH)
+    (current-age == feudal-age)
+    (can-build-with-escrow farm)
+    (up-pending-objects c: farm < 3)
+    (building-type-count-total farm < 17)
+    (or	(wood-amount >= 320)
+    (and(wood-amount >= 90)
+    (up-compare-goal rt < 2)))
+    (building-type-count-total stable > 0)
+    (building-type-count-total blacksmith > 0)
+    ;	(up-compare-goal gl-build-progress > KrushSmithNumber)
+    (up-compare-goal gl-build-progress < KrushStable2Number)
+=>
+    (up-build place-normal gl-escrow-state c: farm)
+    ;	(chat-to-all "Krush ExcessFarm")
+)
+
+; AUTHENTICATED DONOR RULE 1795 | REGION=R07 | BODY_SHA256=e0dd304f0301cc4d78a477f70ead062eb1d7f034177d197262a9848be88b4ad6
+(defrule
+    (or	(goal gl-current-build-item MARKET1)
+    (or	(up-pending-placement c: blacksmith)
+    (up-compare-goal gl-strategy != FLUSH)))
+=>
+    (up-jump-rule 1)
+)
+
+; AUTHENTICATED DONOR RULE 1796 | REGION=R07 | BODY_SHA256=ad8c49cde3a107f31ebded4483befb289e826c53df8606490c647ba9ae297863
+(defrule	;basically, build farms unless time for blacksmith (12 farms with berries
+    (idle-farm-count < 2)
+    (current-age >= feudal-age)
+    (up-compare-goal MILL != YES)
+    (up-pending-objects c: farm < 3)
+    (building-type-count-total farm < 50)
+    (building-type-count-total archery-range >= 2)
+    (or	(wood-amount >= 120)
+    (and(wood-amount >= 80)
+    (building-type-count-total farm < 10)))
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 1797 | REGION=R07 | BODY_SHA256=a84cb7831e95c8e71572fc60dc77ccee2a576e43c85eb8828305ed21aecf9a81
+(defrule
+    (goal SPLIT 1)
+    (or	(building-type-count-total blacksmith >= 1)
+    (or	(and(up-compare-goal rt >= 2)
+    (building-type-count-total farm < 7))
+    (and(up-compare-goal rt < 2)
+    (building-type-count-total farm < 10))))
+=>
+    (set-goal SPLIT 2)
+)
+
+; AUTHENTICATED DONOR RULE 1798 | REGION=R07 | BODY_SHA256=762978ff7fcdd7af6c61b1a4f9f27bad92ad87cbc7f562d6bb34429ebeb0e476
+(defrule
+    (goal SPLIT 2)
+    (or	(nand	(current-age == castle-age)
+    (up-compare-goal gl-current-build-item == ESKIRMS))
+    (up-research-status c: ri-elite-skirmisher >= research-pending))
+=>
+    (up-build place-normal gl-escrow-state c: farm)
+    ;	(chat-to-player me "GeneralFarm")
+)
+
+; AUTHENTICATED DONOR RULE 1799 | REGION=R07 | BODY_SHA256=0bd1422b2fc52a2df5393f90df829d56102c1e483cd80fcef9bab650852cbe6a
+(defrule
+    (true)
+=>
+    (set-goal gl-escrow-state with-escrow)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1800 | REGION=R07 | BODY_SHA256=889097cc4bce4e513efbab369427861dc6e2aaa77ec810473db84b9f12662f97
+(defrule
+    (can-build farm)
+    (wood-amount >= 90)
+    (idle-farm-count < 2)
+    (up-compare-goal MILL != YES)
+    (up-pending-objects c: farm < 2)
+    (building-type-count-total farm < 50)
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 1801 | REGION=R07 | BODY_SHA256=9edba16354dff4a8e18547b3fc19d5b20bdaba3795e92f707f48a7a55480e5f1
+(defrule
+    (goal SPLIT 1)
+    (or	(current-age >= castle-age)
+    (and(goal gl-strategy KRUSH)
+    (up-research-status c: ri-horse-collar >= research-complete)))
+    (or	(wood-amount >= 260)
+    (up-compare-goal gl-current-build-item != EXTRA-STABLES))
+=>
+    ;	(chat-to-player me "CastleFarm")
+    (build farm)
+)
+
+; AUTHENTICATED DONOR RULE 1802 | REGION=R07 | BODY_SHA256=9ad78d10155a866a99ad91125a12df1ddbef89de2a43387e6dba1532d1b5b65f
+(defrule
+    (true)
+=>
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 1803 | REGION=R07 | BODY_SHA256=1a82f291852da62258b2a42c4b3d42d673429772a9e1883a9218860555fdc189
 (defrule
     (goal gl-second-turn 1)
     (goal gl-strategy FLUSH)
@@ -60,20 +179,10 @@
     (building-type-count-total archery-range >= 2)))
 =>
     (up-build place-normal gl-escrow-state c: farm)
+    ;	(chat-to-player me "EarlyExcess Farm")
 )
 
-; ============================================================
-; R07 RULE 1795
-; ============================================================
-; Reads: current-age, can-build-with-escrow farm, gl-strategy,
-;        pending farm, gl-current-build-item, farm count, wood,
-;        housing-headroom.
-; Writes: none.
-; Escrow: release-escrow wood.
-; Pending guard: up-pending-objects c: farm < 1.
-; Command: build farm.
-; Completion observer: none.
-; Jump: none; fall-through -> 1796.
+; AUTHENTICATED DONOR RULE 1804 | REGION=R07 | BODY_SHA256=dc6aaacf0c91d3bb53fb15f0fad94b8b3a7c90f8cbaf88eb6afd959865182fe8
 (defrule
     (current-age == dark-age)
     (can-build-with-escrow farm)
@@ -81,44 +190,28 @@
     (up-pending-objects c: farm < 1)
     (goal gl-current-build-item FARMS)
     (building-type-count-total farm < 4)
-    (or (wood-amount >= 90)
+    (or (wood-amount >= 90)		;be sure not to stop housing
     (or	(housing-headroom >= 4)
     (up-pending-objects c: farm < 1)))
 =>
+    ;	(chat-to-player me "KrushFarm")
     (release-escrow wood)
     (build farm)
 )
 
-; ============================================================
-; R07 RULE 1796
-; ============================================================
-; Reads: gl-strategy, gl-current-build-item, farm count.
-; Writes: gl-build-progress += 1; disables self.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: farm >= 4.
-; Jump: none; fall-through -> 1797.
+; AUTHENTICATED DONOR RULE 1805 | REGION=R07 | BODY_SHA256=aa6462030c1fab0ea1de5d8a3f48f92a952ea60b6027a8c9b83d25f33ef5e771
 (defrule
     (goal gl-strategy KRUSH)
     (goal gl-current-build-item FARMS)
     (building-type-count-total farm >= 4)
 =>
     (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "Krush Farms Built")
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1797
-; ============================================================
-; Reads: gl-strategy, farm count, gl-build-progress.
-; Writes: gl-build-progress = KrushFarmsNumber.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: farm < 4 is reconciliation evidence.
-; Jump: none; fall-through -> 1798.
-(defrule
+; AUTHENTICATED DONOR RULE 1806 | REGION=R07 | BODY_SHA256=84e31f6c09eea81ed81802e9e7b602871fa7428e27e6efb50dd48f9e2d80b849
+(defrule	;come back if skipped
     (goal gl-strategy KRUSH)
     (building-type-count-total farm < 4)
     (up-compare-goal gl-build-progress > KrushFarmsNumber)
@@ -126,36 +219,17 @@
     (set-goal gl-build-progress KrushFarmsNumber)
 )
 
-; ============================================================
-; R07 RULE 1798
-; ============================================================
-; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
-; Writes: gl-current-build-item = FARMS.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1799.
+; AUTHENTICATED DONOR RULE 1807 | REGION=R07 | BODY_SHA256=f190a2d105c94cd1b15ebbb9684c43adec16fee9c1a1b457fefde7bcfa02c390
 (defrule
     (goal gl-strategy KRUSH)
     (up-compare-goal gl-current-build-item != FARMS)
     (up-compare-goal gl-build-progress == KrushFarmsNumber)
 =>
+    ;	(chat-to-player me "Setting current build item to KRUSH FARMS")
     (set-goal gl-current-build-item FARMS)
 )
 
-; ============================================================
-; R07 RULE 1799
-; ============================================================
-; Reads: current-age, can-build-with-escrow farm, wood,
-;        housing-headroom, gl-strategy, pending farm,
-;        gl-current-build-item, farm count.
-; Writes: none.
-; Escrow: release-escrow wood.
-; Pending guard: up-pending-objects c: farm < 1.
-; Command: build farm.
-; Completion observer: none.
-; Jump: none; fall-through -> 1800.
+; AUTHENTICATED DONOR RULE 1808 | REGION=R07 | BODY_SHA256=44cf3e3d2b153f442b6ea73d6917503c3e867f684be5f4176f1bea36841560ab
 (defrule
     (current-age == dark-age)
     (can-build-with-escrow farm)
@@ -166,59 +240,34 @@
     (goal gl-current-build-item FARMS2)
     (building-type-count-total farm < 7)
 =>
+    ;	(chat-to-player me "KrushFarm 2")
     (release-escrow wood)
     (build farm)
 )
 
-; ============================================================
-; R07 RULE 1800
-; ============================================================
-; Reads: gl-strategy, gl-current-build-item, farm count.
-; Writes: gl-build-progress += 1; disables self.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: farm >= 7.
-; Jump: none; fall-through -> 1801.
+; AUTHENTICATED DONOR RULE 1809 | REGION=R07 | BODY_SHA256=a909a8f5d6102e99f04fbf8166d7bcd326800388525901ccc7923d10287c01a5
 (defrule
     (goal gl-strategy KRUSH)
     (goal gl-current-build-item FARMS2)
     (building-type-count-total farm >= 7)
 =>
     (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "Krush Farms 2 Built")
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1801
-; ============================================================
-; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
-; Writes: gl-current-build-item = FARMS2.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1802.
+; AUTHENTICATED DONOR RULE 1810 | REGION=R07 | BODY_SHA256=6a5c94800e1b5df232faa1b4c5a499b8386b2d3d360802686e1bc62bd6f00e8d
 (defrule
     (goal gl-strategy KRUSH)
     (up-compare-goal gl-current-build-item != FARMS2)
     (up-compare-goal gl-build-progress == KrushFarms2Number)
 =>
+    ;	(chat-to-player me "Setting current build item to KRUSH FARMS2")
     (set-goal gl-current-build-item FARMS2)
 )
 
-; ============================================================
-; R07 RULE 1802
-; ============================================================
-; Reads: current-age, can-build-with-escrow farm, gl-strategy,
-;        pending farm, gl-current-build-item, wood, farm count.
-; Writes: wood escrow percentage = 0.
-; Escrow: set-escrow-percentage wood 0; release-escrow wood.
-; Pending guard: up-pending-objects c: farm < 1.
-; Command: build farm.
-; Completion observer: none.
-; Jump: none; fall-through -> 1803.
-(defrule
+; AUTHENTICATED DONOR RULE 1811 | REGION=R07 | BODY_SHA256=c4d847415eb373750b29a2222cb4afe923b890ff50ece04adb4173b877cd989e
+(defrule	;just the standard dark farms
     (current-age == dark-age)
     (can-build-with-escrow farm)
     (goal gl-strategy FLUSH)
@@ -228,39 +277,23 @@
     (building-type-count-total farm < 2))
 =>
     (set-escrow-percentage wood 0)
+    ;	(chat-to-player me "ProFarm")
     (release-escrow wood)
     (build farm)
 )
 
-; ============================================================
-; R07 RULE 1803
-; ============================================================
-; Reads: gl-strategy, gl-current-build-item, farm count.
-; Writes: gl-build-progress += 1.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: farm >= 2.
-; Jump: none; fall-through -> 1804.
+; AUTHENTICATED DONOR RULE 1812 | REGION=R07 | BODY_SHA256=726f3494979caffb6e1aecac12de74beaf69d1358e0ed9cf2fb1b2828e601b9e
 (defrule
     (goal gl-strategy FLUSH)
     (goal gl-current-build-item FARMS)
     (building-type-count-total farm >= 2)
 =>
     (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "Farms Built")
 )
 
-; ============================================================
-; R07 RULE 1804
-; ============================================================
-; Reads: gl-strategy, farm count, gl-build-progress.
-; Writes: gl-build-progress = FarmsNumber.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: farm < 2 is reconciliation evidence.
-; Jump: none; fall-through -> 1805.
-(defrule
+; AUTHENTICATED DONOR RULE 1813 | REGION=R07 | BODY_SHA256=4de1ab8bf40ff7a34455f6502082060ff2e4ec57b251ee5af05ba3355855fd1b
+(defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (building-type-count-total farm < 2)
     (up-compare-goal gl-build-progress > FarmsNumber)
@@ -268,55 +301,26 @@
     (set-goal gl-build-progress FarmsNumber)
 )
 
-; ============================================================
-; R07 RULE 1805
-; ============================================================
-; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
-; Writes: wood escrow percentage = LOW-ESCROW;
-;         gl-current-build-item = FARMS.
-; Escrow: set-escrow-percentage wood LOW-ESCROW.
-; Pending guard: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1815.
+; AUTHENTICATED DONOR RULE 1814 | REGION=R07 | BODY_SHA256=5f43216138dab520abe707ea867444d8c56b10c8a7885d6059ccbce2e054f1fb
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != FARMS)
     (up-compare-goal gl-build-progress == FarmsNumber)
 =>
+    ;	(chat-to-player me "Setting current build item to FARMS")
     (set-escrow-percentage wood LOW-ESCROW)
     (set-goal gl-current-build-item FARMS)
 )
 
-; ============================================================
-; R07 RULE 1815
-; ============================================================
-; QHOUSE.
-; Reads: true.
-; Writes: none.
-; Escrow: none.
-; Pending guard: none.
-; Command: up-assign-builders c: house c: 1.
-; Completion observer: none.
-; Jump: none; fall-through -> 1816.
+; AUTHENTICATED DONOR RULE 1815 | REGION=R07 | BODY_SHA256=aaf633e17c062a1b666524c2337a77416bfb3371a78d1a4a21fbba70d1b7e184
 (defrule
     (true)
+    ;	(goal gl-twenty-turn 1)
 =>
     (up-assign-builders c: house c: 1)
 )
 
-; ============================================================
-; R07 RULE 1816
-; ============================================================
-; QHOUSE.
-; Reads: game-time >= 50, gl-fifth-turn == 1, housing-headroom < 2.
-; Writes: none.
-; Escrow: none.
-; Pending guard: none.
-; Command: chat warning; up-assign-builders c: house c: 3.
-; Completion observer: none.
-; Note: false predicate is preserved exactly; it is not optimized away.
-; Jump: none; fall-through -> 1817.
+; AUTHENTICATED DONOR RULE 1816 | REGION=R07 | BODY_SHA256=fc14082c49f24c76b40e292b60bdb428d4bc64d9196668971ceb67483afb9b69
 (defrule
     (false)
     (game-time >= 50)
@@ -327,20 +331,7 @@
     (up-assign-builders c: house c: 3)
 )
 
-; ============================================================
-; R07 RULE 1817
-; ============================================================
-; QHOUSE / CONTROL placement.
-; Reads: game-time > 6, housing-headroom < 5,
-;        population-headroom != 0, can-build-with-escrow house,
-;        pending house < 1, archery-range >= 2.
-; Writes: placement-data state via up-set-placement-data.
-; Escrow: feasibility through can-build-with-escrow house.
-; Pending guard: up-pending-objects c: house < 1.
-; Command: up-build place-control gl-escrow-state c: house;
-;          up-set-placement-data me -1 c: -5.
-; Completion observer: none.
-; Jump: none; fall-through -> 1818.
+; AUTHENTICATED DONOR RULE 1817 | REGION=R07 | BODY_SHA256=b2833471228e2e536e5da5b83b5c959bc0bd8dcaf18a054abff53764fbdaa8fa
 (defrule
     (game-time > 6)
     (housing-headroom < 5)
@@ -351,22 +342,10 @@
 =>
     (up-build place-control gl-escrow-state c: house)
     (up-set-placement-data me -1 c: -5)
+    ;	(chat-to-player me "EmergencyHouse2")
 )
 
-; ============================================================
-; R07 RULE 1818
-; ============================================================
-; QHOUSE / CONTROL placement.
-; Reads: game-time > 6, housing-headroom < 2,
-;        population-headroom != 0, can-build-with-escrow house,
-;        pending house < 1.
-; Writes: placement-data state via up-set-placement-data.
-; Escrow: feasibility through can-build-with-escrow house.
-; Pending guard: up-pending-objects c: house < 1.
-; Command: up-build place-control gl-escrow-state c: house;
-;          up-set-placement-data me -1 c: -5.
-; Completion observer: none.
-; Jump: none; fall-through -> 1819.
+; AUTHENTICATED DONOR RULE 1818 | REGION=R07 | BODY_SHA256=7b10f8fbed46f9d4d1bf84e081a82d0e08c18f764ec1d0583d8c30ff34a364fe
 (defrule
     (game-time > 6)
     (housing-headroom < 2)
@@ -376,21 +355,10 @@
 =>
     (up-build place-control gl-escrow-state c: house)
     (up-set-placement-data me -1 c: -5)
+    ;	(chat-to-player me "EmergencyHouse")
 )
 
-; ============================================================
-; R07 RULE 1819
-; ============================================================
-; QHOUSE / CONTROL placement.
-; Reads: can-build house.
-; Writes: placement-data; disables self.
-; Escrow: none.
-; Pending guard: none.
-; Command: up-set-placement-data me villager-class c: 0;
-;          up-build place-control 0 c: house;
-;          up-assign-builders c: house c: 2.
-; Completion observer: none.
-; Jump: none; fall-through -> 1820.
+; AUTHENTICATED DONOR RULE 1819 | REGION=R07 | BODY_SHA256=fd9dedcb030f84368cad325d0ca4d7e50bec0e2633a45985cfb36b500100328c
 (defrule
     (can-build house)
 =>
@@ -400,22 +368,9 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1820
-; ============================================================
-; QHOUSE / CONTROL placement.
-; Reads: can-build house, civilian-population < 6, house count > 0,
-;        sheep availability.
-; Writes: placement-data; disables self.
-; Escrow: none.
-; Pending guard: none.
-; Command: up-set-placement-data me villager-class c: 1;
-;          up-build place-control 0 c: house;
-;          up-assign-builders c: house c: 1.
-; Completion observer: house count > 0 is an input predicate only;
-;                     it is not a completion write.
-; Jump: none; fall-through -> 1821.
+; AUTHENTICATED DONOR RULE 1820 | REGION=R07 | BODY_SHA256=7fec2a29152d80358128664f494ce8040cdfcd556ba7ed5b19a06d069dd5f3c0
 (defrule
+    ;	(game-time < 15)
     (can-build house)
     (civilian-population < 6)
     (building-type-count-total house > 0)
@@ -428,34 +383,14 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1821
-; ============================================================
-; QHOUSE control-state write.
-; Reads: true.
-; Writes: generic goal = 12.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1822.
+; AUTHENTICATED DONOR RULE 1821 | REGION=R07 | BODY_SHA256=2b3c61a3ea95f2b39d2d67f28830e5174dd059d451e67194f903aad9c26c6b74
 (defrule
     (true)
 =>
     (set-goal goal 12)
 )
 
-; ============================================================
-; R07 RULE 1822
-; ============================================================
-; QHOUSE control-state write.
-; Reads: gl-enemy-strategy == DRUSH OR gl-town-safe != YES.
-; Writes: generic goal = -5.
-; Escrow: none.
-; Pending guard: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1823.
+; AUTHENTICATED DONOR RULE 1822 | REGION=R07 | BODY_SHA256=5923a17d2f363cc8190869cca0bfe743d8a9f0b878ebaa9028ee8a45e57ce3ef
 (defrule
     (or	(goal gl-enemy-strategy DRUSH)
     (up-compare-goal gl-town-safe != YES))
@@ -463,22 +398,7 @@
     (set-goal goal -5)
 )
 
-; ============================================================
-; R07 RULE 1823
-; ============================================================
-; QHOUSE / CONTROL placement.
-; Reads: can-build house, housing-headroom < 4,
-;        population-headroom != 0, house count < 5,
-;        pending house < 1.
-; Writes: placement-data; sn-placement-zone-size = 5;
-;         sn-placement-fail-delta = 2.
-; Escrow: none.
-; Pending guard: up-pending-objects c: house < 1.
-; Command: up-set-placement-data me -1 c: 10;
-;          up-build place-control 0 c: house;
-;          up-assign-builders c: house c: 1.
-; Completion observer: none.
-; Jump: none; fall-through -> 1824.
+; AUTHENTICATED DONOR RULE 1823 | REGION=R07 | BODY_SHA256=7c463ca785c7c326103126631e988ebc9acb44fad6a81addc6d52e72acb49731
 (defrule
     (can-build house)
     (housing-headroom < 4)
@@ -487,29 +407,14 @@
     (up-pending-objects c: house < 1)
 =>
     (up-set-placement-data me -1 c: 10)
+    ;	(chat-to-player me "House1")
     (set-strategic-number sn-placement-zone-size 5)
     (set-strategic-number sn-placement-fail-delta 2)
     (up-build place-control 0 c: house)
     (up-assign-builders c: house c: 1)
 )
 
-; ============================================================
-; R07 RULE 1824
-; ============================================================
-; QHOUSE / CONTROL placement.
-; Reads: can-build house, housing-headroom < 4,
-;        population-headroom != 0, house count >= 5,
-;        pending house < 1, archery-range < 1.
-; Writes: placement-data; sn-placement-zone-size = 5;
-;         sn-placement-fail-delta = 2.
-; Escrow: none.
-; Pending guard: up-pending-objects c: house < 1.
-; Command: up-set-placement-data me -1 g: goal;
-;          up-build place-control 0 c: house;
-;          up-assign-builders c: house c: 1.
-; Completion observer: house >= 5 and archery-range < 1 are
-;                     decision predicates, not completion proof.
-; Jump: none; fall-through -> 1825.
+; AUTHENTICATED DONOR RULE 1824 | REGION=R07 | BODY_SHA256=53f8144721417b8592833ab681b27479ee801e3dda589424e141042458ff04c2
 (defrule
     (can-build house)
     (housing-headroom < 4)
@@ -519,27 +424,14 @@
     (building-type-count archery-range < 1)
 =>
     (up-set-placement-data me -1 g: goal)
+    ;	(chat-to-player me "House1")
     (set-strategic-number sn-placement-zone-size 5)
     (set-strategic-number sn-placement-fail-delta 2)
     (up-build place-control 0 c: house)
     (up-assign-builders c: house c: 1)
 )
 
-; ============================================================
-; R07 RULE 1825
-; ============================================================
-; QHOUSE / CONTROL placement.
-; Reads: can-build house, housing-headroom < 10,
-;        population-headroom != 0, pending house < 1,
-;        (KRUSH AND stable >= 2) OR archery-range >= 2.
-; Writes: placement-data; sn-placement-zone-size = 5;
-;         sn-placement-fail-delta = 2.
-; Escrow: none.
-; Pending guard: up-pending-objects c: house < 1.
-; Command: up-set-placement-data me -1 g: goal;
-;          up-build place-control 0 c: house.
-; Completion observer: none.
-; Jump: none; fall-through -> 1826.
+; AUTHENTICATED DONOR RULE 1825 | REGION=R07 | BODY_SHA256=2c73e80d30ef1fdde8c0bb362e5584f1e4e79a77ce8b64bf2334fbd1fa2eae92
 (defrule
     (can-build house)
     (housing-headroom < 10)
@@ -555,20 +447,7 @@
     (up-build place-control 0 c: house)
 )
 
-; ============================================================
-; R07 RULE 1826
-; ============================================================
-; QHOUSE arbitration entry.
-; Reads: can-build house, housing-headroom < 15,
-;        population-headroom != 0, pending house < 2,
-;        FLUSH+stable>=1 OR KRUSH+stable>=3 OR
-;        SIEGE+siege-workshop>=1.
-; Writes: SPLIT = 1.
-; Escrow: none.
-; Pending guard: up-pending-objects c: house < 2.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1827.
+; AUTHENTICATED DONOR RULE 1826 | REGION=R07 | BODY_SHA256=3d598207124ee25296e243da372361291c23de7ae1655874e795e4f24943e3b6
 (defrule
     (can-build house)
     (housing-headroom < 15)
@@ -584,19 +463,7 @@
     (set-goal SPLIT 1)
 )
 
-; ============================================================
-; R07 RULE 1827
-; ============================================================
-; QHOUSE arbitration execution.
-; Reads: SPLIT == 1.
-; Writes: placement-data; sn-placement-zone-size = 5;
-;         sn-placement-fail-delta = 2; SPLIT = 0.
-; Escrow: none.
-; Pending guard: none.
-; Command: up-set-placement-data me -1 g: goal;
-;          up-build place-control 0 c: house.
-; Completion observer: none.
-; Jump: none; fall-through -> 1828.
+; AUTHENTICATED DONOR RULE 1827 | REGION=R07 | BODY_SHA256=3830e0ae1c30b231602084b0f436c4bf3f763820ec01d30dfe3b2a64ed0393c1
 (defrule
     (goal SPLIT 1)
 =>
@@ -607,19 +474,7 @@
     (set-goal SPLIT 0)
 )
 
-; ============================================================
-; R07 RULE 1828
-; ============================================================
-; QLC FIRST / lumber-camp construction.
-; Reads: gl-fifth-turn, civilian-population, housing-headroom,
-;        gl-current-build-item, can-build-with-escrow lumber-camp.
-; Writes: sn-allow-adjacent-dropsites = 1; wood escrow percentage = 0.
-; Escrow: release-escrow wood after escrow percentage reset.
-; Pending guard: none.
-; Placement operations: none; direct build command.
-; Command: build lumber-camp.
-; Completion observer: none in this rule.
-; Jump: none; fall-through -> 1829.
+; AUTHENTICATED DONOR RULE 1828 | REGION=R07 | BODY_SHA256=d2ffc87f9a5d9bfd349c57f46fd925bf1f04976e823fc059fa869ef1f907b5ad
 (defrule
     (goal gl-fifth-turn 1)
     (civilian-population >= 7)
@@ -630,22 +485,12 @@
 =>
     (set-strategic-number sn-allow-adjacent-dropsites 1)
     (set-escrow-percentage wood 0)
+    ;	(chat-to-player me "LC1")
     (release-escrow wood)
     (build lumber-camp)
 )
 
-; ============================================================
-; R07 RULE 1829
-; ============================================================
-; QLC skipped-state reconciliation.
-; Reads: gl-dark-build, gl-build-progress, lumber-camp count.
-; Writes: gl-build-progress = 1 when LumberFirst is active.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp < 1 is rollback/reconciliation evidence.
-; Jump: none; fall-through -> 1830.
+; AUTHENTICATED DONOR RULE 1829 | REGION=R07 | BODY_SHA256=e38e431f6b90d556e02b79866f5012d14266b3235471b8240ac9383eba7cd1c8
 (defrule
     (goal gl-dark-build LumberFirst)
     (up-compare-goal gl-build-progress > 1)
@@ -654,18 +499,7 @@
     (set-goal gl-build-progress 1)
 )
 
-; ============================================================
-; R07 RULE 1830
-; ============================================================
-; QLC skipped-state reconciliation.
-; Reads: gl-dark-build, gl-build-progress, lumber-camp count.
-; Writes: gl-build-progress = 2 when MillFirst is active.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp < 1 is rollback/reconciliation evidence.
-; Jump: none; fall-through -> 1831.
+; AUTHENTICATED DONOR RULE 1830 | REGION=R07 | BODY_SHA256=ca2b54572ca0f689a103e1220be602592ad5a796ce1baedd445c602b0f9f9e8c
 (defrule
     (goal gl-dark-build MillFirst)
     (up-compare-goal gl-build-progress > 2)
@@ -674,18 +508,7 @@
     (set-goal gl-build-progress 2)
 )
 
-; ============================================================
-; R07 RULE 1831
-; ============================================================
-; QLC progression arbitration to LC1.
-; Reads: gl-current-build-item, gl-dark-build, gl-build-progress.
-; Writes: wood escrow percentage = LOW-ESCROW; gl-current-build-item = LC1.
-; Escrow: set-escrow-percentage wood LOW-ESCROW.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1832.
+; AUTHENTICATED DONOR RULE 1831 | REGION=R07 | BODY_SHA256=07f391a5d9f90506d3cf876007bff794b32878cc3c8cf8a1ff24e52485f0275e
 (defrule
     (up-compare-goal gl-current-build-item != LC1)
     (or	(and(goal gl-dark-build MillFirst)
@@ -693,42 +516,21 @@
     (and(goal gl-dark-build LumberFirst)
     (up-compare-goal gl-build-progress == 1)))
 =>
+    ;	(chat-to-player me "Setting current build item to LC1")
     (set-escrow-percentage wood LOW-ESCROW)
     (set-goal gl-current-build-item LC1)
 )
 
-; ============================================================
-; R07 RULE 1832
-; ============================================================
-; QLC LC1 completion/progression observer.
-; Reads: gl-current-build-item, lumber-camp count.
-; Writes: gl-build-progress += 1.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp >= 1.
-; Jump: none; fall-through -> 1833.
+; AUTHENTICATED DONOR RULE 1832 | REGION=R07 | BODY_SHA256=b05c56e459d8acdea553bec47bd2a3cfa0fba6639f23c2e988c2741f0e86a49e
 (defrule
     (goal gl-current-build-item LC1)
     (building-type-count-total lumber-camp >= 1)
 =>
     (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "LC1 Built")
 )
 
-; ============================================================
-; R07 RULE 1833
-; ============================================================
-; QLC alternate LC1 construction path.
-; Reads: can-build lumber-camp, current-age >= feudal-age,
-;        Gaia wood count > 20, lumber-camp count < 1.
-; Writes: none; disables self.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none; direct build command.
-; Command: build lumber-camp.
-; Completion observer: lumber-camp < 1 is an entry guard, not completion proof.
-; Jump: none; fall-through -> 1834.
+; AUTHENTICATED DONOR RULE 1833 | REGION=R07 | BODY_SHA256=55dcfdc6ffd4d539601800547f6007de29da8be2c9b0f86926c8756dcd9f3b19
 (defrule
     (can-build lumber-camp)
     (current-age >= feudal-age)
@@ -736,45 +538,22 @@
     (building-type-count-total lumber-camp < 1)
 =>
     (chat-to-player me "LC1 B")
+    ;	(set-goal gl-allow-mill YES)
     (build lumber-camp)
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1834
-; ============================================================
-; QLC FLUSH LC2 completion/progression observer.
-; Reads: gl-strategy, gl-current-build-item, lumber-camp count.
-; Writes: gl-build-progress += 1.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp >= 2.
-; Jump: none; fall-through -> 1835.
+; AUTHENTICATED DONOR RULE 1834 | REGION=R07 | BODY_SHA256=9a0f7993cbc77bc4f2f2953fb9a7be7a9240e46e65467bdd09141ed0b1a1cc04
 (defrule
     (goal gl-strategy FLUSH)
     (goal gl-current-build-item LC2)
     (building-type-count-total lumber-camp >= 2)
 =>
     (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "LC2 Built")
 )
 
-; ============================================================
-; R07 RULE 1835
-; ============================================================
-; QLC FLUSH LC2 construction.
-; Reads: gl-strategy, gl-current-build-item, game-time,
-;        wood, housing-headroom, can-build-with-escrow lumber-camp,
-;        lumber-camp count.
-; Writes: sn-dropsite-separation-distance = 3;
-;         sn-allow-adjacent-dropsites = 1; wood escrow percentage = 0.
-; Escrow: release-escrow wood.
-; Pending guard: none.
-; Placement operations: none; direct build command.
-; Command: build lumber-camp.
-; Completion observer: lumber-camp < 2 is a construction guard.
-; Jump: none; fall-through -> 1836.
+; AUTHENTICATED DONOR RULE 1835 | REGION=R07 | BODY_SHA256=b90be2ea1cc87c7ca13a272b011a61959fb1be3a1a07f3d5c0b1e93d820e2bf7
 (defrule
     (goal gl-strategy FLUSH)
     (goal gl-current-build-item LC2)
@@ -787,23 +566,13 @@
     (set-strategic-number sn-dropsite-separation-distance 3)
     (set-strategic-number sn-allow-adjacent-dropsites 1)
     (set-escrow-percentage wood 0)
+    ;	(chat-to-player me "LC2")
     (release-escrow wood)
     (build lumber-camp)
 )
 
-; ============================================================
-; R07 RULE 1836
-; ============================================================
-; QLC FLUSH skipped-state reconciliation.
-; Reads: gl-strategy, gl-build-progress, lumber-camp count.
-; Writes: gl-build-progress = LC2Number.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp < 2 is rollback/reconciliation evidence.
-; Jump: none; fall-through -> 1837.
-(defrule
+; AUTHENTICATED DONOR RULE 1836 | REGION=R07 | BODY_SHA256=5368a338637465b93b3a74c00bb2015cf8846466b0848d944755bdb8a608ceda
+(defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (building-type-count-total lumber-camp < 2)
     (up-compare-goal gl-build-progress > LC2Number)
@@ -811,62 +580,28 @@
     (set-goal gl-build-progress LC2Number)
 )
 
-; ============================================================
-; R07 RULE 1837
-; ============================================================
-; QLC FLUSH progression arbitration to LC2.
-; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
-; Writes: wood escrow percentage = LOW-ESCROW; gl-current-build-item = LC2.
-; Escrow: set-escrow-percentage wood LOW-ESCROW.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1838.
+; AUTHENTICATED DONOR RULE 1837 | REGION=R07 | BODY_SHA256=6cc2f30ffacdcca6e8c19ac81ecc9b625c47272a5462514fd7307e66efe71a19
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != LC2)
     (up-compare-goal gl-build-progress == LC2Number)
 =>
+    ;	(chat-to-player me "Setting current build item to LC2")
     (set-escrow-percentage wood LOW-ESCROW)
     (set-goal gl-current-build-item LC2)
 )
 
-; ============================================================
-; R07 RULE 1838
-; ============================================================
-; QLC KRUSH LC2 completion/progression observer.
-; Reads: gl-strategy, gl-current-build-item, lumber-camp count.
-; Writes: gl-build-progress += 1.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp >= 2.
-; Jump: none; fall-through -> 1839.
+; AUTHENTICATED DONOR RULE 1838 | REGION=R07 | BODY_SHA256=d5227f21b1d17fd56c4141f993d61bbb31781a165b4a5cb788a0ed45e56f7826
 (defrule
     (goal gl-strategy KRUSH)
     (goal gl-current-build-item LC2)
     (building-type-count-total lumber-camp >= 2)
 =>
     (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "Krush LC2 Built")
 )
 
-; ============================================================
-; R07 RULE 1839
-; ============================================================
-; QLC KRUSH LC2 construction.
-; Reads: gl-strategy, gl-current-build-item, game-time, wood,
-;        housing-headroom, can-build-with-escrow lumber-camp,
-;        lumber-camp count.
-; Writes: sn-dropsite-separation-distance = 3;
-;         sn-allow-adjacent-dropsites = 1; wood escrow percentage = 0.
-; Escrow: release-escrow wood.
-; Pending guard: none.
-; Placement operations: none; direct build command.
-; Command: build lumber-camp.
-; Completion observer: lumber-camp < 2 is a construction guard.
-; Jump: none; fall-through -> 1840.
+; AUTHENTICATED DONOR RULE 1839 | REGION=R07 | BODY_SHA256=2fef7042dde55a8d368f836cb7a339062e86f189501270f51e8df7a3cfd3bdf4
 (defrule
     (goal gl-strategy KRUSH)
     (goal gl-current-build-item LC2)
@@ -878,24 +613,14 @@
 =>
     (set-strategic-number sn-dropsite-separation-distance 3)
     (set-strategic-number sn-allow-adjacent-dropsites 1)
+    ;	(chat-to-player me "Krush LC2")
     (set-escrow-percentage wood 0)
     (release-escrow wood)
     (build lumber-camp)
 )
 
-; ============================================================
-; R07 RULE 1840
-; ============================================================
-; QLC KRUSH skipped-state reconciliation.
-; Reads: gl-strategy, gl-build-progress, lumber-camp count.
-; Writes: gl-build-progress = KrushLC2Number.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp < 2 is rollback/reconciliation evidence.
-; Jump: none; fall-through -> 1841.
-(defrule
+; AUTHENTICATED DONOR RULE 1840 | REGION=R07 | BODY_SHA256=af6a0e588a65e254646bc221fd79c41bba120c852262ace9d69c167bd5c7102e
+(defrule	;come back if skipped
     (goal gl-strategy KRUSH)
     (building-type-count-total lumber-camp < 2)
     (up-compare-goal gl-build-progress > KrushLC2Number)
@@ -903,41 +628,17 @@
     (set-goal gl-build-progress KrushLC2Number)
 )
 
-; ============================================================
-; R07 RULE 1841
-; ============================================================
-; QLC KRUSH progression arbitration to LC2.
-; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
-; Writes: gl-current-build-item = LC2.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1842.
+; AUTHENTICATED DONOR RULE 1841 | REGION=R07 | BODY_SHA256=12bfeef105bd5cbcb25dfed8c6b878b28f60d6cc2b5768e6ce07ea09d3998971
 (defrule
     (goal gl-strategy KRUSH)
     (up-compare-goal gl-current-build-item != LC2)
     (up-compare-goal gl-build-progress == KrushLC2Number)
 =>
+    ;	(chat-to-player me "Krush Setting current build item to LC2")
     (set-goal gl-current-build-item LC2)
 )
 
-; ============================================================
-; R07 RULE 1842
-; ============================================================
-; QLC FLUSH LC3 construction.
-; Reads: gl-strategy, gl-progression-pause, gl-current-build-item,
-;        can-build-with-escrow lumber-camp.
-; Writes: wood escrow percentage = 0;
-;         sn-dropsite-separation-distance = 3;
-;         sn-allow-adjacent-dropsites = 1.
-; Escrow: release-escrow wood.
-; Pending guard: none.
-; Placement operations: none; direct build command.
-; Command: build lumber-camp.
-; Completion observer: none in this rule.
-; Jump: none; fall-through -> 1843.
+; AUTHENTICATED DONOR RULE 1842 | REGION=R07 | BODY_SHA256=1d77d4fb3a1bef17c7ead60d376c71f58eef627a568c3e90b26ee500b178f19f
 (defrule
     (goal gl-strategy FLUSH)
     (goal gl-progression-pause -1)
@@ -947,23 +648,13 @@
     (set-escrow-percentage wood 0)
     (set-strategic-number sn-dropsite-separation-distance 3)
     (set-strategic-number sn-allow-adjacent-dropsites 1)
+    ;	(chat-to-player me "Third Lumber Camp")
     (release-escrow wood)
     (build lumber-camp)
 )
 
-; ============================================================
-; R07 RULE 1843
-; ============================================================
-; QLC FLUSH LC3 skipped-state reconciliation.
-; Reads: gl-strategy, gl-build-progress, lumber-camp count.
-; Writes: gl-build-progress = LC3Number.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp < 3 is rollback/reconciliation evidence.
-; Jump: none; fall-through -> 1844.
-(defrule
+; AUTHENTICATED DONOR RULE 1843 | REGION=R07 | BODY_SHA256=4255cb4550492ed529452b252b82f9ade50310647e8d39f7c406af2a776cb412
+(defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-build-progress > LC3Number)
     (building-type-count-total lumber-camp < 3)
@@ -971,62 +662,28 @@
     (set-goal gl-build-progress LC3Number)
 )
 
-; ============================================================
-; R07 RULE 1844
-; ============================================================
-; QLC FLUSH progression arbitration to LC3.
-; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
-; Writes: wood escrow percentage = LOW-ESCROW; gl-current-build-item = LC3.
-; Escrow: set-escrow-percentage wood LOW-ESCROW.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1845.
+; AUTHENTICATED DONOR RULE 1844 | REGION=R07 | BODY_SHA256=1dcfed679ec25123016ec777ca22c16b6be6f38bd87e8ca8ba05f01797349c35
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != LC3)
     (up-compare-goal gl-build-progress == LC3Number)
 =>
+    ;	(chat-to-player me "Setting current build item to LC3")
     (set-escrow-percentage wood LOW-ESCROW)
     (set-goal gl-current-build-item LC3)
 )
 
-; ============================================================
-; R07 RULE 1845
-; ============================================================
-; QLC FLUSH LC3 completion/progression observer.
-; Reads: gl-strategy, gl-current-build-item, lumber-camp count.
-; Writes: gl-build-progress += 1.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp >= 3.
-; Jump: none; fall-through -> 1846.
+; AUTHENTICATED DONOR RULE 1845 | REGION=R07 | BODY_SHA256=dbed5d33600b35f221223d76c3eddd94e342354c2731f7e8c03763715509d2fd
 (defrule
     (goal gl-strategy FLUSH)
     (goal gl-current-build-item LC3)
     (building-type-count-total lumber-camp >= 3)
 =>
+    ;	(chat-to-player me "Third Lumber Camp Built")
     (up-modify-goal gl-build-progress c:+ 1)
 )
 
-; ============================================================
-; R07 RULE 1846
-; ============================================================
-; QLC KRUSH LC3 construction.
-; Reads: gl-strategy, gl-progression-pause, gl-current-build-item,
-;        can-build-with-escrow lumber-camp.
-; Writes: wood escrow percentage = 0;
-;         sn-dropsite-separation-distance = 3;
-;         sn-allow-adjacent-dropsites = 1.
-; Escrow: release-escrow wood.
-; Pending guard: none.
-; Placement operations: none; direct build command.
-; Command: build lumber-camp.
-; Completion observer: none in this rule.
-; Jump: none; fall-through -> 1847.
+; AUTHENTICATED DONOR RULE 1846 | REGION=R07 | BODY_SHA256=eb88db9fce93165b0d645d43558ee0cf15b07d540ffd50abbd68aea92cd3b6f1
 (defrule
     (goal gl-strategy KRUSH)
     (goal gl-progression-pause -1)
@@ -1036,23 +693,13 @@
     (set-escrow-percentage wood 0)
     (set-strategic-number sn-dropsite-separation-distance 3)
     (set-strategic-number sn-allow-adjacent-dropsites 1)
+    ;	(chat-to-player me "Krush Third Lumber Camp")
     (release-escrow wood)
     (build lumber-camp)
 )
 
-; ============================================================
-; R07 RULE 1847
-; ============================================================
-; QLC KRUSH LC3 skipped-state reconciliation.
-; Reads: gl-strategy, gl-build-progress, lumber-camp count.
-; Writes: gl-build-progress = KrushLC3Number.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp < 3 is rollback/reconciliation evidence.
-; Jump: none; fall-through -> 1848.
-(defrule
+; AUTHENTICATED DONOR RULE 1847 | REGION=R07 | BODY_SHA256=6365b22f0310215c732bc32f200c7bc2a7eff05030eb4672fca80b228b7b5fc2
+(defrule	;come back if skipped
     (goal gl-strategy KRUSH)
     (building-type-count-total lumber-camp < 3)
     (up-compare-goal gl-build-progress > KrushLC3Number)
@@ -1060,73 +707,35 @@
     (set-goal gl-build-progress KrushLC3Number)
 )
 
-; ============================================================
-; R07 RULE 1848
-; ============================================================
-; QLC KRUSH progression arbitration to LC3.
-; Reads: gl-strategy, gl-current-build-item, gl-build-progress.
-; Writes: wood escrow percentage = LOW-ESCROW; gl-current-build-item = LC3.
-; Escrow: set-escrow-percentage wood LOW-ESCROW.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: none.
-; Jump: none; fall-through -> 1849.
+; AUTHENTICATED DONOR RULE 1848 | REGION=R07 | BODY_SHA256=779420a97101e4c82e08fd51e8c327a5941df0d4dc56e3eb5b15dc84d4e66a8d
 (defrule
     (goal gl-strategy KRUSH)
     (up-compare-goal gl-current-build-item != LC3)
     (up-compare-goal gl-build-progress == KrushLC3Number)
 =>
+    ;	(chat-to-player me "Krush Setting current build item to LC3")
     (set-escrow-percentage wood LOW-ESCROW)
     (set-goal gl-current-build-item LC3)
 )
 
-; ============================================================
-; R07 RULE 1849
-; ============================================================
-; QLC KRUSH LC3 completion/progression observer.
-; Reads: gl-strategy, gl-current-build-item, lumber-camp count.
-; Writes: gl-build-progress += 1.
-; Escrow: none.
-; Pending guard: none.
-; Placement operations: none.
-; Command: none.
-; Completion observer: lumber-camp >= 3.
-; Jump: none; fall-through -> 1850.
+; AUTHENTICATED DONOR RULE 1849 | REGION=R07 | BODY_SHA256=cc1c10ccacb8b8a8aaa6723d0854c911e18bb1c1c0244dd05209e0324c5ed0c9
 (defrule
     (goal gl-strategy KRUSH)
     (goal gl-current-build-item LC3)
     (building-type-count-total lumber-camp >= 3)
 =>
+    ;	(chat-to-player me "Krush Third Lumber Camp Built")
     (up-modify-goal gl-build-progress c:+ 1)
 )
 
-; ============================================================
-; R07 SOURCE-ORDER / CONTROL-FLOW NOTE
-; ============================================================
-; 1794-1849 contains no explicit up-jump-rule in the authenticated donor.
-; The source-order fall-through successor after rule 1849 is 1850.
-; QLC preserves the donor's distributed progression topology:
-;   objective/build item -> feasibility -> escrow -> build command
-;   -> world-state lumber-camp observer -> progression/reconciliation
-;   -> current-build-item re-entry.
-; Build commands and builder/placement operations remain execution
-; mechanisms; they are not completion proof without world-state evidence.
-
-; ============================================================
-; R07 RULE 1850
-; ============================================================
-; Control-flow jump: reads no persistent state; writes none; command is up-jump-rule 4; no pending/placement/completion observer; explicit jump target resolves to 1854.
+; AUTHENTICATED DONOR RULE 1850 | REGION=R07 | BODY_SHA256=29677bf8b843231bd7d726b831928d9e2ad45cf52a25db1b46985003eee59263
 (defrule
     (true)
 =>
     (up-jump-rule 4)
 )
 
-; ============================================================
-; R07 RULE 1851
-; ============================================================
-; Reads gl-progression-pause, gl-current-build-item, can-build-with-escrow(lumber-camp); writes wood escrow percentage=0; escrow releases wood; command build lumber-camp; no pending guard or placement operation; no completion observer in this rule.
+; AUTHENTICATED DONOR RULE 1851 | REGION=R07 | BODY_SHA256=5913f6ac663ed545aee33b88d6ba349dbf6d22755459723938da06e0beed37c7
 (defrule
     (goal gl-progression-pause -1)
     (goal gl-current-build-item LC4)
@@ -1138,10 +747,7 @@
     (build lumber-camp)
 )
 
-; ============================================================
-; R07 RULE 1852
-; ============================================================
-; Reads gl-strategy, gl-build-progress, lumber-camp count; writes gl-build-progress=LC4Number for skipped-state reconciliation; no escrow, pending, placement, or command; lumber-camp<4 is reconciliation evidence.
+; AUTHENTICATED DONOR RULE 1852 | REGION=R07 | BODY_SHA256=5ae77a5ac6304378c6b84b379feb404471f4de97c6bcb601b9ebefe40d7a041b
 (defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (building-type-count-total lumber-camp < 4)
@@ -1150,10 +756,7 @@
     (set-goal gl-build-progress LC4Number)
 )
 
-; ============================================================
-; R07 RULE 1853
-; ============================================================
-; Reads gl-strategy, gl-current-build-item, gl-build-progress; writes gl-current-build-item=LC4 and wood escrow percentage=LOW-ESCROW; no pending/placement/command; no completion observer.
+; AUTHENTICATED DONOR RULE 1853 | REGION=R07 | BODY_SHA256=c5ad3edfaa06edeead131165a867d75a1ee72282cec2b54ab9ab45764f8e47d6
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != LC4)
@@ -1164,10 +767,7 @@
     (set-escrow-percentage wood LOW-ESCROW)
 )
 
-; ============================================================
-; R07 RULE 1854
-; ============================================================
-; Reads gl-current-build-item and lumber-camp count; writes gl-build-progress+=1; no escrow/pending/placement/command; lumber-camp>=4 is the completion/progression observer.
+; AUTHENTICATED DONOR RULE 1854 | REGION=R07 | BODY_SHA256=9871a0536b105cea98edf778c5aec1201883a6c05f2c12cc5ba489bd854de790
 (defrule
     (goal gl-current-build-item LC4)
     (building-type-count-total lumber-camp >= 4)
@@ -1176,10 +776,7 @@
     ;	(chat-to-player me "Fourth Lumber Camp Built")
 )
 
-; ============================================================
-; R07 RULE 1855
-; ============================================================
-; Reads time, gl-strategy, lumber-camp timer status/distance and gl-escrow-state via up-can-build; writes dropsite separation, placement mode through up-build, adjacent-dropsite policy, and timer t-lc; placement operation is place-normal lumber-camp; no pending guard; command is up-build place-normal; no completion observer.
+; AUTHENTICATED DONOR RULE 1855 | REGION=R07 | BODY_SHA256=93a27c502633bc50354108dd5831467fba1e82750b4e5c0282747c5adfbdb1a7
 (defrule
     (or	(game-time >= 1570)	;25.5 min
     (and(game-time >= 1260)	;21 min
@@ -1195,10 +792,7 @@
     (enable-timer t-lc 290)
 )
 
-; ============================================================
-; R07 RULE 1856
-; ============================================================
-; Reads food amount, commodity-buy feasibility, gold amount and gl-build-progress; writes no persistent AI state; command buy-commodity food; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1856 | REGION=R07 | BODY_SHA256=07cb67d6f6360dab166ea9441f6a97182ec1fec5f2610be3f98c019f8ab62ea4
 (defrule
     (food-amount < 50)
     (can-buy-commodity food)
@@ -1210,10 +804,7 @@
     (buy-commodity food)
 )
 
-; ============================================================
-; R07 RULE 1857
-; ============================================================
-; Reads commodity-buy feasibility, food/gold thresholds and gl-current-build-item=CUP; writes no persistent state; command buy-commodity food; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1857 | REGION=R07 | BODY_SHA256=4f75e7caa9cfc047e2d5f1ad252c193c4ae40b4cb6fbdd5be1e78ba6ea77af19
 (defrule
     (can-buy-commodity food)
     (or	(and(food-amount < 800)
@@ -1228,10 +819,7 @@
     (buy-commodity food)
 )
 
-; ============================================================
-; R07 RULE 1858
-; ============================================================
-; Reads wood amount, gold amount, gl-current-build-item and commodity-buy feasibility; writes no persistent state; command buy-commodity wood; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1858 | REGION=R07 | BODY_SHA256=756cf2ea39acbb52c742d37e334c9751eb4d1aa35c3e57fb8d58ae0e534d44bf
 (defrule
     (wood-amount < 50)
     (or	(gold-amount >= 320)
@@ -1244,10 +832,7 @@
     (buy-commodity wood)
 )
 
-; ============================================================
-; R07 RULE 1859
-; ============================================================
-; Reads gold/food amounts, commodity-sell feasibility and castle-age research status; writes no persistent state; command sell-commodity food; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1859 | REGION=R07 | BODY_SHA256=01e5982c1c1ab9cf5884e85e3feabe0080f0681efb3cab50f53392f769de1c8e
 (defrule
     (gold-amount < 100)
     (food-amount >= 320)
@@ -1258,10 +843,7 @@
     (sell-commodity food)
 )
 
-; ============================================================
-; R07 RULE 1860
-; ============================================================
-; Reads commodity-sell feasibility, gold/food thresholds and gl-current-build-item=CUP; writes no persistent state; command sell-commodity food; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1860 | REGION=R07 | BODY_SHA256=533482b030d26e3ba9129c1a73cff21aaf9c6775cb1e0ed7f7ff67dbe57cecea
 (defrule
     (can-sell-commodity food)
     (or	(and(gold-amount < 160)
@@ -1274,10 +856,7 @@
     (sell-commodity food)
 )
 
-; ============================================================
-; R07 RULE 1861
-; ============================================================
-; Reads wood amount, gl-strategy=FLUSH, commodity-sell feasibility and gl-build-progress; writes no persistent state; command sell-commodity wood; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1861 | REGION=R07 | BODY_SHA256=af17b729930c3ee7e3f10d7b10df312e8a35c359e093a5468617b6cae1c1d69b
 (defrule
     (wood-amount >= 270)
     (goal gl-strategy FLUSH)
@@ -1288,10 +867,7 @@
     (sell-commodity wood)
 )
 
-; ============================================================
-; R07 RULE 1862
-; ============================================================
-; Reads wood amount, commodity-sell feasibility and gl-current-build-item=EXTRA-STABLES; writes no persistent state; command sell-commodity wood; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1862 | REGION=R07 | BODY_SHA256=4afe346299a199e58aeb9955c7c51770c4b56ab7fa302a4afc0728b25119c0a2
 (defrule
     (wood-amount >= 260)
     (can-sell-commodity wood)
@@ -1301,10 +877,7 @@
     (sell-commodity wood)
 )
 
-; ============================================================
-; R07 RULE 1863
-; ============================================================
-; Reads commodity-sell feasibility, gl-current-build-item, food/gold/wood thresholds and gl-build-progress; writes no persistent state; command sell-commodity wood; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1863 | REGION=R07 | BODY_SHA256=53cd07d19af9a5af1d638afc2442d32725582f4cb5f7fa5222ea3b70500c1d1d
 (defrule
     (can-sell-commodity wood)
     (up-compare-goal gl-current-build-item != EXTRA-STABLES)
@@ -1319,10 +892,7 @@
     (sell-commodity wood)
 )
 
-; ============================================================
-; R07 RULE 1864
-; ============================================================
-; Reads wood/food/gold amounts, commodity-sell feasibility and gl-current-build-item=CUP; writes no persistent state; command sell-commodity wood; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1864 | REGION=R07 | BODY_SHA256=9a3f84b268f19d7518617c52b48855167e2f805f158b8a622934e0d9da6e857a
 (defrule
     (wood-amount >= 150)
     (or	(food-amount < 750)
@@ -1334,10 +904,7 @@
     (sell-commodity wood)
 )
 
-; ============================================================
-; R07 RULE 1865
-; ============================================================
-; Reads disabled false predicate, commodity-sell feasibility and food/wood/stone thresholds; writes no persistent state; command sell-commodity stone is unreachable while false remains false; no pending, placement, or completion observer.
+; AUTHENTICATED DONOR RULE 1865 | REGION=R07 | BODY_SHA256=8b97c34874c505b1f360830456e7fdd569e04b1ca9422cd1d52b0e16370ac1b9
 (defrule
     (false)
     (can-sell-commodity stone)
@@ -1352,10 +919,7 @@
     (sell-commodity stone)
 )
 
-; ============================================================
-; R07 RULE 1866
-; ============================================================
-; Reads can-build-with-escrow(mill), food resource/time, gl-current-build-item=MILL1, mill count and build-delay timer; writes adjacent-dropsite policy, wood escrow percentage=0, and timer t-build-delay; escrow releases wood; command build mill; no pending/placement; no completion observer in this rule.
+; AUTHENTICATED DONOR RULE 1866 | REGION=R07 | BODY_SHA256=499bac81b79d5131f8620cd5057e52812882b390cd32c58d3a6e8874af577187
 (defrule
     (can-build-with-escrow mill)
     (or (resource-found food)
@@ -1372,10 +936,7 @@
     (build mill)
 )
 
-; ============================================================
-; R07 RULE 1867
-; ============================================================
-; Reads gl-current-build-item=MILL1 and mill count; writes gl-build-progress+=1; no escrow/pending/placement/command; mill>=1 is the completion/progression observer.
+; AUTHENTICATED DONOR RULE 1867 | REGION=R07 | BODY_SHA256=4d97d7e0d077f1241d9b87902f5410e992712696e8227a6d29799a0ad89093ce
 (defrule
     (goal gl-current-build-item MILL1)
     (building-type-count-total mill >= 1)
@@ -1384,10 +945,7 @@
     ;	(chat-to-player me "Mill1 Built")
 )
 
-; ============================================================
-; R07 RULE 1868
-; ============================================================
-; Reads gl-dark-build=MillFirst, mill count and gl-build-progress; writes gl-build-progress=1 for skipped-state reconciliation; no escrow/pending/placement/command; mill<1 is reconciliation evidence.
+; AUTHENTICATED DONOR RULE 1868 | REGION=R07 | BODY_SHA256=d1476db112f8d14f9158184794f2068c9a9d0486535e05c9acb7d70f812a732a
 (defrule	;if skipped come back
     ;	(game-time < SkipMillTime)
     (goal gl-dark-build MillFirst)
@@ -1397,10 +955,7 @@
     (set-goal gl-build-progress 1)
 )
 
-; ============================================================
-; R07 RULE 1869
-; ============================================================
-; Reads gl-dark-build=LumberFirst, mill count and gl-build-progress; writes gl-build-progress=2 for skipped-state reconciliation; no escrow/pending/placement/command; mill<1 is reconciliation evidence.
+; AUTHENTICATED DONOR RULE 1869 | REGION=R07 | BODY_SHA256=f9ea9b64f004261c84c533917031a9f247d5abb6a49e2ac2d36a86e0db4c0cb8
 (defrule	;if skipped come back
     ;	(game-time >= SkipMillTime)
     (goal gl-dark-build LumberFirst)
@@ -1410,10 +965,7 @@
     (set-goal gl-build-progress 2)
 )
 
-; ============================================================
-; R07 RULE 1870
-; ============================================================
-; Reads gl-current-build-item, gl-dark-build and gl-build-progress; writes wood escrow percentage=LOW-ESCROW and gl-current-build-item=MILL1; no pending/placement/command; no completion observer.
+; AUTHENTICATED DONOR RULE 1870 | REGION=R07 | BODY_SHA256=fce0d9521a2b874621bdcb59e922080d853513f40326435848841d041ab4f84f
 (defrule
     (up-compare-goal gl-current-build-item != MILL1)
     (or	(and(goal gl-dark-build MillFirst)
@@ -1426,10 +978,7 @@
     (set-goal gl-current-build-item MILL1)
 )
 
-; ============================================================
-; R07 RULE 1871
-; ============================================================
-; Reads can-build(mill), food resource-found, current age and mill count; writes none persistently; command build mill followed by disable-self; no pending/placement; mill<1 is an entry guard, not completion proof.
+; AUTHENTICATED DONOR RULE 1871 | REGION=R07 | BODY_SHA256=995e030360797b0a2189de6f2d90dab2dad7a8eb8a6c9d792a57b3bfcd6548cf
 (defrule
     (can-build mill)
     (resource-found food)
@@ -1442,60 +991,28 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1872
-; ============================================================
-; Reads no persistent state; writes generic goal=-12; no escrow/pending/placement/command/completion observer.
+; AUTHENTICATED DONOR RULE 1872 | REGION=R07 | BODY_SHA256=66a07a8652dadc604f631bde4e18300ebe83bcf9a67cdef59f77f0e7d5bd272e
 (defrule
     (true)
 =>
     (set-goal goal -12)
 )
 
-; ============================================================
-; R07 RULE 1873
-; ============================================================
-; Reads mill count; writes generic goal=-10; no escrow/pending/placement/command/completion observer.
+; AUTHENTICATED DONOR RULE 1873 | REGION=R07 | BODY_SHA256=fc4d386481eea49dce71c2bc6b017547582f7c25c688d731beda8a44bea8c96f
 (defrule
     (building-type-count-total mill == 2)
 =>
     (set-goal goal -10)
 )
 
-; ============================================================
-; R07 RULE 1874
-; ============================================================
-; Reads mill count; writes generic goal=10; no escrow/pending/placement/command; mill==3 is an observed world-state threshold used to write the goal, not completion of a command in this rule.
+; AUTHENTICATED DONOR RULE 1874 | REGION=R07 | BODY_SHA256=7c8a917e2ef4e2897c79092b71465b89577ed63179960efbb8d714aae3b1a8e5
 (defrule
     (building-type-count-total mill == 3)
 =>
     (set-goal goal 10)
 )
 
-; ============================================================
-; R07 1850-1874 SOURCE-ORDER NOTE
-; ============================================================
-; Rules are appended in authenticated donor order. Rule 1850 is an explicit
-; up-jump-rule (+4) whose positional target is rule 1854. Rules 1851-1874
-; then proceed by normal source-order fall-through. Command issuance remains
-; distinct from world-state completion; observed building counts are the
-; completion/progression evidence where explicitly used by the donor.
-
-; ============================================================
-; R07 RULE 1875 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal MILL YES; can-build mill; building-type-count-total mill < 4
-; State writes: set-goal MILL NO
-; Pending guards: none
-; Commands: up-build place-control 0 c: mill; up-assign-builders c: mill c: 1
-; Placement operations: up-set-placement-data me mill g: goal; up-build place-control 0 c: mill
-; Completion/world observers: building-type-count-total mill < 4
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1876;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1875 | REGION=R07 | BODY_SHA256=4fdd432d98516287065c410470dba9cb2490c528d330d49638681dbb618cef10
 (defrule
     (goal MILL YES)
     (can-build mill)
@@ -1508,21 +1025,7 @@
     (set-goal MILL NO)
 )
 
-; ============================================================
-; R07 RULE 1876 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: up-compare-goal MILL != YES; up-pending-placement c: mill; building-type-count-total mill < 2; building-type-count-total farm > 20; building-type-count-total mill < 3; building-type-count-total farm > 28; building-type-count-total mill < 4; building-type-count-total farm > 38
-; State writes: set-goal MILL YES
-; Pending guards: up-pending-placement c: mill
-; Commands: none
-; Placement operations: none
-; Completion/world observers: building-type-count-total mill < 2; building-type-count-total farm > 20; building-type-count-total mill < 3; building-type-count-total farm > 28; building-type-count-total mill < 4; building-type-count-total farm > 38
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1877;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1876 | REGION=R07 | BODY_SHA256=9eac8de202a28fa6db6bf3da496330d2440ab9bebc80ddd4ae498f9fa310dd54
 (defrule
     (up-compare-goal MILL != YES)
     (not(up-pending-placement c: mill))
@@ -1537,21 +1040,7 @@
     (set-goal MILL YES)
 )
 
-; ============================================================
-; R07 RULE 1877 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: game-time < 1200; goal gl-strategy KRUSH; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; building-type-count-total mining-camp >= 1
-; State writes: set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-placement-fail-delta 0; set-strategic-number sn-placement-zone-size 5
-; Pending guards: none
-; Commands: up-build place-normal gl-escrow-state c: mining-camp
-; Placement operations: up-build place-normal gl-escrow-state c: mining-camp
-; Completion/world observers: building-type-count-total mining-camp >= 1
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1878;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1877 | REGION=R07 | BODY_SHA256=e716e165753acb83a45daf110d08c30fa8b6bfabad29821f4049febd5f840e68
 (defrule	;failsafe
     (game-time < 1200)
     (goal gl-strategy KRUSH)
@@ -1567,21 +1056,7 @@
     (up-build place-normal gl-escrow-state c: mining-camp)
 )
 
-; ============================================================
-; R07 RULE 1878 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-progression-pause -1; goal gl-strategy KRUSH; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; building-type-count-total mining-camp < 1
-; State writes: set-strategic-number sn-focus-player-number 0
-; Pending guards: none
-; Commands: none
-; Placement operations: up-full-reset-search; up-set-target-point home-x; up-find-remote c: gold-mine c: 40; up-clean-search search-remote 44 search-order-asc; up-remove-objects search-remote -1 > 0
-; Completion/world observers: building-type-count-total mining-camp < 1
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1879;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1878 | REGION=R07 | BODY_SHA256=3d1813cedcc0767acd5bd028009051479c673a07ee6fe3b5963fa7d90b7abdee
 (defrule
     (goal gl-progression-pause -1)
     (goal gl-strategy KRUSH)
@@ -1599,21 +1074,7 @@
     (up-remove-objects search-remote -1 > 0)
 )
 
-; ============================================================
-; R07 RULE 1879 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-tenth-turn 1; goal gl-strategy KRUSH; goal gl-progression-pause -1; dropsite-min-distance gold > 3; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; up-set-target-object search-remote c: 0; up-timer-status t-build-delay != timer-running
-; State writes: set-goal SPLIT 1
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: dropsite-min-distance gold > 3
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1880;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1879 | REGION=R07 | BODY_SHA256=e9d1ca3b51eb9b92661337bed23da848af16d4bf785d918a5f4dd31a1715ba25
 (defrule
     (goal gl-tenth-turn 1)
     (goal gl-strategy KRUSH)
@@ -1627,21 +1088,7 @@
     (set-goal SPLIT 1)
 )
 
-; ============================================================
-; R07 RULE 1880 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal SPLIT 1
-; State writes: set-strategic-number sn-placement-zone-size 5; set-strategic-number sn-placement-fail-delta 0; set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-dropsite-separation-distance 10; set-escrow-percentage wood 0; set-goal SPLIT 0
-; Pending guards: none
-; Commands: release-escrow wood; up-build place-point 0 c: mining-camp
-; Placement operations: up-get-point position-object point-x; up-set-target-point point-x; up-build place-point 0 c: mining-camp
-; Completion/world observers: none
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1881;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1880 | REGION=R07 | BODY_SHA256=c3f476c15d381195244a15a9b6ffc4b2e139ddcbaec9420567db88e984a6f64b
 (defrule
     (goal SPLIT 1)
 =>
@@ -1660,21 +1107,7 @@
     (set-goal SPLIT 0)
 )
 
-; ============================================================
-; R07 RULE 1881 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy KRUSH; dropsite-min-distance gold >= 5; up-compare-goal gl-build-progress > KrushGoldMCNumber
-; State writes: set-goal gl-build-progress KrushGoldMCNumber
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: dropsite-min-distance gold >= 5
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1882;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1881 | REGION=R07 | BODY_SHA256=17f4381719caae29de1be6dcf993ade97d45965bc168939a96ab2b60cc8114f7
 (defrule	;come back if skipped
     (goal gl-strategy KRUSH)
     (dropsite-min-distance gold >= 5)
@@ -1683,21 +1116,7 @@
     (set-goal gl-build-progress KrushGoldMCNumber)
 )
 
-; ============================================================
-; R07 RULE 1882 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy KRUSH; up-compare-goal gl-current-build-item != GOLDMC1; up-compare-goal gl-build-progress == KrushGoldMCNumber
-; State writes: set-goal gl-current-build-item GOLDMC1
-; Pending guards: none
-; Commands: chat-to-player me "Krush Setting current build item to GOLDMC1"
-; Placement operations: none
-; Completion/world observers: none
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1883;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1882 | REGION=R07 | BODY_SHA256=5c00d4713569667ebaf10fd5d870819e1cdf131e8f2c7d220094f1ea3c79222e
 (defrule
     (goal gl-strategy KRUSH)
     (up-compare-goal gl-current-build-item != GOLDMC1)
@@ -1707,21 +1126,7 @@
     (set-goal gl-current-build-item GOLDMC1)
 )
 
-; ============================================================
-; R07 RULE 1883 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy KRUSH; dropsite-min-distance gold < 5; goal gl-current-build-item GOLDMC1
-; State writes: up-modify-goal gl-build-progress c:+ 1
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: dropsite-min-distance gold < 5
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1884;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1883 | REGION=R07 | BODY_SHA256=5443984f974c953bc1cd69a7acb4e2e7bfd854e92b8f85a1670c14ed6ac1c281
 (defrule
     (goal gl-strategy KRUSH)
     (dropsite-min-distance gold < 5)
@@ -1732,21 +1137,7 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1884 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-fifth-turn 1; goal gl-strategy FLUSH; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; building-type-count-total mining-camp >= 1
-; State writes: set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-placement-fail-delta 0; set-strategic-number sn-placement-zone-size 5
-; Pending guards: none
-; Commands: up-build place-normal gl-escrow-state c: mining-camp
-; Placement operations: up-build place-normal gl-escrow-state c: mining-camp
-; Completion/world observers: building-type-count-total mining-camp >= 1
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1885;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1884 | REGION=R07 | BODY_SHA256=e635c48ff9612fc072d850aabb61363b3db8dca4eaacad39d1f3013e6b285f55
 (defrule	;failsafe
     (goal gl-fifth-turn 1)
     (goal gl-strategy FLUSH)
@@ -1762,21 +1153,7 @@
     (up-build place-normal gl-escrow-state c: mining-camp)
 )
 
-; ============================================================
-; R07 RULE 1885 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy FLUSH; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; building-type-count-total mining-camp < 1
-; State writes: set-strategic-number sn-focus-player-number 0
-; Pending guards: none
-; Commands: none
-; Placement operations: up-full-reset-search; up-set-target-point home-x; up-find-remote c: gold-mine c: 40; up-clean-search search-remote 44 search-order-asc; up-remove-objects search-remote -1 > 0
-; Completion/world observers: building-type-count-total mining-camp < 1
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1886;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1885 | REGION=R07 | BODY_SHA256=8bc9e0de9d3186636625d3cdbc54ab130e522ad22b769be27462e969bb7ae1c3
 (defrule
     (goal gl-strategy FLUSH)
     (goal gl-progression-pause -1)
@@ -1794,21 +1171,7 @@
     (up-remove-objects search-remote -1 > 0)
 )
 
-; ============================================================
-; R07 RULE 1886 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-tenth-turn 1; goal gl-strategy FLUSH; goal gl-progression-pause -1; dropsite-min-distance gold > 3; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC1; up-set-target-object search-remote c: 0; up-timer-status t-build-delay != timer-running
-; State writes: set-goal SPLIT 1
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: dropsite-min-distance gold > 3
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1887;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1886 | REGION=R07 | BODY_SHA256=8f44f732ee58da7f16f5c234526dcc3c30d48489058496620faef9368afcde76
 (defrule
     (goal gl-tenth-turn 1)
     (goal gl-strategy FLUSH)
@@ -1822,21 +1185,7 @@
     (set-goal SPLIT 1)
 )
 
-; ============================================================
-; R07 RULE 1887 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal SPLIT 1
-; State writes: set-strategic-number sn-placement-zone-size 5; set-strategic-number sn-placement-fail-delta 0; set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-dropsite-separation-distance 10; set-escrow-percentage wood 0; set-goal SPLIT 0
-; Pending guards: none
-; Commands: release-escrow wood; up-build place-point 0 c: mining-camp
-; Placement operations: up-get-point position-object point-x; up-set-target-point point-x; up-build place-point 0 c: mining-camp
-; Completion/world observers: none
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1888;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1887 | REGION=R07 | BODY_SHA256=c3f476c15d381195244a15a9b6ffc4b2e139ddcbaec9420567db88e984a6f64b
 (defrule
     (goal SPLIT 1)
 =>
@@ -1855,21 +1204,7 @@
     (set-goal SPLIT 0)
 )
 
-; ============================================================
-; R07 RULE 1888 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy FLUSH; dropsite-min-distance gold >= 5; up-compare-goal gl-build-progress > GoldMC1Number
-; State writes: set-goal gl-build-progress GoldMC1Number
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: dropsite-min-distance gold >= 5
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1889;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1888 | REGION=R07 | BODY_SHA256=a071f89287a0a47a77cd37c9bb806c534beb213f5b7a0062139975df0ac5b5e6
 (defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (dropsite-min-distance gold >= 5)
@@ -1878,21 +1213,7 @@
     (set-goal gl-build-progress GoldMC1Number)
 )
 
-; ============================================================
-; R07 RULE 1889 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy FLUSH; up-compare-goal gl-current-build-item != GOLDMC1; up-compare-goal gl-build-progress == GoldMC1Number
-; State writes: set-goal gl-current-build-item GOLDMC1; set-escrow-percentage wood LOW-ESCROW
-; Pending guards: none
-; Commands: chat-to-player me "Setting current build item to GOLDMC1"
-; Placement operations: none
-; Completion/world observers: none
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1890;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1889 | REGION=R07 | BODY_SHA256=162a595a3e39710ede43e94dd97e21a246dab2db4296deefac46a179b0f43a0e
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != GOLDMC1)
@@ -1903,21 +1224,7 @@
     (set-escrow-percentage wood LOW-ESCROW)
 )
 
-; ============================================================
-; R07 RULE 1890 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy FLUSH; dropsite-min-distance gold < 5; goal gl-current-build-item GOLDMC1
-; State writes: up-modify-goal gl-build-progress c:+ 1
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: dropsite-min-distance gold < 5
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1891;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1890 | REGION=R07 | BODY_SHA256=33815645e1bd95ee5e197be6db6178eda24e81241983318d007b230a868c9f32
 (defrule
     (goal gl-strategy FLUSH)
     (dropsite-min-distance gold < 5)
@@ -1927,42 +1234,14 @@
     (up-modify-goal gl-build-progress c:+ 1)
 )
 
-; ============================================================
-; R07 RULE 1891 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: none
-; State writes: none
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: none
-; Explicit jumps: up-jump-rule 5
-; Source-order semantics: fall-through successor is R07 rule 1892;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1891 | REGION=R07 | BODY_SHA256=80bff2c736734523963bcbc6accde0beed1a9f5f20a67e85ad5f53e358329f61
 (defrule
     (true)
 =>
     (up-jump-rule 5)
 )
 
-; ============================================================
-; R07 RULE 1892 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC2
-; State writes: set-strategic-number sn-focus-player-number 0
-; Pending guards: none
-; Commands: none
-; Placement operations: up-full-reset-search; up-set-target-point home-x; up-find-remote c: gold-mine c: 30; up-clean-search search-remote 44 search-order-desc
-; Completion/world observers: none
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1893;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1892 | REGION=R07 | BODY_SHA256=2784723178efd3b07a73435dd17557d1adf98295ba496c6f398971f3183ccf16
 (defrule
     (false)
     (goal gl-progression-pause -1)
@@ -1978,21 +1257,7 @@
     (up-clean-search search-remote 44 search-order-desc)
 )
 
-; ============================================================
-; R07 RULE 1893 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item GOLDMC2; up-set-target-object search-remote c: 0; up-timer-status t-build-delay != timer-running
-; State writes: set-strategic-number sn-placement-zone-size 15; set-strategic-number sn-placement-fail-delta 2; set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-dropsite-separation-distance 25
-; Pending guards: none
-; Commands: release-escrow wood; up-build place-point 0 c: mining-camp
-; Placement operations: up-get-point position-object point-x; up-set-target-point point-x; up-build place-point 0 c: mining-camp
-; Completion/world observers: none
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1894;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1893 | REGION=R07 | BODY_SHA256=7e3049cae7e044ecb90d2a9c8f0e51fb8bb0fef044a190eba58baa1d20ffec7c
 (defrule
     (false)
     (goal gl-progression-pause -1)
@@ -2013,21 +1278,7 @@
     ;	(enable-timer t-build-delay 3)
 )
 
-; ============================================================
-; R07 RULE 1894 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy FLUSH; building-type-count-total mining-camp < 3; up-compare-goal gl-build-progress > GoldMC2Number
-; State writes: set-goal gl-build-progress GoldMC2Number
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: building-type-count-total mining-camp < 3
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1895;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1894 | REGION=R07 | BODY_SHA256=040b2b71442d67275e788018a072aec7593b564e1475b1974e00d547cb341c49
 (defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (building-type-count-total mining-camp < 3)
@@ -2036,21 +1287,7 @@
     (set-goal gl-build-progress GoldMC2Number)
 )
 
-; ============================================================
-; R07 RULE 1895 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy FLUSH; up-compare-goal gl-current-build-item != GOLDMC2; up-compare-goal gl-build-progress == GoldMC2Number
-; State writes: set-goal gl-current-build-item GOLDMC2; set-escrow-percentage wood LOW-ESCROW
-; Pending guards: none
-; Commands: chat-to-player me "Setting current build item to GOLDMC2"
-; Placement operations: none
-; Completion/world observers: none
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1896;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1895 | REGION=R07 | BODY_SHA256=370ac95e808fee544ca2def8b96cbfc17bde9cc63e244e2e7a7df461e3b26329
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != GOLDMC2)
@@ -2061,21 +1298,7 @@
     (set-escrow-percentage wood LOW-ESCROW)
 )
 
-; ============================================================
-; R07 RULE 1896 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-current-build-item GOLDMC2; building-type-count-total mining-camp >= 3
-; State writes: up-modify-goal gl-build-progress c:+ 1
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: building-type-count-total mining-camp >= 3
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1897;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1896 | REGION=R07 | BODY_SHA256=4cfff4d1e8e98f8915776417ba460e3c3b81b3834f4e07127b484a7b0e3e2890
 (defrule
     (goal gl-current-build-item GOLDMC2)
     (building-type-count-total mining-camp >= 3)
@@ -2084,21 +1307,7 @@
     ;	(chat-to-player me "Second Gold Mining Camp Built")
 )
 
-; ============================================================
-; R07 RULE 1897 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-fifth-turn 1; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item STONEMC1
-; State writes: set-strategic-number sn-focus-player-number 0
-; Pending guards: none
-; Commands: none
-; Placement operations: up-full-reset-search; up-set-target-point home-x; up-find-remote c: stone-mine c: 40; up-clean-search search-remote object-data-distance search-order-asc; up-remove-objects search-remote -1 > 0
-; Completion/world observers: none
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1898;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1897 | REGION=POST_R07_ADDITIONAL_MINING_CONSTRUCTION | BODY_SHA256=aac9dcdecd071d41e9760f363c72a5f6ba1b5277b751885d51bfcab0a726e6db
 (defrule
     (goal gl-fifth-turn 1)
     (goal gl-progression-pause -1)
@@ -2115,21 +1324,7 @@
     (up-remove-objects search-remote -1 > 0)
 )
 
-; ============================================================
-; R07 RULE 1898 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-fifth-turn 1; goal gl-progression-pause -1; can-build-with-escrow mining-camp; goal gl-current-build-item STONEMC1; building-type-count-total farm >= 12; up-set-target-object search-remote c: 0
-; State writes: set-strategic-number sn-placement-zone-size 5; set-strategic-number sn-placement-fail-delta 10; set-strategic-number sn-allow-adjacent-dropsites 0; set-strategic-number sn-dropsite-separation-distance 10; set-escrow-percentage wood 0
-; Pending guards: none
-; Commands: release-escrow wood; up-build place-point 0 c: mining-camp
-; Placement operations: up-get-point position-object point-x; up-set-target-point point-x; up-build place-point 0 c: mining-camp
-; Completion/world observers: building-type-count-total farm >= 12
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1899;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1898 | REGION=POST_R07_ADDITIONAL_MINING_CONSTRUCTION | BODY_SHA256=9a914b4a2c5a3abd12639a3e9ed6bb834894e3d9a99e26586ebe59efbe51dcc1
 (defrule
     (goal gl-fifth-turn 1)
     (goal gl-progression-pause -1)
@@ -2151,21 +1346,7 @@
     (up-build place-point 0 c: mining-camp)
 )
 
-; ============================================================
-; R07 RULE 1899 -- AUTHENTICATED DONOR DOCUMENTATION
-; ============================================================
-; State reads: goal gl-strategy FLUSH; dropsite-min-distance stone >= 5; up-compare-goal gl-build-progress > StoneMC1Number
-; State writes: set-goal gl-build-progress StoneMC1Number
-; Pending guards: none
-; Commands: none
-; Placement operations: none
-; Completion/world observers: dropsite-min-distance stone >= 5
-; Explicit jumps: none
-; Source-order semantics: fall-through successor is R07 rule 1900;
-;                        explicit jump targets, if any, are preserved verbatim.
-; Evidence: DIRECT_DONOR_TEXT for the rule body; documentation fields are
-;          mechanically extracted annotations and are not runtime proof.
-
+; AUTHENTICATED DONOR RULE 1899 | REGION=POST_R07_ADDITIONAL_MINING_CONSTRUCTION | BODY_SHA256=96eff90ad46abe3721fdbec267483e68c983f52a287d1edd7705a23d4dfe6417
 (defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (dropsite-min-distance stone >= 5)
@@ -2173,16 +1354,8 @@
 =>
     (set-goal gl-build-progress StoneMC1Number)
 )
-; ============================================================
-; R07 RULE 1900
-; ============================================================
-; State reads: goal gl-strategy FLUSH; current build item != STONEMC1; build progress == StoneMC1Number.
-; State writes: gl-current-build-item = STONEMC1; wood escrow percentage = LOW-ESCROW.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1901.
+
+; AUTHENTICATED DONOR RULE 1900 | REGION=POST_R07_ADDITIONAL_MINING_CONSTRUCTION | BODY_SHA256=d49b8323fd529d845abcaeee88d7dab3c015ee4f402f819b8dd4f8c4faaffb7e
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != STONEMC1)
@@ -2193,16 +1366,7 @@
     (set-escrow-percentage wood LOW-ESCROW)
 )
 
-; ============================================================
-; R07 RULE 1901
-; ============================================================
-; State reads: dropsite-min-distance stone < 5; gl-current-build-item = STONEMC1.
-; State writes: gl-build-progress += 1.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observer: dropsite-min-distance stone < 5.
-; Explicit jumps: none; fall-through -> 1902.
+; AUTHENTICATED DONOR RULE 1901 | REGION=POST_R07_ADDITIONAL_MINING_CONSTRUCTION | BODY_SHA256=7500690cf8cd71626d2ed9f757a54fc6a141f67f5bbba73e951a0932f661daf5
 (defrule
     (dropsite-min-distance stone < 5)
     (goal gl-current-build-item STONEMC1)
@@ -2211,16 +1375,7 @@
     (up-modify-goal gl-build-progress c:+ 1)
 )
 
-; ============================================================
-; R07 RULE 1902
-; ============================================================
-; State reads: game-time >= 1480 OR (game-time >= 1140 AND gl-strategy KRUSH); t-mc status; gold/stone dropsite distances; gl-escrow-state via up-can-build.
-; State writes: adjacent-dropsite policy=0; placement-fail-delta=0; placement-zone-size=5; t-mc=280.
-; Pending guards: none.
-; Commands: up-build place-normal gl-escrow-state c: mining-camp.
-; Placement operations: NORMAL mining-camp placement.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1903.
+; AUTHENTICATED DONOR RULE 1902 | REGION=POST_R07_ADDITIONAL_MINING_CONSTRUCTION | BODY_SHA256=372fd86304a07f8f3bdb6f0f0217b32cd6ff5f254b77fed495c9bc7d9df70915
 (defrule
     (or	(game-time >= 1480)	;24 min
     (and(game-time >= 1140)	;19 min
@@ -2238,16 +1393,7 @@
     (up-build place-normal gl-escrow-state c: mining-camp)
 )
 
-; ============================================================
-; R07 RULE 1903
-; ============================================================
-; State reads: gl-progression-pause=-1; can-build-with-escrow university; gl-current-build-item=UNIVERSITY.
-; State writes: placement data; placement-zone-size=3.
-; Pending guards: none.
-; Commands: up-build place-control gl-escrow-state c: university.
-; Placement operations: CONTROL university placement.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1904.
+; AUTHENTICATED DONOR RULE 1903 | REGION=QUNIVERSITY | BODY_SHA256=ea53af49659587ef00ede46b563cde134b46c643dfefdf65d7ed3b887d9092d4
 (defrule
     (goal gl-progression-pause -1)
     (can-build-with-escrow university)
@@ -2259,16 +1405,7 @@
     (up-build place-control gl-escrow-state c: university)
 )
 
-; ============================================================
-; R07 RULE 1904
-; ============================================================
-; State reads: gl-strategy=FLUSH; university count < 1; gl-build-progress > UniversityNumber.
-; State writes: gl-build-progress = UniversityNumber.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observer: university count < 1 is reconciliation evidence.
-; Explicit jumps: none; fall-through -> 1905.
+; AUTHENTICATED DONOR RULE 1904 | REGION=QUNIVERSITY | BODY_SHA256=a6cf8e8e3e939c68c43aae32b0e98a9650be5c46195516555d710c4e466534c5
 (defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (building-type-count-total university < 1)
@@ -2277,16 +1414,7 @@
     (set-goal gl-build-progress UniversityNumber)
 )
 
-; ============================================================
-; R07 RULE 1905
-; ============================================================
-; State reads: gl-strategy=FLUSH; gl-current-build-item != UNIVERSITY; gl-build-progress == UniversityNumber.
-; State writes: gl-current-build-item = UNIVERSITY.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1906.
+; AUTHENTICATED DONOR RULE 1905 | REGION=QUNIVERSITY | BODY_SHA256=215c3a1eebc186a16e8a2d8e29ef196000671a255781afc2b9996d87b44edaf0
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != UNIVERSITY)
@@ -2297,16 +1425,7 @@
     ;	(set-escrow-percentage wood LOW-ESCROW)
 )
 
-; ============================================================
-; R07 RULE 1906
-; ============================================================
-; State reads: gl-strategy=FLUSH; gl-current-build-item=UNIVERSITY.
-; State writes: wood escrow=MID-ESCROW; food/gold escrow=0; releases food/gold.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1907.
+; AUTHENTICATED DONOR RULE 1906 | REGION=QUNIVERSITY | BODY_SHA256=e6e5ae874a2fc7bf27565223e2ecfbefa9c9abe5e1656866b07df2a0f8339b73
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item == UNIVERSITY)
@@ -2318,16 +1437,7 @@
     (release-escrow gold)
 )
 
-; ============================================================
-; R07 RULE 1907
-; ============================================================
-; State reads: gl-current-build-item=UNIVERSITY; university count >= 1.
-; State writes: gl-build-progress += 1.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observer: university count >= 1.
-; Explicit jumps: none; fall-through -> 1908.
+; AUTHENTICATED DONOR RULE 1907 | REGION=QUNIVERSITY | BODY_SHA256=1f5317da4c768b819035ffd5f08528232a13880e932eb2caa4b47af1bcdc28ff
 (defrule
     (goal gl-current-build-item UNIVERSITY)
     (building-type-count-total university >= 1)
@@ -2336,16 +1446,7 @@
     ;	(chat-to-player me "University Built")
 )
 
-; ============================================================
-; R07 RULE 1908
-; ============================================================
-; State reads: gl-progression-pause=-1; gl-current-build-item=BALLISTICS; can-research-with-escrow ri-ballistics.
-; State writes: none.
-; Pending guards: none.
-; Commands: up-research gl-escrow-state c: ri-ballistics; chat.
-; Placement operations: none.
-; Completion observers: none in this rule.
-; Explicit jumps: none; fall-through -> 1909.
+; AUTHENTICATED DONOR RULE 1908 | REGION=QBALLISTICS | BODY_SHA256=138b8a4d2c3c8b9e046588fd8d5e1dfa4a0b8b7e814e4d9fb18c34c5f562fb45
 (defrule
     (goal gl-progression-pause -1)
     (goal gl-current-build-item BALLISTICS)
@@ -2355,16 +1456,7 @@
     (chat-to-player me "Ballistics")
 )
 
-; ============================================================
-; R07 RULE 1909
-; ============================================================
-; State reads: gl-strategy=FLUSH; gl-build-progress > BallisticsNumber; ri-ballistics status < research-pending.
-; State writes: gl-build-progress = BallisticsNumber.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observer: research status < pending is reconciliation evidence.
-; Explicit jumps: none; fall-through -> 1910.
+; AUTHENTICATED DONOR RULE 1909 | REGION=QBALLISTICS | BODY_SHA256=9db015dbda6be08306105ae7eca0fc7cec4a5f8ce826564edfb2fbdffb46a599
 (defrule	;come back if skipped
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-build-progress > BallisticsNumber)
@@ -2373,16 +1465,7 @@
     (set-goal gl-build-progress BallisticsNumber)
 )
 
-; ============================================================
-; R07 RULE 1910
-; ============================================================
-; State reads: gl-strategy=FLUSH; gl-current-build-item != BALLISTICS; gl-build-progress == BallisticsNumber.
-; State writes: gl-current-build-item = BALLISTICS.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1911.
+; AUTHENTICATED DONOR RULE 1910 | REGION=QBALLISTICS | BODY_SHA256=b644fe0404bafc635b99dcbd79d9e074ba01f9936e2995589cd5c27a41984e1d
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item != BALLISTICS)
@@ -2394,16 +1477,7 @@
     ;	(set-escrow-percentage gold LOW-ESCROW)
 )
 
-; ============================================================
-; R07 RULE 1911
-; ============================================================
-; State reads: gl-strategy=FLUSH; gl-current-build-item=BALLISTICS.
-; State writes: wood/gold escrow=MID-ESCROW; food escrow=0; releases food.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1912.
+; AUTHENTICATED DONOR RULE 1911 | REGION=QBALLISTICS | BODY_SHA256=5feb17179e780b01b119d0c6a9669c73480154777a06c848d1920c706ad027b0
 (defrule
     (goal gl-strategy FLUSH)
     (up-compare-goal gl-current-build-item == BALLISTICS)
@@ -2414,16 +1488,7 @@
     (release-escrow food)
 )
 
-; ============================================================
-; R07 RULE 1912
-; ============================================================
-; State reads: gl-current-build-item=BALLISTICS; ri-ballistics status >= research-pending.
-; State writes: gl-build-progress += 1.
-; Pending guards: none.
-; Commands: none.
-; Placement operations: none.
-; Completion observer: ri-ballistics >= research-pending.
-; Explicit jumps: none; fall-through -> 1913.
+; AUTHENTICATED DONOR RULE 1912 | REGION=QBALLISTICS | BODY_SHA256=6927c4fcf5b3a3c02bc0a60903fb18335f3b07d75265442cb82b2c16b9262420
 (defrule
     (goal gl-current-build-item BALLISTICS)
     (up-research-status c: ri-ballistics >= research-pending)
@@ -2432,17 +1497,7 @@
     (up-modify-goal gl-build-progress c:+ 1)
 )
 
-; ============================================================
-; R07 RULE 1913
-; ============================================================
-; End-of-script timer stamp.
-; State reads: true.
-; State writes: timer 45 = 0 via up-set-timer.
-; Pending guards: none.
-; Commands: up-set-timer; up-get-timer.
-; Placement operations: none.
-; Completion observers: timer retrieval only; no construction completion.
-; Explicit jumps: none; fall-through -> 1914.
+; AUTHENTICATED DONOR RULE 1913 | REGION=QEND | BODY_SHA256=600f5bd9fde9be647c04839f9ec70e865cf8f80a3ef32987ecf843805c21aea0
 (defrule ;Find time stamp to compare to start of next pass
     (true)
 =>
@@ -2450,16 +1505,7 @@
     (up-get-timer c: 45 512)
 )
 
-; ============================================================
-; R07 RULE 1914
-; ============================================================
-; State reads: game-time > 45; gl-position FLANK.
-; State writes: self disabled.
-; Pending guards: none.
-; Commands: enemy chat messages; disable-self.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1915.
+; AUTHENTICATED DONOR RULE 1914 | REGION=QVERSION | BODY_SHA256=e9e9a3a4ac31369da0a1fc1aa88a26825c4e4280687f7914ef7ea2ae71632207
 (defrule
     (game-time > 45)
     (goal gl-position FLANK)
@@ -2469,16 +1515,7 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1915
-; ============================================================
-; State reads: game-time > 46; gl-position FLANK.
-; State writes: self disabled.
-; Pending guards: none.
-; Commands: enemy chat; disable-self.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1916.
+; AUTHENTICATED DONOR RULE 1915 | REGION=QVERSION | BODY_SHA256=0d7aa807437ef08e68d1f2903982ce2e5f418e9a4cb54ddad10dd3dfdcb34af3
 (defrule
     (game-time > 46)
     (goal gl-position FLANK)
@@ -2487,16 +1524,7 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1916
-; ============================================================
-; State reads: true.
-; State writes: gl-identity = Shadow; self disabled.
-; Pending guards: none.
-; Commands: disable-self.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1917.
+; AUTHENTICATED DONOR RULE 1916 | REGION=QMISC | BODY_SHA256=80f9776741df0dc6b9f6cb757a8baa15800cdd71cab8e67d7d49012def05fcb7
 (defrule
     (true)
 =>
@@ -2504,16 +1532,7 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1917
-; ============================================================
-; State reads: game-time > 20; game-time < 40; death-match-game OR current-age > dark-age OR not civ-selected viking.
-; State writes: self disabled.
-; Pending guards: none.
-; Commands: chat-to-all; disable-self.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1918.
+; AUTHENTICATED DONOR RULE 1917 | REGION=QMISC | BODY_SHA256=25375a9ba0d9abd264f7375090075b239155d3512e40f02c8120c4de4ced48d8
 (defrule
     (game-time > 20)
     (game-time < 40)
@@ -2525,16 +1544,7 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1918
-; ============================================================
-; State reads: gl-strategy FLUSH; taunt-detected me/any-ally/any-enemy.
-; State writes: none.
-; Pending guards: none.
-; Commands: chat-to-all; acknowledge-taunt this-any-enemy/this-any-ally/me.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1919.
+; AUTHENTICATED DONOR RULE 1918 | REGION=QENEMY_STRATEGY | BODY_SHA256=79d061e13afcfd630f3333171ce730cc4f5330605b6285a4aa1ff7940f31759e
 (defrule
     (goal gl-strategy FLUSH)
     (or	(taunt-detected me 250)
@@ -2547,16 +1557,7 @@
     (acknowledge-taunt me 250)
 )
 
-; ============================================================
-; R07 RULE 1919
-; ============================================================
-; State reads: gl-strategy KRUSH; taunt-detected me/any-ally/any-enemy.
-; State writes: none.
-; Pending guards: none.
-; Commands: chat-to-all; acknowledge-taunt this-any-enemy/this-any-ally/me.
-; Placement operations: none.
-; Completion observers: none.
-; Explicit jumps: none; fall-through -> 1920.
+; AUTHENTICATED DONOR RULE 1919 | REGION=QENEMY_STRATEGY | BODY_SHA256=8cd5e5cf7d386c03305aeeb290f6c7bcc493fd25972cc7b6a6b06aed544d6f4a
 (defrule
     (goal gl-strategy KRUSH)
     (or	(taunt-detected me 250)
@@ -2569,16 +1570,7 @@
     (acknowledge-taunt me 250)
 )
 
-; ============================================================
-; R07 RULE 1920
-; ============================================================
-; State reads: false; game-time < 660; EARLY-MINING-NOTICE != YES; target mining-camp count > 0.
-; State writes: EARLY-MINING-NOTICE = YES.
-; Pending guards: none.
-; Commands: chat-to-player.
-; Placement operations: none.
-; Completion observers: target mining-camp count > 0.
-; Explicit jumps: none; fall-through -> 1921.
+; AUTHENTICATED DONOR RULE 1920 | REGION=QENEMY_STRATEGY | BODY_SHA256=39fcf5cb098b4b2bcdc31093575fd46e0b822b40e545fb9c0db9c3daf7b2fb49
 (defrule
     (false)
     (game-time < 660)
@@ -2589,16 +1581,7 @@
     (set-goal EARLY-MINING-NOTICE YES)
 )
 
-; ============================================================
-; R07 RULE 1921
-; ============================================================
-; State reads: false; gl-enemy-strategy=-1; target age-time > 100; target current-age > dark-age.
-; State writes: self disabled.
-; Pending guards: none.
-; Commands: chat-to-player; up-chat-data-to-player; disable-self.
-; Placement operations: none.
-; Completion observers: target age/time predicates only.
-; Explicit jumps: none; fall-through -> 1922.
+; AUTHENTICATED DONOR RULE 1921 | REGION=QENEMY_STRATEGY | BODY_SHA256=05ff3ae9cb16224382622955a189f5ee76cf349043c4b153c0af6893d2483bb6
 (defrule
     (false)
     (goal gl-enemy-strategy -1)
@@ -2610,16 +1593,7 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1922
-; ============================================================
-; State reads: false; gl-enemy-strategy=-1; target current-age=dark-age; target military population > 2.
-; State writes: gl-enemy-strategy = DRUSH; self disabled.
-; Pending guards: none.
-; Commands: chat-to-player; disable-self.
-; Placement operations: none.
-; Completion observers: target age/military population predicates.
-; Explicit jumps: none; fall-through -> 1923.
+; AUTHENTICATED DONOR RULE 1922 | REGION=QENEMY_STRATEGY | BODY_SHA256=a06a48b20a67c7bfd3a371f039d074137a4dc5bac217b59c9faf7ef949ca3ebd
 (defrule
     (false)
     (goal gl-enemy-strategy -1)
@@ -2631,16 +1605,7 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1923
-; ============================================================
-; State reads: false; gl-enemy-strategy != RANGED-FLUSH; target current-age=feudal-age; target age-time < 100 with military-pop > 4 and range=1 OR range=2.
-; State writes: gl-enemy-strategy-type = RANGED-FLUSH; gl-enemy-strategy = FLUSH; self disabled.
-; Pending guards: none.
-; Commands: chat-to-player; disable-self.
-; Placement operations: none.
-; Completion observers: target age/time, military population, and archery-range predicates.
-; Explicit jumps: none; fall-through -> 1924.
+; AUTHENTICATED DONOR RULE 1923 | REGION=QENEMY_STRATEGY | BODY_SHA256=d04fb730934c724e8b4e6d81100231090fa1c0d5995502dd9be7889587290636
 (defrule
     (false)
     (not(goal gl-enemy-strategy RANGED-FLUSH))
@@ -2656,16 +1621,7 @@
     (disable-self)
 )
 
-; ============================================================
-; R07 RULE 1924
-; ============================================================
-; State reads: false; gl-enemy-strategy != SCRUSH; target current-age=feudal-age; target archery-range < 2; target scout-cavalry count > 1 OR stable > 0.
-; State writes: gl-enemy-strategy-type = FLUSH; gl-enemy-strategy = SCRUSH.
-; Pending guards: none.
-; Commands: chat-to-player.
-; Placement operations: none.
-; Completion observers: target age, archery-range, scout-cavalry and stable predicates.
-; Explicit jumps: none; end of requested interval falls through to 1925.
+; AUTHENTICATED DONOR RULE 1924 | REGION=QENEMY_STRATEGY | BODY_SHA256=50dd1a570ff815e6468203d315db2a84fdf277bdeabe71048f026627d734f3fe
 (defrule
     (false)
     (not(goal gl-enemy-strategy SCRUSH))
@@ -2678,22 +1634,34 @@
     (set-goal gl-enemy-strategy-type FLUSH)
     (set-goal gl-enemy-strategy SCRUSH)
 )
-; ============================================================
-; AUTHENTICATED DONOR RULES 1925-1949
-; NOTE: In ShadowSource.per this interval begins the QEAGOL region
-; immediately after the preceding enemy-strategy rule. It is retained
-; verbatim as a donor interval; the R07 construction boundary itself
-; terminates earlier. No semantic reinterpretation is introduced.
-; ============================================================
 
-; 1925 -- QEAGOL setup
-; Reads: none beyond true.
-; Writes: gl-my-player-number from player-number fact; disables self.
-; Jumps: none; fall-through -> 1926.
-; Pending guards: none.
-; Commands: up-get-fact, disable-self.
-; Placement: none.
-; Completion/world observers: none.
+; AUTHENTICATED DONOR RULE 1925 | REGION=QEAGOL | BODY_SHA256=31236b6a5b584fdfe7be3096daf1e09bce90807e9c4ea04edc4563450dc98adb
+(defrule
+    (false)
+    (goal gl-enemy-strategy-type FC)
+    (up-compare-goal gl-target-age < CA-loading)
+    (players-current-age-time target-player > 100)
+    (players-current-age target-player == feudal-age)
+=>
+    (chat-to-player me "12Target is flushing, no FC")
+    (set-goal gl-enemy-strategy-type FLUSH)
+)
+
+; AUTHENTICATED DONOR RULE 1926 | REGION=QEAGOL | BODY_SHA256=5b4a9b8e550f375b6f7586d782abf7656a954331dd430c24a5b21db61bf8f22a
+(defrule
+    (false)
+    (not(goal gl-enemy-strategy KRUSH))
+    (players-current-age target-player == feudal-age)
+    (players-building-type-count target-player stable > 0)
+    (or	(up-compare-goal gl-target-age >= CA-loading)
+    (players-building-type-count target-player market > 0))
+=>
+    (chat-to-player me "12Target is going for a krush")
+    (set-goal gl-enemy-strategy-type FC)
+    (set-goal gl-enemy-strategy KRUSH)
+)
+
+; AUTHENTICATED DONOR RULE 1927 | REGION=QEAGOL | BODY_SHA256=4a342a8b857cf5344e39d06671c10668949ca89b8a64688d5495d6df1f3ecf3b
 (defrule
     (true)
 =>
@@ -2701,14 +1669,7 @@
     (disable-self)
 )
 
-; 1926 -- initialize target age to Dark Age.
-; Reads: none beyond true.
-; Writes: gl-target-age = DA; disables self.
-; Jumps: none; fall-through -> 1927.
-; Pending guards: none.
-; Commands: disable-self.
-; Placement: none.
-; Completion observer: none.
+; AUTHENTICATED DONOR RULE 1928 | REGION=QEAGOL | BODY_SHA256=e5376044a352af86a20375766ea40d4b1010291fea4cec1f66e86f8c2fc2083e
 (defrule
     (true)
 =>
@@ -2716,14 +1677,7 @@
     (disable-self)
 )
 
-; 1927 -- target Feudal loading announcement.
-; Reads: gl-target-age == FA-loading.
-; Writes: none; disables self.
-; Jumps: none; fall-through -> 1928.
-; Pending guards: none.
-; Commands: chat-to-player, disable-self.
-; Placement: none.
-; Completion observer: target-age state.
+; AUTHENTICATED DONOR RULE 1929 | REGION=QEAGOL | BODY_SHA256=365d1dac2a4369e8bcd6b0a31efadd696d043df75e25909563f884b8db602633
 (defrule
     (goal gl-target-age FA-loading)
 =>
@@ -2731,30 +1685,16 @@
     (disable-self)
 )
 
-; 1928 -- observe target reaching Feudal Age.
-; Reads: gl-target-age < FA; target current age == feudal-age.
-; Writes: gl-target-age = FA.
-; Jumps: none; fall-through -> 1929.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: players-current-age target-player.
+; AUTHENTICATED DONOR RULE 1930 | REGION=QEAGOL | BODY_SHA256=86768b4a857f89c1c26a9441ea8e36a3f2736a487f2fddfe1175593a09962341
 (defrule
     (up-compare-goal gl-target-age < FA)
     (players-current-age target-player == feudal-age)
 =>
-    ; (enable-timer t-scout-enemy 30) ; donor comment retained semantically inert
+    ;	(enable-timer t-scout-enemy 30)
     (set-goal gl-target-age FA)
 )
 
-; 1929 -- target Castle loading announcement.
-; Reads: gl-target-age == CA-loading.
-; Writes: none; disables self.
-; Jumps: none; fall-through -> 1930.
-; Pending guards: none.
-; Commands: chat-to-player, disable-self.
-; Placement: none.
-; Completion observer: target-age state.
+; AUTHENTICATED DONOR RULE 1931 | REGION=QEAGOL | BODY_SHA256=951c5c1ecd505d9ef4c9453b8d607baff34dd04080429fdaa1bf0bb538266d59
 (defrule
     (goal gl-target-age CA-loading)
 =>
@@ -2762,14 +1702,7 @@
     (disable-self)
 )
 
-; 1930 -- observe target reaching Castle Age.
-; Reads: gl-target-age < CA; target current age >= castle-age.
-; Writes: gl-target-age = CA.
-; Jumps: none; fall-through -> 1931.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: players-current-age target-player.
+; AUTHENTICATED DONOR RULE 1932 | REGION=QEAGOL | BODY_SHA256=8d9960bdcaa4b8045428f0109529fe6b9ea0a948fe2904c9eaade2527b5c378e
 (defrule
     (up-compare-goal gl-target-age < CA)
     (players-current-age target-player >= castle-age)
@@ -2777,14 +1710,7 @@
     (set-goal gl-target-age CA)
 )
 
-; 1931 -- target Imperial loading announcement.
-; Reads: gl-target-age == IA-loading.
-; Writes: none; disables self.
-; Jumps: none; fall-through -> 1932.
-; Pending guards: none.
-; Commands: chat-to-player, disable-self.
-; Placement: none.
-; Completion observer: target-age state.
+; AUTHENTICATED DONOR RULE 1933 | REGION=QEAGOL | BODY_SHA256=607708685d4265283637d3412212a77d9226f987a0d9221e98f89b46356fae16
 (defrule
     (goal gl-target-age IA-loading)
 =>
@@ -2792,14 +1718,7 @@
     (disable-self)
 )
 
-; 1932 -- observe target reaching Imperial Age.
-; Reads: gl-target-age < IA; target current age >= imperial-age.
-; Writes: gl-target-age = IA.
-; Jumps: none; fall-through -> 1933.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: players-current-age target-player.
+; AUTHENTICATED DONOR RULE 1934 | REGION=QEAGOL | BODY_SHA256=67cd77b07e49604d3a044e3474cabe23e4c395834f2f24da9400a7efcac54d29
 (defrule
     (up-compare-goal gl-target-age < IA)
     (players-current-age target-player >= imperial-age)
@@ -2807,14 +1726,7 @@
     (set-goal gl-target-age IA)
 )
 
-; 1933 -- acquire initial target score samples.
-; Reads: game-time > 10; target player valid; target building count > 0.
-; Writes: gl-target-score1, gl-target-score2; disables self.
-; Jumps: none; fall-through -> 1934.
-; Pending guards: none.
-; Commands: up-get-target-fact, disable-self.
-; Placement: none.
-; Completion observer: target building count.
+; AUTHENTICATED DONOR RULE 1935 | REGION=QEAGOL | BODY_SHA256=a02e6eb73a0f96aab4b526bde8b688264c08a239899ee2be4a37dd11ce2c9ae5
 (defrule
     (game-time > 10)
     (player-valid target-player)
@@ -2822,47 +1734,26 @@
 =>
     (up-get-target-fact current-score 0 gl-target-score1)
     (up-get-target-fact current-score 0 gl-target-score2)
-    ; (up-modify-goal goal s:= sn-target-player-number) ; donor comment
+    ;	(up-modify-goal goal s:= sn-target-player-number)
     (disable-self)
 )
 
-; 1934 -- refresh target score while age checking.
-; Reads: gl-target-age-checking == YES.
-; Writes: gl-target-score1.
-; Jumps: none; fall-through -> 1935.
-; Pending guards: none.
-; Commands: up-get-target-fact.
-; Placement: none.
-; Completion observer: target current score.
+; AUTHENTICATED DONOR RULE 1936 | REGION=QEAGOL | BODY_SHA256=c9c5a87c9eaae90c67d38eadb7ba1e6aa17d3d6c0d688cd2f83fe9b43cbfa715
 (defrule
     (goal gl-target-age-checking YES)
 =>
     (up-get-target-fact current-score 0 gl-target-score1)
 )
 
-; 1935 -- derive score difference.
-; Reads: gl-target-score2.
-; Writes: gl-target-score1 = score1 - score2.
-; Jumps: none; fall-through -> 1936.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: none.
+; AUTHENTICATED DONOR RULE 1937 | REGION=QEAGOL | BODY_SHA256=3acba15ccf82712d644471fb0aeb89d9fb7ec8f8eb5694ec956819c79b5689d9
 (defrule
     (true)
 =>
     (up-modify-goal gl-target-score1 g:- gl-target-score2)
-    ; (up-chat-data-to-player me "target score difference: %d" g: gl-target-score1)
+    ;	(up-chat-data-to-player me "target score difference: %d" g: gl-target-score1)
 )
 
-; 1936 -- establish Dark Age target state.
-; Reads: target-age-checking; target current age == dark-age.
-; Writes: gl-target-age = DA.
-; Jumps: none; fall-through -> 1937.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: target current age.
+; AUTHENTICATED DONOR RULE 1938 | REGION=QEAGOL | BODY_SHA256=404e18a59128fbe8063dd3671fdf3aa1aad72831b9f2e903f8e3caad470a19a5
 (defrule
     (goal gl-target-age-checking YES)
     (players-current-age target-player == dark-age)
@@ -2870,31 +1761,17 @@
     (set-goal gl-target-age DA)
 )
 
-; 1937 -- detect Feudal transition from score delta.
-; Reads: target-age-checking; score1 > 37; target-age < FA-loading.
-; Writes: gl-target-age = FA-loading.
-; Jumps: none; fall-through -> 1938.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: score/target-age state.
+; AUTHENTICATED DONOR RULE 1939 | REGION=QEAGOL | BODY_SHA256=7387107a276c2a585600829bdfa9d6ea3704921c58482451321a5eb6959f5392
 (defrule
     (goal gl-target-age-checking YES)
     (up-compare-goal gl-target-score1 > 37)
     (up-compare-goal gl-target-age < FA-loading)
 =>
-    ; (enable-timer t-enemy-age-cancel 120) ; donor comment
+    ;	(enable-timer t-enemy-age-cancel 120)
     (set-goal gl-target-age FA-loading)
 )
 
-; 1938 -- disabled Feudal cancellation branch.
-; Reads: false; target-age-checking; target-age FA-loading; score1 < -37; cancel timer running.
-; Writes: gl-target-age = DA.
-; Jumps: none; fall-through -> 1939.
-; Pending guards: false predicate is a donor guard.
-; Commands: chat-to-player.
-; Placement: none.
-; Completion observer: score/timer state.
+; AUTHENTICATED DONOR RULE 1940 | REGION=QEAGOL | BODY_SHA256=98e2b6bc386e5796efb36d6703094457fbe80555a21ab2c5ad87c3f99e3b066c
 (defrule
     (false)
     (goal gl-target-age-checking YES)
@@ -2906,14 +1783,7 @@
     (set-goal gl-target-age DA)
 )
 
-; 1939 -- confirm Feudal completion.
-; Reads: target-age FA-loading; target-age-checking; target current age == feudal-age.
-; Writes: gl-target-age = FA.
-; Jumps: none; fall-through -> 1940.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: target current age.
+; AUTHENTICATED DONOR RULE 1941 | REGION=QEAGOL | BODY_SHA256=5ec8692c47f1f417de66fb261d8b61fc39a1c7aa22c9e515c0d30936d310ef83
 (defrule
     (goal gl-target-age FA-loading)
     (goal gl-target-age-checking YES)
@@ -2922,32 +1792,18 @@
     (set-goal gl-target-age FA)
 )
 
-; 1940 -- disabled Castle transition trigger.
-; Reads: target-age FA; false; score1 > 65; target age-time > 30.
-; Writes: none (donor timer action is commented).
-; Jumps: none; fall-through -> 1941.
-; Pending guards: false predicate is a donor guard.
-; Commands: none.
-; Placement: none.
-; Completion observer: target age/time and score.
+; AUTHENTICATED DONOR RULE 1942 | REGION=QEAGOL | BODY_SHA256=c7fef665bccdb3846b2d3bf26acda6c2cf333c775adcf18001c7360646c0df6e
 (defrule
     (goal gl-target-age FA)
     (false)
     (up-compare-goal gl-target-score1 > 65)
     (players-current-age-time target-player > 30)
 =>
-    ; (enable-timer t-enemy-age-cancel 150)
+    ;	(enable-timer t-enemy-age-cancel 150)
     (set-goal gl-target-age CA-loading)
 )
 
-; 1941 -- disabled Castle cancellation branch.
-; Reads: false; CA-loading; age-checking; score1 < -65; cancel timer running.
-; Writes: gl-target-age = FA.
-; Jumps: none; fall-through -> 1942.
-; Pending guards: false predicate is a donor guard.
-; Commands: none; donor chat is commented.
-; Placement: none.
-; Completion observer: score/timer state.
+; AUTHENTICATED DONOR RULE 1943 | REGION=QEAGOL | BODY_SHA256=f761595be71560831afdaaad27ac6ed3f9fdaf57b7a679efb972cc235af30a49
 (defrule
     (false)
     (goal gl-target-age CA-loading)
@@ -2955,18 +1811,11 @@
     (up-compare-goal gl-target-score1 < -65)
     (up-timer-status t-enemy-age-cancel == timer-running)
 =>
-    ; (chat-to-player me "Target cancelled Castle Age")
+    ;	(chat-to-player me "Target cancelled Castle Age")
     (set-goal gl-target-age FA)
 )
 
-; 1942 -- confirm Castle completion.
-; Reads: CA-loading; age-checking; target current age == castle-age.
-; Writes: gl-target-age = CA.
-; Jumps: none; fall-through -> 1943.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: target current age.
+; AUTHENTICATED DONOR RULE 1944 | REGION=QEAGOL | BODY_SHA256=ab9a24e5e7845a86b45784c70fe585c142ef5c9dc39b231a50cd7b8e6839ceda
 (defrule
     (goal gl-target-age CA-loading)
     (goal gl-target-age-checking YES)
@@ -2975,31 +1824,17 @@
     (set-goal gl-target-age CA)
 )
 
-; 1943 -- trigger Imperial transition.
-; Reads: target-age CA; score1 > 100; target age-time > 30.
-; Writes: gl-target-age = IA-loading.
-; Jumps: none; fall-through -> 1944.
-; Pending guards: none.
-; Commands: none; donor timer action is commented.
-; Placement: none.
-; Completion observer: target age/time and score.
+; AUTHENTICATED DONOR RULE 1945 | REGION=QEAGOL | BODY_SHA256=91b5832904925f9b5ea8c266a3ac1a1ed1042219fc69179e9b17ab3cd21234b0
 (defrule
     (goal gl-target-age CA)
     (up-compare-goal gl-target-score1 > 100)
     (players-current-age-time target-player > 30)
 =>
-    ; (enable-timer t-enemy-age-cancel 200)
+    ;	(enable-timer t-enemy-age-cancel 200)
     (set-goal gl-target-age IA-loading)
 )
 
-; 1944 -- disabled Imperial cancellation branch.
-; Reads: false; age-checking; IA-loading; score1 < -100; cancel timer running.
-; Writes: gl-target-age = CA.
-; Jumps: none; fall-through -> 1945.
-; Pending guards: false predicate is a donor guard.
-; Commands: chat-to-player.
-; Placement: none.
-; Completion observer: score/timer state.
+; AUTHENTICATED DONOR RULE 1946 | REGION=QEAGOL | BODY_SHA256=3f23c815a136c93ebc34b14d7b9020061e52f1aa1ae5966c202d4e64cb29dae6
 (defrule
     (false)
     (goal gl-target-age-checking YES)
@@ -3011,14 +1846,7 @@
     (set-goal gl-target-age CA)
 )
 
-; 1945 -- confirm Imperial completion.
-; Reads: IA-loading; age-checking; target current age == imperial-age.
-; Writes: gl-target-age = IA.
-; Jumps: none; fall-through -> 1946.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: target current age.
+; AUTHENTICATED DONOR RULE 1947 | REGION=QSPECIAL_TIMERS | BODY_SHA256=ae5f09ad6366463d3c528fb4449cbc0c1459dd159d662deeb53fbe2a98660a5a
 (defrule
     (goal gl-target-age IA-loading)
     (goal gl-target-age-checking YES)
@@ -3027,14 +1855,7 @@
     (set-goal gl-target-age IA)
 )
 
-; 1946 -- refresh both score samples when changed.
-; Reads: target-age-checking; gl-target-score2 != gl-target-score1.
-; Writes: gl-target-score1, gl-target-score2.
-; Jumps: none; fall-through -> 1947.
-; Pending guards: none.
-; Commands: up-get-target-fact twice.
-; Placement: none.
-; Completion observer: target current score.
+; AUTHENTICATED DONOR RULE 1948 | REGION=QSPECIAL_TIMERS | BODY_SHA256=6a897a3ca699e916a269104cdc738b2090173c1e855cbbea81f135446e372c7f
 (defrule	;update the score
     (goal gl-target-age-checking YES)
     (up-compare-goal gl-target-score2 g:!= gl-target-score1)
@@ -3043,44 +1864,9 @@
     (up-get-target-fact current-score 0 gl-target-score2)
 )
 
-; 1947 -- periodic 30-second timer trigger.
-; Reads: timer 30SEC triggered.
-; Writes: gl-switch *= -1.
-; Jumps: none; fall-through -> 1948.
-; Pending guards: none.
-; Commands: none.
-; Placement: none.
-; Completion observer: timer trigger.
+; AUTHENTICATED DONOR RULE 1949 | REGION=QSPECIAL_TIMERS | BODY_SHA256=1fdbe2f3d3aea740e96f3874903ee936b7cd5c730f0dc70b5badb5a558646629
 (defrule
     (timer-triggered 30SEC)
 =>
     (up-modify-goal gl-switch c:* -1)
-)
-
-; 1948 -- arm 30-second timer when idle.
-; Reads: 30SEC timer not running.
-; Writes: 30SEC timer running for 30 seconds.
-; Jumps: none; fall-through -> 1949.
-; Pending guards: timer-not-running guard.
-; Commands: enable-timer.
-; Placement: none.
-; Completion observer: timer status.
-(defrule
-    (up-timer-status 30SEC != timer-running)
-=>
-    (enable-timer 30SEC 30)
-)
-
-; 1949 -- arm one-minute timer when idle.
-; Reads: ONE-MINUTE timer not running.
-; Writes: ONE-MINUTE timer running for 60 seconds.
-; Jumps: none; end of requested interval -> 1950.
-; Pending guards: timer-not-running guard.
-; Commands: enable-timer.
-; Placement: none.
-; Completion observer: timer status.
-(defrule
-    (up-timer-status ONE-MINUTE != timer-running)
-=>
-    (enable-timer ONE-MINUTE 60)
 )
