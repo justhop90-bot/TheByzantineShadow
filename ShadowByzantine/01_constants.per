@@ -1,11 +1,15 @@
 ; ============================================
-; AEGIS
+; THE BYZANTINE SHADOW
 ; 01_constants.per
 ; ============================================
 ;
 ; CENTRAL CONSTANT REGISTRY
 ;
-; ALL AEGIS defconst declarations belong here.
+; Existing AEGIS identifiers remain intact. The block below
+; registers only canonical Shadow identifiers required by the
+; authenticated R07 construction ABI. Registering a symbol is
+; not itself a claim that its donor behavior has been runtime
+; transplanted.
 ;
 ; ============================================
 
@@ -123,11 +127,67 @@
 (defconst AEGIS-SPEARMAN-TARGET 3)
 
 ; ============================================================
-; STRATEGIC RESERVE POLICY ABI
+; AUTHENTICATED SHADOW R07 IDENTIFIER ABI
 ; ============================================================
 ;
-; These four policy IDs are Byzantine adaptation identifiers only.
-; They are NOT recovered Shadow reserve amounts.
+; Direct donor numeric identities recovered from ShadowSource.per.
+; These are compatibility identifiers only. They do not create a
+; new transaction abstraction and do not authorize behavior by
+; themselves.
+;
+(defconst gl-current-build-item 121)
+(defconst SPLIT 134)
+(defconst gl-second-turn 140)
+(defconst gl-fifth-turn 141)
+(defconst gl-tenth-turn 166)
+(defconst gl-build-progress 186)
+(defconst gl-escrow-state 205)
+(defconst gl-progression-pause 272)
+(defconst gl-strategy 273)
+
+(defconst FLUSH 1)
+(defconst FC 2)
+(defconst RANGED 3)
+(defconst KRUSH 4)
+(defconst INFANTRY 5)
+(defconst POSSIBLE-KRUSH 6)
+
+(defconst CHAINBARDING 29)
+(defconst FORGING 30)
+(defconst IRONCASTING 31)
+(defconst MILL1 32)
+(defconst LC1 33)
+(defconst FARMS 34)
+(defconst RAX 35)
+(defconst LC2 36)
+(defconst EXTRA-RANGES 37)
+(defconst EXTRA-STABLES 38)
+(defconst STABLE2 39)
+(defconst FARMS2 40)
+(defconst MARKET1 41)
+
+(defconst KrushFarmsNumber 3)
+(defconst KrushLC2Number 4)
+(defconst KrushFarms2Number 5)
+(defconst KrushGoldMCNumber 6)
+(defconst KrushBarracksNumber 7)
+(defconst KrushExtraStablesNumber 22)
+(defconst KrushFinishedNumber 23)
+
+(defconst FarmsNumber 3)
+(defconst LC2Number 4)
+(defconst BarracksNumber 5)
+(defconst RangesNumber 6)
+(defconst DoubleBitAxeNumber 7)
+
+(defconst LOW-ESCROW 25)
+(defconst MID-ESCROW 35)
+(defconst MID-HIGH-ESCROW 40)
+(defconst HIGH-ESCROW 60)
+
+; ============================================================
+; STRATEGIC RESERVE POLICY ABI
+; ============================================================
 
 (defconst AEGIS-RESERVE-EARLY 1)
 (defconst AEGIS-RESERVE-DEVELOPMENT 2)
@@ -158,15 +218,6 @@
 ; ============================================================
 ; AUTHENTICATED SHADOW ECONOMIC THRESHOLD ABI
 ; ============================================================
-;
-; DIRECT donor values from ShadowSource.per. These are not a
-; four-resource strategic reserve vector. Escrow thresholds are
-; actively consumed by Shadow progression/production rules.
-;
-; Castle/Imperial CA-/IA- thresholds are preserved as donor
-; constants but are currently UNCONSUMED in ShadowSource.per.
-; Do not promote them into active Byzantine policy without a new
-; source-backed consumer.
 
 (defconst AEGIS-SHADOW-LOW-ESCROW 586)
 (defconst AEGIS-SHADOW-MID-ESCROW 587)
@@ -198,9 +249,6 @@
 ; ============================================================
 ; SHADOW DYNAMIC LIQUIDITY ABI
 ; ============================================================
-;
-; Shadow derives NET-* from engine resource facts minus current
-; escrow. These are dynamic state values, not constants/reserves.
 
 (defconst AEGIS-SHADOW-NET-FOOD 610)
 (defconst AEGIS-SHADOW-NET-WOOD 611)
