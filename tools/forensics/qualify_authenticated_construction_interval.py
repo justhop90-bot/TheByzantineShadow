@@ -26,57 +26,34 @@ def blob(data: bytes) -> str:
 
 
 def mask(text: str) -> str:
-    out = list(text)
-    i = 0
-    quoted = False
-    escaped = False
+    out = list(text); i = 0; quoted = False; escaped = False
     while i < len(text):
         c = text[i]
         if quoted:
-            if c == "\\" and not escaped:
-                out[i] = " "
-                escaped = True
-            elif c == '"' and not escaped:
-                out[i] = " "
-                quoted = False
-                escaped = False
+            if c == "\\" and not escaped: out[i] = " "; escaped = True
+            elif c == '"' and not escaped: out[i] = " "; quoted = False; escaped = False
             else:
-                if c not in "\r\n":
-                    out[i] = " "
+                if c not in "\r\n": out[i] = " "
                 escaped = False
-            i += 1
-            continue
-        if c == '"':
-            out[i] = " "
-            quoted = True
-            i += 1
-            continue
+            i += 1; continue
+        if c == '"': out[i] = " "; quoted = True; i += 1; continue
         if c == ';':
-            while i < len(text) and text[i] not in "\r\n":
-                out[i] = " "
-                i += 1
+            while i < len(text) and text[i] not in "\r\n": out[i] = " "; i += 1
             continue
         i += 1
     return "".join(out)
 
 
 def rules(text: str) -> list[str]:
-    m = mask(text)
-    starts = [x.start() for x in re.finditer(r"\(defrule\b", m)]
-    out: list[str] = []
+    m = mask(text); starts = [x.start() for x in re.finditer(r"\(defrule\b", m)]; out=[]
     for s in starts:
-        depth = 0
-        end = None
-        for i in range(s, len(m)):
-            if m[i] == '(':
-                depth += 1
-            elif m[i] == ')':
-                depth -= 1
-                if depth == 0:
-                    end = i + 1
-                    break
-        if end is None:
-            raise SystemExit(f"UNBALANCED_RULE_AT={s}")
+        depth=0; end=None
+        for i in range(s,len(m)):
+            if m[i]=='(': depth+=1
+            elif m[i]==')':
+                depth-=1
+                if depth==0: end=i+1; break
+        if end is None: raise SystemExit(f"UNBALANCED_RULE_AT={s}")
         out.append(text[s:end])
     return out
 
@@ -89,108 +66,72 @@ def jumps(rule: str) -> list[int]:
     return [int(x) for x in re.findall(r"\(up-jump-rule\s+(-?\d+)\)", norm(rule))]
 
 
-def jump_edges(rule_list: list[str], first: int) -> list[tuple[int, int, int]]:
-    edges: list[tuple[int, int, int]] = []
-    for i, rule in enumerate(rule_list):
-        rid = first + i
-        for delta in jumps(rule):
-            edges.append((rid, rid + delta, delta))
+def jump_edges(rule_list: list[str], first: int) -> list[tuple[int,int,int]]:
+    edges=[]
+    for i,rule in enumerate(rule_list):
+        rid=first+i
+        for delta in jumps(rule): edges.append((rid,rid+delta,delta))
     return edges
 
 
-def consts(text: str) -> dict[str, str]:
-    masked = mask(text)
-    found: dict[str, str] = {}
-    for m in re.finditer(r"\(defconst\s+([^\s()]+)\s+([^()\s]+)\)", masked):
+def consts(text: str) -> dict[str,str]:
+    found={}
+    for m in re.finditer(r"\(defconst\s+([^\s()]+)\s+([^()\s]+)\)", mask(text)):
         found[m.group(1)] = m.group(2)
     return found
 
 
-def const_locations(root: Path) -> dict[str, list[tuple[str, str]]]:
-    result: dict[str, list[tuple[str, str]]] = {}
+def const_locations(root: Path) -> dict[str,list[tuple[str,str]]]:
+    result={}
     for path in root.rglob("*.per"):
-        if path.name == "ShadowSource.per":
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
-        for name, value in consts(text).items():
-            result.setdefault(name, []).append((str(path.relative_to(root)), value))
+        if path.name == "ShadowSource.per": continue
+        try: text=path.read_text(encoding="utf-8")
+        except UnicodeDecodeError: continue
+        for name,value in consts(text).items():
+            result.setdefault(name,[]).append((str(path.relative_to(root)),value))
     return result
 
 
 def main() -> None:
-    sb = SOURCE.read_bytes()
-    ib = IMPLEMENTATION.read_text(encoding="utf-8")
-    cb = CONSTANTS.read_text(encoding="utf-8")
-    sha = blob(sb)
-    if sha != EXPECTED_BLOB:
-        raise SystemExit(f"DONOR_SHA_MISMATCH={sha}")
+    sb=SOURCE.read_bytes(); ib=IMPLEMENTATION.read_text(encoding="utf-8"); cb=CONSTANTS.read_text(encoding="utf-8")
+    sha=blob(sb)
+    if sha != EXPECTED_BLOB: raise SystemExit(f"DONOR_SHA_MISMATCH={sha}")
+    sr=rules(sb.decode("utf-8")); ir=rules(ib)
+    if len(sr)!=EXPECTED_DONOR_RULES: raise SystemExit(f"DONOR_RULE_COUNT_MISMATCH={len(sr)}")
+    expected=LAST-FIRST+1
+    if len(ir)!=expected: raise SystemExit(f"IMPLEMENTATION_RULE_COUNT_MISMATCH={len(ir)} EXPECTED={expected}")
+    donor=sr[FIRST-1:LAST]
+    mismatches=[rid for rid,(d,i) in enumerate(zip(donor,ir),FIRST) if norm(d)!=norm(i)]
+    if mismatches: raise SystemExit(f"RULE_BODY_MISMATCHES={mismatches}")
+    donor_jumps=jump_edges(donor,FIRST); impl_jumps=jump_edges(ir,FIRST)
+    if donor_jumps!=impl_jumps: raise SystemExit(f"JUMP_MISMATCH_DONOR={donor_jumps}_IMPLEMENTATION={impl_jumps}")
+    expected_jumps=[(rid,rid+delta,delta) for rid,delta in KNOWN_JUMPS.items()]
+    if donor_jumps!=expected_jumps: raise SystemExit(f"UNEXPECTED_DONOR_JUMP_TOPOLOGY={donor_jumps}")
+    if any(src<FIRST or src>LAST or dst<FIRST or dst>LAST for src,dst,_ in donor_jumps): raise SystemExit(f"JUMP_TARGET_OUTSIDE_INTERVAL={donor_jumps}")
+    fallthrough=[(rid,rid+1) for rid in range(FIRST,LAST)]
+    cross_in=(FIRST-1,FIRST); cross_out=(LAST,LAST+1)
+    if [(s,d,j) for s,d,j in donor_jumps if s<FIRST or s>LAST or d<FIRST or d>LAST]: raise SystemExit("CROSS_BOUNDARY_JUMP_PRESENT")
 
-    sr = rules(sb.decode("utf-8"))
-    ir = rules(ib)
-    if len(sr) != EXPECTED_DONOR_RULES:
-        raise SystemExit(f"DONOR_RULE_COUNT_MISMATCH={len(sr)}")
-    expected = LAST - FIRST + 1
-    if len(ir) != expected:
-        raise SystemExit(f"IMPLEMENTATION_RULE_COUNT_MISMATCH={len(ir)} EXPECTED={expected}")
-
-    donor = sr[FIRST - 1 : LAST]
-    mismatches = [rid for rid, (d, i) in enumerate(zip(donor, ir), FIRST) if norm(d) != norm(i)]
-    if mismatches:
-        raise SystemExit(f"RULE_BODY_MISMATCHES={mismatches}")
-
-    donor_jumps = jump_edges(donor, FIRST)
-    impl_jumps = jump_edges(ir, FIRST)
-    if donor_jumps != impl_jumps:
-        raise SystemExit(f"JUMP_MISMATCH_DONOR={donor_jumps}_IMPLEMENTATION={impl_jumps}")
-    expected_jumps = [(rid, rid + delta, delta) for rid, delta in KNOWN_JUMPS.items()]
-    if donor_jumps != expected_jumps:
-        raise SystemExit(f"UNEXPECTED_DONOR_JUMP_TOPOLOGY={donor_jumps}")
-    if any(src < FIRST or src > LAST or dst < FIRST or dst > LAST for src, dst, _ in donor_jumps):
-        raise SystemExit(f"JUMP_TARGET_OUTSIDE_INTERVAL={donor_jumps}")
-
-    fallthrough = [(rid, rid + 1) for rid in range(FIRST, LAST)]
-    cross_in = (FIRST - 1, FIRST)
-    cross_out = (LAST, LAST + 1)
-    cross_jump_edges = [(s, d, j) for s, d, j in donor_jumps if s < FIRST or s > LAST or d < FIRST or d > LAST]
-    if cross_jump_edges:
-        raise SystemExit(f"CROSS_BOUNDARY_JUMP_PRESENT={cross_jump_edges}")
-
-    donor_consts = consts(sb.decode("utf-8"))
-    impl_consts = consts(ib)
-    registry_consts = consts(cb)
-    locations = const_locations(ROOT)
+    donor_consts=consts(sb.decode("utf-8")); impl_consts=consts(ib); registry_consts=consts(cb); locations=const_locations(ROOT)
     print("COMPATIBILITY_CONSTANT_AUDIT_BEGIN")
     for name in COMPAT_CONSTANTS:
-        if name not in impl_consts:
-            raise SystemExit(f"MISSING_IMPLEMENTATION_COMPAT_CONSTANT={name}")
-        iv = impl_consts[name]
-        dv = donor_consts.get(name)
-        rv = registry_consts.get(name)
-        if dv is not None and iv == dv:
-            classification = "DIRECT_DONOR_TEXT"
-        elif dv is not None:
-            classification = "ERROR_VALUE_DIFFERS_FROM_DONOR"
-        elif rv is not None and iv == rv:
-            classification = "REGISTRY_MATCH_NO_DIRECT_DONOR_DEFINITION"
-        else:
-            classification = "UNRESOLVED_ENGINE_OR_PROJECT_SYMBOL"
-        loc = locations.get(name, [])
+        if name not in impl_consts: raise SystemExit(f"MISSING_IMPLEMENTATION_COMPAT_CONSTANT={name}")
+        iv=impl_consts[name]; dv=donor_consts.get(name); rv=registry_consts.get(name); loc=locations.get(name,[])
+        if dv is not None and iv==dv: classification="DIRECT_DONOR_TEXT"
+        elif dv is not None: classification="ERROR_VALUE_DIFFERS_FROM_DONOR"
+        elif rv is not None and iv==rv: classification="REGISTRY_MATCH_NO_DIRECT_DONOR_DEFINITION"
+        else: classification="UNRESOLVED_ENGINE_OR_PROJECT_SYMBOL"
         print(f"COMPAT_CONSTANT {name} implementation={iv} donor={dv if dv is not None else 'ABSENT'} registry={rv if rv is not None else 'ABSENT'} class={classification} repository_defs={loc}")
     print("COMPATIBILITY_CONSTANT_AUDIT_END")
-
-    duplicate_defs = {name: vals for name, vals in locations.items() if len(vals) > 1}
+    duplicate_defs={name:vals for name,vals in locations.items() if len(vals)>1}
     print(f"PROJECT_DUPLICATE_DEFCONST_NAMES={len(duplicate_defs)}")
-    for name in sorted(set(COMPAT_CONSTANTS) & set(duplicate_defs)):
-        print(f"COMPAT_DUPLICATE_DEFCONST {name} definitions={duplicate_defs[name]}")
+    for name in sorted(duplicate_defs): print(f"DUPLICATE_DEFCONST {name} definitions={duplicate_defs[name]}")
 
     print(f"AUTHENTICATED_DONOR_SHA={sha}")
     print(f"DONOR_RULE_COUNT={len(sr)}")
     print(f"DONOR_INTERVAL={FIRST}-{LAST}")
     print(f"R07_BOUNDARY={FIRST}-{R07_LAST}")
-    print(f"POST_R07_INTERVAL={R07_LAST + 1}-{LAST}")
+    print(f"POST_R07_INTERVAL={R07_LAST+1}-{LAST}")
     print(f"IMPLEMENTATION_RULE_COUNT={len(ir)}")
     print("RULE_IDENTITY=PASS (source-order identity)")
     print("RULE_BODY_EQUIVALENCE=PASS")
@@ -210,6 +151,4 @@ def main() -> None:
     print("RUNTIME_SEMANTICS=NOT_PROVEN")
     print("RUNTIME_QUALIFICATION=PENDING")
 
-
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__": main()
