@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Static qualification of the authenticated R07 1794-1849 transplant.
-
-The qualification compares parsed defrule bodies from the canonical donor
-against the corresponding ordered rule bodies in 04_construction.per.
-Comments/whitespace are ignored; executable rule text is not transformed.
-"""
+"""Static qualification of the authenticated R07 1794-1849 transplant."""
 from __future__ import annotations
 
 import hashlib
@@ -21,47 +16,50 @@ LAST = 1849
 
 
 def git_blob_sha1(data: bytes) -> str:
-    header = f"blob {len(data)}\0".encode()
-    return hashlib.sha1(header + data).hexdigest()
+    return hashlib.sha1(f"blob {len(data)}\0".encode() + data).hexdigest()
 
 
-def mask_comments_and_strings(text: str) -> str:
+def mask_source(text: str) -> str:
     out = list(text)
+    i = 0
+    n = len(text)
     in_string = False
     escaped = False
-    in_comment = False
-    for i, ch in enumerate(text):
-        if in_comment:
-            if ch == "\n":
-                in_comment = False
-            else:
-                out[i] = " "
-            continue
+    while i < n:
+        c = text[i]
         if in_string:
-            if escaped:
-                escaped = False
-            elif ch == "\\":
+            if c == "\\" and not escaped:
+                out[i] = " "
                 escaped = True
-            elif ch == '"':
+            elif c == '"' and not escaped:
+                out[i] = " "
                 in_string = False
+                escaped = False
+            else:
+                if c not in "\r\n":
+                    out[i] = " "
+                escaped = False
+            i += 1
             continue
-        if ch == '"':
-            in_string = True
-        elif ch == ";":
-            in_comment = True
+        if c == '"':
             out[i] = " "
+            in_string = True
+            i += 1
+            continue
+        if c == ';':
+            while i < n and text[i] not in "\r\n":
+                out[i] = " "
+                i += 1
+            continue
+        i += 1
     return "".join(out)
 
 
 def extract_rules(text: str):
-    masked = mask_comments_and_strings(text)
+    masked = mask_source(text)
+    starts = [m.start() for m in re.finditer(r"\(defrule\b", masked)]
     rules = []
-    pos = 0
-    while True:
-        m = re.search(r"\(defrule\b", masked[pos:])
-        if not m:
-            break
-        start = pos + m.start()
+    for start in starts:
         depth = 0
         end = None
         for i in range(start, len(masked)):
@@ -73,14 +71,13 @@ def extract_rules(text: str):
                     end = i + 1
                     break
         if end is None:
-            raise SystemExit(f"unbalanced defrule beginning at byte/char offset {start}")
+            raise SystemExit(f"unbalanced defrule beginning at offset {start}")
         rules.append(text[start:end])
-        pos = end
     return rules
 
 
 def normalize(rule: str) -> str:
-    return re.sub(r"\s+", " ", mask_comments_and_strings(rule)).strip()
+    return re.sub(r"\s+", " ", mask_source(rule)).strip()
 
 
 def jump_deltas(rule: str):
@@ -98,6 +95,7 @@ def main() -> int:
 
     if len(source_rules) != EXPECTED_RULES:
         raise SystemExit(f"DONOR RULE COUNT MISMATCH: expected {EXPECTED_RULES}, got {len(source_rules)}")
+
     expected_count = LAST - FIRST + 1
     if len(impl_rules) != expected_count:
         raise SystemExit(
@@ -106,9 +104,9 @@ def main() -> int:
 
     donor_slice = source_rules[FIRST - 1 : LAST]
     mismatches = []
-    for offset, (donor, impl) in enumerate(zip(donor_slice, impl_rules), start=FIRST):
+    for ordinal, (donor, impl) in enumerate(zip(donor_slice, impl_rules), start=FIRST):
         if normalize(donor) != normalize(impl):
-            mismatches.append(offset)
+            mismatches.append(ordinal)
 
     if mismatches:
         raise SystemExit(f"RULE BODY MISMATCHES: {mismatches}")
