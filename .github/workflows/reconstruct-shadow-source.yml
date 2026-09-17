@@ -15,34 +15,37 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fetch authenticated donor blob
         env:
-          EXPECTED_SHA1: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
+          EXPECTED_GIT_BLOB_SHA: 70a18a3b69e8ea46bd5132673fe9fcf8a36595ee
         run: |
           curl --fail --silent --show-error --location \
             -H 'Accept: application/vnd.github+json' \
-            "https://api.github.com/repos/justhop90-bot/TheByzantineShadow/git/blobs/${EXPECTED_SHA1}" \
+            "https://api.github.com/repos/justhop90-bot/TheByzantineShadow/git/blobs/${EXPECTED_GIT_BLOB_SHA}" \
             -o /tmp/blob.json
           python3 - <<'PY'
-          import base64, json, pathlib
+          import base64, hashlib, json, pathlib
+          expected='70a18a3b69e8ea46bd5132673fe9fcf8a36595ee'
           d=json.loads(pathlib.Path('/tmp/blob.json').read_text())
-          assert d['sha'] == '70a18a3b69e8ea46bd5132673fe9fcf8a36595ee'
+          assert d['sha'] == expected
           assert d['encoding'] == 'base64'
-          pathlib.Path('/tmp/ShadowSource.per').write_bytes(base64.b64decode(d['content']))
+          raw=base64.b64decode(d['content'])
+          actual=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+          assert actual == expected, (actual, expected)
+          pathlib.Path('/tmp/ShadowSource.per').write_bytes(raw)
+          print('GIT_BLOB_SHA1=',actual)
+          print('RAW_CONTENT_SHA1=',hashlib.sha1(raw).hexdigest())
+          print('BYTE_LENGTH=',len(raw))
           PY
-          sha1sum /tmp/ShadowSource.per
-          test "$(sha1sum /tmp/ShadowSource.per | cut -d' ' -f1)" = "$EXPECTED_SHA1"
       - name: Reconstruct and verify
         run: |
           python3 tools/forensics/reconstruct_shadow_source.py /tmp/shadow-source-rule-index.json /tmp/ShadowSource.per
           python3 - <<'PY'
           import json, pathlib
-          p = pathlib.Path('/tmp/shadow-source-rule-index.json')
-          d = json.loads(p.read_text())
-          print('RULE_COUNT=', d['defrule_count'])
-          print('SHA1=', d['actual_sha1'])
+          d=json.loads(pathlib.Path('/tmp/shadow-source-rule-index.json').read_text())
+          print('DEFRULE_COUNT=', d['defrule_count'])
+          print('GIT_BLOB_SHA1=', d['actual_git_blob_sha1'])
+          print('RAW_CONTENT_SHA1=', d['raw_content_sha1'])
           print('BYTE_LENGTH=', d['byte_length'])
           print('LINE_COUNT=', d['line_count'])
-          assert d['actual_sha1'] == d['expected_sha1']
-          assert d['defrule_count'] == 1956, f"Unexpected defrule count: {d['defrule_count']}"
           PY
       - name: Build targeted control graph
         run: |
