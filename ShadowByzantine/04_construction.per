@@ -1111,3 +1111,371 @@
 ;   -> current-build-item re-entry.
 ; Build commands and builder/placement operations remain execution
 ; mechanisms; they are not completion proof without world-state evidence.
+
+; ============================================================
+; R07 RULE 1850
+; ============================================================
+; Control-flow jump: reads no persistent state; writes none; command is up-jump-rule 4; no pending/placement/completion observer; explicit jump target resolves to 1854.
+(defrule
+    (true)
+=>
+    (up-jump-rule 4)
+)
+
+; ============================================================
+; R07 RULE 1851
+; ============================================================
+; Reads gl-progression-pause, gl-current-build-item, can-build-with-escrow(lumber-camp); writes wood escrow percentage=0; escrow releases wood; command build lumber-camp; no pending guard or placement operation; no completion observer in this rule.
+(defrule
+    (goal gl-progression-pause -1)
+    (goal gl-current-build-item LC4)
+    (can-build-with-escrow lumber-camp)
+=>
+    (chat-to-player me "Fourth Lumber Camp")
+    (set-escrow-percentage wood 0)
+    (release-escrow wood)
+    (build lumber-camp)
+)
+
+; ============================================================
+; R07 RULE 1852
+; ============================================================
+; Reads gl-strategy, gl-build-progress, lumber-camp count; writes gl-build-progress=LC4Number for skipped-state reconciliation; no escrow, pending, placement, or command; lumber-camp<4 is reconciliation evidence.
+(defrule	;come back if skipped
+    (goal gl-strategy FLUSH)
+    (building-type-count-total lumber-camp < 4)
+    (up-compare-goal gl-build-progress > LC4Number)
+=>
+    (set-goal gl-build-progress LC4Number)
+)
+
+; ============================================================
+; R07 RULE 1853
+; ============================================================
+; Reads gl-strategy, gl-current-build-item, gl-build-progress; writes gl-current-build-item=LC4 and wood escrow percentage=LOW-ESCROW; no pending/placement/command; no completion observer.
+(defrule
+    (goal gl-strategy FLUSH)
+    (up-compare-goal gl-current-build-item != LC4)
+    (up-compare-goal gl-build-progress == LC4Number)
+=>
+    ;	(chat-to-player me "Setting current build item to LC4")
+    (set-goal gl-current-build-item LC4)
+    (set-escrow-percentage wood LOW-ESCROW)
+)
+
+; ============================================================
+; R07 RULE 1854
+; ============================================================
+; Reads gl-current-build-item and lumber-camp count; writes gl-build-progress+=1; no escrow/pending/placement/command; lumber-camp>=4 is the completion/progression observer.
+(defrule
+    (goal gl-current-build-item LC4)
+    (building-type-count-total lumber-camp >= 4)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "Fourth Lumber Camp Built")
+)
+
+; ============================================================
+; R07 RULE 1855
+; ============================================================
+; Reads time, gl-strategy, lumber-camp timer status/distance and gl-escrow-state via up-can-build; writes dropsite separation, placement mode through up-build, adjacent-dropsite policy, and timer t-lc; placement operation is place-normal lumber-camp; no pending guard; command is up-build place-normal; no completion observer.
+(defrule
+    (or	(game-time >= 1570)	;25.5 min
+    (and(game-time >= 1260)	;21 min
+    (goal gl-strategy KRUSH)))
+    (or	(up-timer-status t-lc != timer-running)
+    (dropsite-min-distance wood >= 5))
+    (up-can-build gl-escrow-state c: lumber-camp)
+=>
+    (set-strategic-number sn-dropsite-separation-distance 3)
+    (up-build place-normal gl-escrow-state c: lumber-camp)
+    (set-strategic-number sn-allow-adjacent-dropsites 1)
+    ;	(chat-to-player me "ADDITIONAL LC")
+    (enable-timer t-lc 290)
+)
+
+; ============================================================
+; R07 RULE 1856
+; ============================================================
+; Reads food amount, commodity-buy feasibility, gold amount and gl-build-progress; writes no persistent AI state; command buy-commodity food; no pending, placement, or completion observer.
+(defrule
+    (food-amount < 50)
+    (can-buy-commodity food)
+    (or	(gold-amount >= 230)
+    (and(gold-amount >= 170)
+    (up-compare-goal gl-build-progress < 13)))
+=>
+    (chat-to-player me "Buy food")
+    (buy-commodity food)
+)
+
+; ============================================================
+; R07 RULE 1857
+; ============================================================
+; Reads commodity-buy feasibility, food/gold thresholds and gl-current-build-item=CUP; writes no persistent state; command buy-commodity food; no pending, placement, or completion observer.
+(defrule
+    (can-buy-commodity food)
+    (or	(and(food-amount < 800)
+    (gold-amount >= 300))
+    (or	(and(food-amount < 550)
+    (gold-amount >= 240))
+    (and(food-amount < 640)
+    (gold-amount >= 280))))
+    (goal gl-current-build-item CUP)
+=>
+    (chat-to-player me "Buy food for cup")
+    (buy-commodity food)
+)
+
+; ============================================================
+; R07 RULE 1858
+; ============================================================
+; Reads wood amount, gold amount, gl-current-build-item and commodity-buy feasibility; writes no persistent state; command buy-commodity wood; no pending, placement, or completion observer.
+(defrule
+    (wood-amount < 50)
+    (or	(gold-amount >= 320)
+    (and(gold-amount >= 240)
+    (or	(up-compare-goal gl-current-build-item < LC3)
+    (up-compare-goal gl-current-build-item >= GOLDMINING))))
+    (can-buy-commodity wood)
+=>
+    (chat-to-player me "Buy wood")
+    (buy-commodity wood)
+)
+
+; ============================================================
+; R07 RULE 1859
+; ============================================================
+; Reads gold/food amounts, commodity-sell feasibility and castle-age research status; writes no persistent state; command sell-commodity food; no pending, placement, or completion observer.
+(defrule
+    (gold-amount < 100)
+    (food-amount >= 320)
+    (can-sell-commodity food)
+    (up-research-status c: castle-age >= research-pending)
+=>
+    (chat-to-player me "Sell food")
+    (sell-commodity food)
+)
+
+; ============================================================
+; R07 RULE 1860
+; ============================================================
+; Reads commodity-sell feasibility, gold/food thresholds and gl-current-build-item=CUP; writes no persistent state; command sell-commodity food; no pending, placement, or completion observer.
+(defrule
+    (can-sell-commodity food)
+    (or	(and(gold-amount < 160)
+    (food-amount >= 880))
+    (and(gold-amount < 200)
+    (food-amount >= 980)))
+    (goal gl-current-build-item CUP)
+=>
+    (chat-to-player me "Sell food for up")
+    (sell-commodity food)
+)
+
+; ============================================================
+; R07 RULE 1861
+; ============================================================
+; Reads wood amount, gl-strategy=FLUSH, commodity-sell feasibility and gl-build-progress; writes no persistent state; command sell-commodity wood; no pending, placement, or completion observer.
+(defrule
+    (wood-amount >= 270)
+    (goal gl-strategy FLUSH)
+    (can-sell-commodity wood)
+    (up-compare-goal gl-build-progress >= ExtraStablesNumber)
+=>
+    ;	(chat-to-player me "Late Sell Wood")
+    (sell-commodity wood)
+)
+
+; ============================================================
+; R07 RULE 1862
+; ============================================================
+; Reads wood amount, commodity-sell feasibility and gl-current-build-item=EXTRA-STABLES; writes no persistent state; command sell-commodity wood; no pending, placement, or completion observer.
+(defrule
+    (wood-amount >= 260)
+    (can-sell-commodity wood)
+    (goal gl-current-build-item EXTRA-STABLES)
+=>
+    ;	(chat-to-player me "Sell wood 2")
+    (sell-commodity wood)
+)
+
+; ============================================================
+; R07 RULE 1863
+; ============================================================
+; Reads commodity-sell feasibility, gl-current-build-item, food/gold/wood thresholds and gl-build-progress; writes no persistent state; command sell-commodity wood; no pending, placement, or completion observer.
+(defrule
+    (can-sell-commodity wood)
+    (up-compare-goal gl-current-build-item != EXTRA-STABLES)
+    (or	(and(gold-amount < 60)
+    (wood-amount >= 260))
+    (and(food-amount < 60)
+    (or	(wood-amount >= 270)
+    (and(wood-amount >= 190)
+    (up-compare-goal gl-build-progress < 13)))))
+=>
+    ;	(chat-to-player me "Sell wood")
+    (sell-commodity wood)
+)
+
+; ============================================================
+; R07 RULE 1864
+; ============================================================
+; Reads wood/food/gold amounts, commodity-sell feasibility and gl-current-build-item=CUP; writes no persistent state; command sell-commodity wood; no pending, placement, or completion observer.
+(defrule
+    (wood-amount >= 150)
+    (or	(food-amount < 750)
+    (gold-amount < 160))
+    (can-sell-commodity wood)
+    (goal gl-current-build-item CUP)
+=>
+    (chat-to-player me "Sell wood for up")
+    (sell-commodity wood)
+)
+
+; ============================================================
+; R07 RULE 1865
+; ============================================================
+; Reads disabled false predicate, commodity-sell feasibility and food/wood/stone thresholds; writes no persistent state; command sell-commodity stone is unreachable while false remains false; no pending, placement, or completion observer.
+(defrule
+    (false)
+    (can-sell-commodity stone)
+    (or	(and(gold-amount < 100)
+    (stone-amount >= 220))
+    (or	(and(wood-amount < 100)
+    (stone-amount >= 220))
+    (and(food-amount < 100)
+    (stone-amount >= 230))))
+=>
+    (chat-to-player me "Sell stone")
+    (sell-commodity stone)
+)
+
+; ============================================================
+; R07 RULE 1866
+; ============================================================
+; Reads can-build-with-escrow(mill), food resource/time, gl-current-build-item=MILL1, mill count and build-delay timer; writes adjacent-dropsite policy, wood escrow percentage=0, and timer t-build-delay; escrow releases wood; command build mill; no pending/placement; no completion observer in this rule.
+(defrule
+    (can-build-with-escrow mill)
+    (or (resource-found food)
+    (game-time >= SkipMillTime))
+    (goal gl-current-build-item MILL1)
+    (building-type-count-total mill < 1)
+    (up-timer-status t-build-delay != timer-running)
+=>
+    (set-strategic-number sn-allow-adjacent-dropsites 0)
+    (set-escrow-percentage wood 0)
+    (enable-timer t-build-delay 3)
+    ;	(chat-to-player me "Mill1")
+    (release-escrow wood)
+    (build mill)
+)
+
+; ============================================================
+; R07 RULE 1867
+; ============================================================
+; Reads gl-current-build-item=MILL1 and mill count; writes gl-build-progress+=1; no escrow/pending/placement/command; mill>=1 is the completion/progression observer.
+(defrule
+    (goal gl-current-build-item MILL1)
+    (building-type-count-total mill >= 1)
+=>
+    (up-modify-goal gl-build-progress c:+ 1)
+    ;	(chat-to-player me "Mill1 Built")
+)
+
+; ============================================================
+; R07 RULE 1868
+; ============================================================
+; Reads gl-dark-build=MillFirst, mill count and gl-build-progress; writes gl-build-progress=1 for skipped-state reconciliation; no escrow/pending/placement/command; mill<1 is reconciliation evidence.
+(defrule	;if skipped come back
+    ;	(game-time < SkipMillTime)
+    (goal gl-dark-build MillFirst)
+    (building-type-count-total mill < 1)
+    (up-compare-goal gl-build-progress > 1)
+=>
+    (set-goal gl-build-progress 1)
+)
+
+; ============================================================
+; R07 RULE 1869
+; ============================================================
+; Reads gl-dark-build=LumberFirst, mill count and gl-build-progress; writes gl-build-progress=2 for skipped-state reconciliation; no escrow/pending/placement/command; mill<1 is reconciliation evidence.
+(defrule	;if skipped come back
+    ;	(game-time >= SkipMillTime)
+    (goal gl-dark-build LumberFirst)
+    (building-type-count-total mill < 1)
+    (up-compare-goal gl-build-progress > 2)
+=>
+    (set-goal gl-build-progress 2)
+)
+
+; ============================================================
+; R07 RULE 1870
+; ============================================================
+; Reads gl-current-build-item, gl-dark-build and gl-build-progress; writes wood escrow percentage=LOW-ESCROW and gl-current-build-item=MILL1; no pending/placement/command; no completion observer.
+(defrule
+    (up-compare-goal gl-current-build-item != MILL1)
+    (or	(and(goal gl-dark-build MillFirst)
+    (up-compare-goal gl-build-progress == 1))
+    (and(goal gl-dark-build LumberFirst)
+    (up-compare-goal gl-build-progress == 2)))
+=>
+    ;	(chat-to-player me "Setting current build item to MILL1")
+    (set-escrow-percentage wood LOW-ESCROW)
+    (set-goal gl-current-build-item MILL1)
+)
+
+; ============================================================
+; R07 RULE 1871
+; ============================================================
+; Reads can-build(mill), food resource-found, current age and mill count; writes none persistently; command build mill followed by disable-self; no pending/placement; mill<1 is an entry guard, not completion proof.
+(defrule
+    (can-build mill)
+    (resource-found food)
+    (current-age >= feudal-age)
+    (building-type-count-total mill < 1)
+=>
+    (chat-to-player me "Mill B")
+    ;	(set-goal gl-allow-mill YES)
+    (build mill)
+    (disable-self)
+)
+
+; ============================================================
+; R07 RULE 1872
+; ============================================================
+; Reads no persistent state; writes generic goal=-12; no escrow/pending/placement/command/completion observer.
+(defrule
+    (true)
+=>
+    (set-goal goal -12)
+)
+
+; ============================================================
+; R07 RULE 1873
+; ============================================================
+; Reads mill count; writes generic goal=-10; no escrow/pending/placement/command/completion observer.
+(defrule
+    (building-type-count-total mill == 2)
+=>
+    (set-goal goal -10)
+)
+
+; ============================================================
+; R07 RULE 1874
+; ============================================================
+; Reads mill count; writes generic goal=10; no escrow/pending/placement/command; mill==3 is an observed world-state threshold used to write the goal, not completion of a command in this rule.
+(defrule
+    (building-type-count-total mill == 3)
+=>
+    (set-goal goal 10)
+)
+
+; ============================================================
+; R07 1850-1874 SOURCE-ORDER NOTE
+; ============================================================
+; Rules are appended in authenticated donor order. Rule 1850 is an explicit
+; up-jump-rule (+4) whose positional target is rule 1854. Rules 1851-1874
+; then proceed by normal source-order fall-through. Command issuance remains
+; distinct from world-state completion; observed building counts are the
+; completion/progression evidence where explicitly used by the donor.
