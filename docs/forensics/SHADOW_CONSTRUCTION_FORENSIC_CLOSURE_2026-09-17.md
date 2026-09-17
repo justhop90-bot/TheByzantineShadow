@@ -286,6 +286,26 @@ full identifier sweep must cover object IDs, not just goals and
 state — facts/commands are engine-provided, object IDs frequently
 are not. The sweep method is updated accordingly.
 
+## Amendment record 2026-09-17 — scouting slice (rules 237–480)
+
+- New `ShadowByzantine/02b_donor_scouting.per`: authenticated donor
+  rules 237–480 (244/244 positional body equivalence; all explicit
+  jumps land in-slice; state-touch parity PASS). Contents: scout-stuck
+  detection, sheep counting/scouting state machine, NEWSCOUTING
+  exploration machine, boar/deer/berry scouting, deer/boar lure state
+  (`gl-dlure`), dark-build selection, exploration setup, enemy-building
+  scouting, and the interleaved defense/attack-estimation neighborhood
+  (TC garrisoning, villager retreat, skirm defense). Loaded after
+  `02_state` in donor order.
+- `01a` gained ~50 scouting identifiers (all donor-exact with lines)
+  plus the map-size `max-circle-scout-distance` conditional preserved
+  verbatim; `goal 165` moved here from 04-local (sole definition).
+- Defense goals written by the slice (`gl-garrison-tc` et al.) have no
+  consumers yet — recorded, not wired to executors that do not exist.
+  Lure rules read `gl-strategy` at runtime; inert until set. `gl-enemy-civ`
+  / `gl-skirm-total` remain dormant pending enemy-civ writers (1503–1505,
+  1501, scouting-adjacent future tranche).
+
 Note: line 377 (`civilian-population`) flagged in the same session is
 NOT reproduced by engine evidence — registry documents it, Naga uses it
 in live conditions, donor-verbatim. Verdict: harness false positive

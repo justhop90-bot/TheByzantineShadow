@@ -1,0 +1,2837 @@
+; ============================================================
+; THE BYZANTINE SHADOW
+; 02B -- AUTHENTICATED DONOR SCOUTING (237-480)
+; ============================================================
+;
+; Donor: ShadowSource.per rules 237-480 (244 rules).
+; Regions: scout-stuck detection, sheep counting/scouting
+; state machine, NEWSCOUTING exploration machine, boar/deer/
+; berry scouting, deer/boar lure state (gl-dlure), dark-build
+; selection, exploration setup, enemy-building scouting, and
+; the interleaved defense/attack-estimation neighborhood
+; (TC garrisoning, villager retreat, skirm defense).
+;
+; Transplanted verbatim. All explicit jumps land in-slice.
+; Loaded after 02_state (donor order), before 03_economy.
+; Lure/attack-estimation rules read gl-strategy at runtime;
+; inert until the strategy bootstrap sets it. Defense goals
+; (gl-garrison-tc et al.) have no consumers yet -- recorded,
+; not wired to executors that do not exist.
+; ============================================================
+
+; AUTHENTICATED DONOR RULE 237 | DONOR_LINE=4171
+(defrule
+    (or	(game-time < 10)
+    (or	(goal gl-getting-sheep YES)
+    (or	(unit-type-count scout-cavalry-line < 1)
+    (goal NEWSCOUTING FINISHED))))
+=>
+    (up-jump-rule 6)
+)
+
+; AUTHENTICATED DONOR RULE 238 | DONOR_LINE=4180
+(defrule
+    (goal gl-seventh-turn 1)
+    (up-compare-goal NEWSCOUTING >= 45)
+    (unit-type-count scout-cavalry-line > 0)
+    (up-point-distance saved-scout-x scout-x < 1)
+=>
+    ;	(chat-to-player me "DEBUG: Normal Scout Stuck!")
+    (enable-timer 28 0)
+)
+
+; AUTHENTICATED DONOR RULE 239 | DONOR_LINE=4190
+(defrule
+    (goal gl-tenth-turn 1)
+    (goal gl-scout-stuck 0)
+    (up-compare-goal NEWSCOUTING < 45)
+    (up-point-distance saved-scout-x scout-x < 2)
+=>
+    (up-get-point-distance saved-scout-x scout-x goal)
+    ;	(up-chat-data-to-player me "DEBUG: Manual Scout Stuck! (%d)" g: goal)
+    ;	(up-send-flare saved-scout-x)
+    (set-goal gl-scout-stuck 2)
+    (enable-timer 28 5)
+)
+
+; AUTHENTICATED DONOR RULE 240 | DONOR_LINE=4203
+(defrule
+    (goal gl-scout-stuck 2)
+    (up-timer-status 28 == timer-running)
+=>
+    (up-full-reset-search)
+    (up-add-object-by-id search-local g: scout-id)
+    ;	(up-copy-point point-x scout-x)
+    ;	(up-lerp-tiles point-x home-x c: -10)
+    ;	(up-bound-point point-x point-x)
+    ;	(up-lerp-tiles point-x home-x c: -10)
+    ;	(up-bound-point point-x point-x)
+    (up-target-point explo-x action-move -1 defensive)
+    ;	(chat-to-player me "Move away!")
+    ;	(up-send-flare point-x)
+)
+
+; AUTHENTICATED DONOR RULE 241 | DONOR_LINE=4219
+(defrule
+    (goal gl-scout-stuck 2)
+    (or	(timer-triggered 28)
+    (up-point-distance scout-x saved-scout-x >= 3))
+=>
+    (up-get-point-distance saved-scout-x scout-x goal)
+    ;	(up-chat-data-to-player me "DEBUG: Reset Scout Stuck! (%d)" g: goal)
+    (set-goal gl-scout-stuck -1)
+)
+
+; AUTHENTICATED DONOR RULE 242 | DONOR_LINE=4229
+(defrule
+    (goal gl-twenty-turn 1)
+    (goal gl-scout-stuck 0)
+    (up-point-distance saved-scout-x scout-x >= 4)
+=>
+    (up-get-point-distance saved-scout-x scout-x goal)
+    ;	(up-chat-data-to-player me "DEBUG: Scout Not Stuck (%d)" g: goal)
+    ;	(up-send-flare saved-scout-x)
+    (set-goal gl-scout-stuck -1)
+)
+
+; AUTHENTICATED DONOR RULE 243 | DONOR_LINE=4240
+(defrule
+    (goal gl-twenty-turn 1)
+    (goal gl-scout-stuck -1)
+=>
+    ;	(chat-to-player me "Set Initial")
+    (up-copy-point saved-scout-x scout-x)
+    (set-goal gl-scout-stuck 0)
+)
+
+; AUTHENTICATED DONOR RULE 244 | DONOR_LINE=4250
+(defrule
+    (taunt-detected me 103)
+    (goal gl-second-turn 1)
+=>
+    (up-chat-data-to-player me "StuckStatus: %d" g: gl-scout-stuck)
+    (up-chat-data-to-player me "Distance From Saved: %d" g: goal)
+)
+
+; AUTHENTICATED DONOR RULE 245 | DONOR_LINE=4258
+(defrule
+    (taunt-detected me 103)
+    (goal gl-fifth-turn 1)
+=>
+    (up-send-flare saved-scout-x)
+)
+
+; AUTHENTICATED DONOR RULE 246 | DONOR_LINE=4265
+(defrule
+    (taunt-detected me 104)
+=>
+    (acknowledge-taunt me 103)
+    (acknowledge-taunt me 104)
+)
+
+; AUTHENTICATED DONOR RULE 247 | DONOR_LINE=4277
+(defrule
+    (building-type-count lumber-camp == 1)
+=>
+    (up-full-reset-search)
+    (up-find-local c: lumber-camp c: 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 248 | DONOR_LINE=4285
+(defrule
+    (building-type-count lumber-camp == 1)
+    (up-set-target-object search-local c: 0)
+=>
+    (up-get-point position-object point-x)
+    ;	(up-send-flare point-x)
+    ;	(chat-to-player me "Camp here")
+    (up-full-reset-search)
+    (up-set-target-point point-x)
+    (up-find-local c: villager-class c: 20)
+    (up-clean-search search-local 44 search-order-asc)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 249 | DONOR_LINE=4299
+(defrule
+    (building-type-count lumber-camp == 1)
+    (up-set-target-object search-local c: 0)
+=>
+    (up-full-reset-search)
+    (up-filter-distance c: -1 c: 5)
+    (up-filter-status c: status-ready c: list-active)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-resource c: wood c: 50)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-clean-search search-remote 44 search-order-asc)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object point-x)
+    ;	(up-send-flare point-x)
+    (up-target-objects 1 action-default -1 -1)
+    ;	(chat-to-player me "Attack tree")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 250 | DONOR_LINE=4319
+(defrule
+    (false)
+    (building-type-count lumber-camp == 2)
+=>
+    (up-full-reset-search)
+    (up-find-local c: lumber-camp c: 2)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 251 | DONOR_LINE=4328
+(defrule
+    (false)
+    (building-type-count lumber-camp == 2)
+    (up-set-target-object search-local c: 0)
+=>
+    (up-get-point position-object point-x)
+    (up-send-flare point-x)
+    (chat-to-player me "Camp here")
+    (up-full-reset-search)
+    (up-set-target-point point-x)
+    (up-find-local c: villager-class c: 20)
+    (up-clean-search search-local 44 search-order-asc)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 252 | DONOR_LINE=4343
+(defrule
+    (false)
+    (building-type-count lumber-camp == 2)
+    (up-set-target-object search-local c: 0)
+=>
+    (up-full-reset-search)
+    (up-filter-distance c: -1 c: 5)
+    (up-filter-status c: status-ready c: list-active)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-resource c: wood c: 50)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-clean-search search-remote 44 search-order-asc)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object point-x)
+    (up-send-flare point-x)
+    (up-target-objects 1 action-default -1 -1)
+    (chat-to-player me "Attack tree")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 253 | DONOR_LINE=4364
+(defrule
+    (current-age == castle-age)
+    (goal gl-current-build-item ESKIRMS)
+    (building-type-count archery-range >= 1)
+    (research-available ri-elite-skirmisher)
+    (up-pending-objects c: skirmisher-line >= 2)
+    (up-research-status c: ri-elite-skirmisher < research-pending)
+=>
+    (chat-to-player me "Cancel skirms")
+    (up-full-reset-search)
+    ;	(up-filter-exclude -1 actionid-research -1 -1)
+    (up-find-local c: archery-range c: 1)
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    ;	(up-send-flare point-x)
+    (up-target-point 0 action-stop -1 -1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 254 | DONOR_LINE=4384
+(defrule
+    (true)
+    ;	(up-compare-goal gl-tenth-turn != 1)
+    ;	(or	(current-age < feudal-age)
+    ;		(up-pending-objects c: house < 1))
+=>
+    (up-jump-rule 6)
+)
+
+; AUTHENTICATED DONOR RULE 255 | DONOR_LINE=4393
+(defrule
+    (true)
+=>
+    (set-goal goal -1)
+    (set-goal goal1 -1)
+)
+
+; AUTHENTICATED DONOR RULE 256 | DONOR_LINE=4400
+(defrule
+    (goal goal -1)
+=>
+    (up-full-reset-search)
+    (up-filter-status c: status-pending c: list-active)
+    (up-find-status-local c: house c: 1)
+    (up-get-search-state lt)
+    ;	(up-chat-data-to-player me "Houses Pending: %d" g: lt)
+)
+
+; AUTHENTICATED DONOR RULE 257 | DONOR_LINE=4410
+(defrule
+    (goal goal -1)
+    (up-compare-goal lt >= 1)
+    (up-set-target-object search-local c: 0)
+=>
+    (up-get-object-data object-data-id goal1)
+    (up-get-point position-object point-x)
+    (up-send-flare point-x)
+    (set-goal SPLIT 1)
+    ;	(chat-to-player me "House Here.")
+)
+
+; AUTHENTICATED DONOR RULE 258 | DONOR_LINE=4422
+(defrule
+    (goal goal -1)
+    (goal SPLIT 1)
+=>
+    (up-full-reset-search)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 5)
+    (up-filter-status c: status-resource c: list-active)
+    ;	(up-filter-status c: status-ready c: list-active)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-resource c: gold c: 1)		;gold-mine
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-get-search-state lt)
+    ;	(up-chat-data-to-player me "Gold's around: %d" g: rt)
+    (set-goal goal 0)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 259 | DONOR_LINE=4440
+(defrule
+    (goal goal 0)
+    (up-compare-goal rt >= 1)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-full-reset-search)
+    (up-get-point position-object point2-x)
+    (up-set-target-point point2-x)
+    (up-send-flare point2-x)
+    (up-filter-distance c: -1 c: 7)
+    (up-find-local c: house c: 5)
+    (up-get-search-state lt)
+    (set-goal goal 1)
+)
+
+; AUTHENTICATED DONOR RULE 260 | DONOR_LINE=4455
+(defrule
+    (goal goal 1)
+    (up-compare-goal rt >= 3)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-chat-data-to-player me "Delete House Foundation Near Gold(%d)" g: rt)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 5)
+    (up-filter-status c: status-pending c: list-active)
+    (up-find-status-local c: house c: 1)
+    (up-target-point 0 action-delete -1 -1)	;0
+    (up-full-reset-search)
+    (up-filter-include -1 actionid-build -1 -1)
+    (up-find-local c: villager-class c: 6)
+    (up-remove-objects search-local object-data-target-id g:!= goal1)
+    (up-target-point home-x action-stop -1 -1)	;
+    (set-goal goal -1)
+)
+
+; AUTHENTICATED DONOR RULE 261 | DONOR_LINE=4476
+(defrule
+    (true)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 s: sn-lumber-camp-max-distance)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 262 | DONOR_LINE=4485
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-filter-status c: status-ready c: list-active)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-resource c: wood c: 30)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-get-search-state lt)
+    (up-modify-goal gl-trees-around g:= rt)
+    ;	(up-chat-data-to-player me "Trees around: %d" g: gl-trees-around)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 263 | DONOR_LINE=4498
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-lumber-camp-max-distance 17)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 264 | DONOR_LINE=4505
+(defrule
+    (game-time >= 90)
+    (goal gl-dark-build LumberFirst)
+    (up-compare-goal gl-trees-around < 12)
+    ;	(building-type-count-total lumber-camp < 1)
+=>
+    ;	(up-chat-data-to-player me "Current Distance: %d" s: sn-lumber-camp-max-distance)
+    ;	(up-chat-data-to-player me "Trees around: %d" g: gl-trees-around)
+    (up-modify-sn sn-lumber-camp-max-distance c:+ 7)
+    ;	(up-chat-data-to-player me "New Distance: %d" s: sn-lumber-camp-max-distance)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 265 | DONOR_LINE=4518
+(defrule
+    (building-type-count lumber-camp >= 1)
+=>
+    (up-modify-sn sn-lumber-camp-max-distance c:+ 7)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 266 | DONOR_LINE=4525
+(defrule
+    (building-type-count lumber-camp >= 3)
+=>
+    (set-strategic-number sn-lumber-camp-max-distance 27)
+    ;	(chat-to-player me "LC's to 30")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 267 | DONOR_LINE=4533
+(defrule
+    (building-type-count lumber-camp >= 4)
+=>
+    (set-strategic-number sn-lumber-camp-max-distance 34)
+    ;	(chat-to-player me "LC's to 40")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 268 | DONOR_LINE=4541
+(defrule
+    (building-type-count lumber-camp >= 5)
+=>
+    (set-strategic-number sn-lumber-camp-max-distance 40)
+    ;	(chat-to-player me "LC's to 50")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 269 | DONOR_LINE=4549
+(defrule
+    (taunt-detected me 97)
+    ;	(goal gl-fifth-turn 1)
+=>
+    (up-chat-data-to-player me "LC's at %d" s: sn-lumber-camp-max-distance)
+    (up-chat-data-to-player me "Trees: %d" g: gl-trees-around)
+    (acknowledge-taunt me 97)
+)
+
+; AUTHENTICATED DONOR RULE 270 | DONOR_LINE=4558
+(defrule
+    (true)
+    ;	(up-pending-objects c: lumber-camp != 1)
+=>
+    (up-jump-rule 6)
+)
+
+; AUTHENTICATED DONOR RULE 271 | DONOR_LINE=4565
+(defrule
+    (goal gl-lclerp -1)
+=>
+    (up-full-reset-search)
+    (up-filter-status c: status-pending c: list-active)
+    (up-find-status-local c: lumber-camp c: 1)
+    (up-set-target-object search-local c: 0)
+    (up-get-point position-object point-x)
+    (up-send-flare point-x)
+    (up-full-reset-search)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 3)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 272 | DONOR_LINE=4580
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-filter-status c: status-ready c: list-active)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-resource c: wood c: 30)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-get-search-state lt)
+    (up-clean-search search-remote 44 search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object tree-x)
+    (up-send-flare tree-x)
+    (up-chat-data-to-player me "Trees around: %d" g: rt)
+    (set-goal gl-lclerp 0)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 273 | DONOR_LINE=4598
+(defrule
+    (goal gl-lclerp 0)
+    (up-compare-goal rt < 7)
+=>
+    (chat-to-player me "Need To Lerp Closer To Forest")
+    (set-goal gl-lclerp 1)
+)
+
+; AUTHENTICATED DONOR RULE 274 | DONOR_LINE=4606
+(defrule
+    (true)
+=>
+    (up-get-point-distance point-x tree-x goal)
+    (up-chat-data-to-player me "Distance to nearest: %d" g: goal)
+)
+
+; AUTHENTICATED DONOR RULE 275 | DONOR_LINE=4613
+(defrule
+    (goal gl-lclerp 1)
+    (up-compare-goal goal >= 2)
+=>
+    (up-lerp-tiles point-x tree-x c: 1)
+    (chat-to-player me "Lerp Toward Tree")
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 276 | DONOR_LINE=4622
+(defrule
+    (goal gl-lclerp 1)
+    (up-compare-goal goal < 2)
+=>
+    (chat-to-player me "Close Enough")
+    (set-goal gl-lclerp 2)
+)
+
+; AUTHENTICATED DONOR RULE 277 | DONOR_LINE=4630
+(defrule
+    (true)
+    ;	(up-pending-objects c: lumber-camp != 1)
+=>
+    (up-jump-rule 15)
+)
+
+; AUTHENTICATED DONOR RULE 278 | DONOR_LINE=4637
+(defrule
+    (goal gl-lclerp -1)
+=>
+    (up-full-reset-search)
+    (up-filter-status c: status-pending c: list-active)
+    (up-find-status-local c: lumber-camp c: 1)
+    (up-set-target-object search-local c: 0)
+    (up-get-point position-object point-x)
+    (up-send-flare point-x)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 279 | DONOR_LINE=4649
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-full-reset-search)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 3)
+    (up-filter-status c: status-ready c: list-active)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-resource c: wood c: 30)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-get-search-state lt)
+    (up-chat-data-to-player me "Trees around: %d" g: rt)
+    (set-goal gl-lclerp 0)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 280 | DONOR_LINE=4665
+(defrule	;check to see if the lc needs adjustment
+    (goal gl-lclerp 0)
+    (up-compare-goal rt >= 7)
+=>
+    (chat-to-player me "Current Placement Satisfactory")
+    (set-goal gl-lclerp 4)
+)
+
+; AUTHENTICATED DONOR RULE 281 | DONOR_LINE=4673
+(defrule
+    (goal gl-lclerp 0)
+    (building-type-count lumber-camp < 2)
+    (up-point-distance point-x home-x < 15)
+=>
+    (chat-to-player me "Too far from tc")
+    (up-jump-rule 1)
+)
+
+; AUTHENTICATED DONOR RULE 282 | DONOR_LINE=4682
+(defrule
+    (goal gl-lclerp 0)
+    (up-compare-goal rt < 7)
+=>
+    (chat-to-player me "Just Lerp To Nearest")
+    (up-jump-rule 2)
+)
+
+; AUTHENTICATED DONOR RULE 283 | DONOR_LINE=4690
+(defrule	;lerp toward home aways
+    (goal gl-lclerp 0)
+=>
+    (up-lerp-tiles point-x home-x c: 5)
+)
+
+; AUTHENTICATED DONOR RULE 284 | DONOR_LINE=4696
+(defrule	;if you lerped into trees or something, come back some more
+    (goal gl-lclerp 0)
+    (not(up-can-build-line gl-escrow-state point-x c: palisade-wall))
+=>
+    (up-lerp-tiles point-x home-x c: 2)
+    (chat-to-player me "Lerp toward home 1")
+    (up-jump-rule -1)
+)
+
+; AUTHENTICATED DONOR RULE 285 | DONOR_LINE=4705
+(defrule
+    (goal gl-lclerp 0)
+=>
+    (up-full-reset-search)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 10)
+    (up-filter-status c: status-ready c: list-active)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-resource c: wood c: 30)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-get-search-state lt)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 286 | DONOR_LINE=4719
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-clean-search search-remote 44 search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object tree-x)
+    (up-send-flare tree-x)
+    (set-goal gl-lclerp 1)
+    (chat-to-player me "Find Nearest Tree")
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 287 | DONOR_LINE=4732
+(defrule
+    (goal gl-lclerp 1)
+    (up-can-build-line 0 point-x c: palisade-wall)
+=>
+    (up-lerp-tiles point-x tree-x c: 1)
+    (chat-to-player me "Lerp Toward Tree")
+    ;	(up-send-flare point-x)
+    (up-jump-rule -1)
+)
+
+; AUTHENTICATED DONOR RULE 288 | DONOR_LINE=4742
+(defrule
+    (goal gl-lclerp 1)
+    (not(up-can-build-line gl-escrow-state point-x c: house))
+=>
+    (set-goal gl-lclerp 2)
+)
+
+; AUTHENTICATED DONOR RULE 289 | DONOR_LINE=4749
+(defrule
+    (goal gl-lclerp 2)
+    (not(up-can-build-line gl-escrow-state point-x c: house))
+=>
+    (up-lerp-tiles point-x home-x c: 1)
+    (chat-to-player me "Lerp toward home 2")
+    (up-jump-rule -1)
+)
+
+; AUTHENTICATED DONOR RULE 290 | DONOR_LINE=4758
+(defrule
+    (goal gl-lclerp 2)
+    (up-can-build-line gl-escrow-state point-x c: house)
+=>
+    (chat-to-player me "Final Resting Place Found")
+    (set-goal gl-lclerp 3)
+)
+
+; AUTHENTICATED DONOR RULE 291 | DONOR_LINE=4766
+(defrule
+    (goal gl-lclerp 3)
+=>
+    (up-full-reset-search)
+    (up-filter-status c: status-pending c: list-active)
+    (up-find-status-local c: lumber-camp c: 1)
+    (up-set-target-object search-local c: 0)
+    (up-get-point position-object object-x)
+    (up-target-point object-x action-delete -1 -1)
+    (up-full-reset-search)
+    (up-filter-include -1 actionid-build -1 -1)
+    (up-find-local c: villager-class c: 2)
+    (up-target-point home-x action-stop -1 -1)	;reset the initial builder
+    (chat-to-player me "Delete Initial Foundation")
+)
+
+; AUTHENTICATED DONOR RULE 292 | DONOR_LINE=4782
+(defrule
+    (goal gl-lclerp 3)
+=>
+    (up-build-line point-x point-x c: lumber-camp)
+    (chat-to-player me "Place New Foundation")
+    ;	(up-send-flare point-x)
+    (set-goal gl-lclerp 4)
+)
+
+; AUTHENTICATED DONOR RULE 293 | DONOR_LINE=4791
+(defrule
+    (goal gl-lclerp 4)
+    (up-pending-objects c: lumber-camp < 1)
+=>
+    (chat-to-player me "Reset LClerp")
+    (set-goal gl-lclerp -1)
+)
+
+; AUTHENTICATED DONOR RULE 294 | DONOR_LINE=4803
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+    (set-goal rt 0)
+)
+
+; AUTHENTICATED DONOR RULE 295 | DONOR_LINE=4811
+(defrule
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 30)
+    (up-find-remote c: watch-tower c: 1)
+    (up-get-search-state lt)
+
+)
+
+; AUTHENTICATED DONOR RULE 296 | DONOR_LINE=4823
+(defrule
+    (up-compare-goal rt < 1)
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 297 | DONOR_LINE=4831
+(defrule
+    (goal gl-trushed YES)
+    (up-compare-goal rt < 1)
+=>
+    (chat-to-player me "TRUSH THREAT NEUTRALIZED")
+    (set-goal gl-trushed NO)
+)
+
+; AUTHENTICATED DONOR RULE 298 | DONOR_LINE=4839
+(defrule
+    (game-time < 900)	;15min
+    (up-compare-goal rt >= 1)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    (up-reset-filters)
+    (up-filter-distance c: -1 c: 20)
+    (up-find-local c: villager-class c: 10)
+    (up-remove-objects search-local object-data-hitpoints < 25)
+    (up-clean-search search-local object-data-hitpoints search-order-desc)
+    (up-remove-objects search-local -1 > 5)
+    (up-get-search-state lt)
+    ;	(up-chat-data-to-player me "!! %d vills attack tower!!" g: lt)
+    (set-goal gl-trushed YES)
+)
+
+; AUTHENTICATED DONOR RULE 299 | DONOR_LINE=4857
+(defrule
+    (goal gl-trushed YES)
+=>
+    (up-target-objects 0 action-default -1 -1)
+)
+
+; AUTHENTICATED DONOR RULE 300 | DONOR_LINE=4864
+(defrule
+    (false)
+    ;	(dropsite-min-distance live-boar > 20)
+=>
+    (up-jump-rule 11)
+)
+
+; AUTHENTICATED DONOR RULE 301 | DONOR_LINE=4871
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+    (set-goal goal 0)
+    (set-goal goal1 0)
+)
+
+; AUTHENTICATED DONOR RULE 302 | DONOR_LINE=4879
+(defrule
+    (goal gl-garrison-tc -1)
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 7)
+    (up-find-remote c: all-units-class c: 1)
+    (up-get-search-state lt)
+    (up-modify-goal goal g:= rt)
+)
+
+; AUTHENTICATED DONOR RULE 303 | DONOR_LINE=4891
+(defrule
+    (goal gl-garrison-tc -1)
+    (up-compare-goal goal > 0)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-modify-goal gl-saved-focus-player s:= sn-focus-player-number)
+    (set-goal SPLIT 1)
+    (up-jump-rule 1)
+)
+
+; AUTHENTICATED DONOR RULE 304 | DONOR_LINE=4901
+(defrule
+    (goal gl-garrison-tc -1)
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -3)
+)
+
+; AUTHENTICATED DONOR RULE 305 | DONOR_LINE=4909
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-full-reset-search)
+    (up-filter-distance c: -1 c: 7)
+    (up-find-local c: villager-class c: 15)
+    (up-clean-search search-local object-data-distance search-order-desc)
+    (up-remove-objects search-local object-data-target == deer-food)
+    (up-remove-objects search-local -1 > 5)
+)
+
+; AUTHENTICATED DONOR RULE 306 | DONOR_LINE=4920
+(defrule
+    (goal SPLIT 1)
+    (unit-type-count sheep > 0)
+=>
+    (up-remove-objects search-local -1 == 0)
+)
+
+; AUTHENTICATED DONOR RULE 307 | DONOR_LINE=4927
+(defrule
+    (true)
+=>
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 308 | DONOR_LINE=4933
+(defrule
+    (goal gl-garrison-tc -1)
+    (up-compare-goal lt >= 1)
+    (up-compare-goal goal >= 1)
+=>
+    (up-set-target-by-id g: home-id)
+    (up-target-objects 1 action-garrison -1 -1)
+    ;	(up-chat-data-to-player me "Garrisoning %d vills" g: lt)
+    (set-goal gl-garrison-tc 1)
+)
+
+; AUTHENTICATED DONOR RULE 309 | DONOR_LINE=4944
+(defrule
+    (goal gl-garrison-tc 1)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 8)
+    (up-modify-sn sn-focus-player-number g:= gl-saved-focus-player)
+    (up-find-remote c: all-units-class c: 1)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 310 | DONOR_LINE=4955
+(defrule
+    (goal gl-garrison-tc 1)
+    (up-compare-goal rt < 1)
+=>
+    ;	(chat-to-player me "Release vills")
+    (up-ungarrison c: town-center)
+    (set-goal gl-garrison-tc -1)
+)
+
+; AUTHENTICATED DONOR RULE 311 | DONOR_LINE=4964
+(defrule
+    (true)
+=>
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 312 | DONOR_LINE=4972
+(defrule
+    (goal enemy-attack-x -1)
+=>
+    (up-jump-rule 9)
+)
+
+; AUTHENTICATED DONOR RULE 313 | DONOR_LINE=4978
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+    (up-set-target-point enemy-attack-x)
+    (set-goal gl-enemy-attack-size 0)
+)
+
+; AUTHENTICATED DONOR RULE 314 | DONOR_LINE=4986
+(defrule
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-filter-distance c: -1 c: 10)
+    (up-filter-include cmdid-military -1 -1 -1)
+    (up-find-remote c: all-units-class c: 20)
+    (up-get-search-state lt)
+    (up-modify-goal gl-enemy-attack-size g:+ rt)
+    ;	(up-chat-data-to-all "Enemy Attack: %d" g: gl-enemy-attack-size)
+    ;	(up-send-flare enemy-attack-x)
+)
+
+; AUTHENTICATED DONOR RULE 315 | DONOR_LINE=4999
+(defrule
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 316 | DONOR_LINE=5006
+(defrule
+    (true)
+=>
+    (set-goal goal 19)
+    (set-goal lt 0)
+)
+
+; AUTHENTICATED DONOR RULE 317 | DONOR_LINE=5013
+(defrule	;need more time to get away, so higher threshold
+    (or	(up-compare-goal gl-enemy-attack-size >= 5)
+    (up-point-distance enemy-attack-x home-x >= 25))
+=>
+    (set-goal goal 25)
+)
+
+; AUTHENTICATED DONOR RULE 318 | DONOR_LINE=5020
+(defrule	;weak vills
+    (true)
+=>
+    (up-full-reset-search)
+    (up-set-target-point enemy-attack-x)
+    (up-filter-distance c: -1 c: 5)
+    (up-find-local c: villager-class c: 10)
+    (up-remove-objects search-local object-data-hitpoints g:>= goal)
+    (up-set-target-point home-x)
+    (up-remove-objects search-local 44 < 7)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 319 | DONOR_LINE=5033
+(defrule
+    (up-compare-goal lt >= 1)	;weak vills
+=>
+    (up-copy-point point-x enemy-attack-x)
+    (up-lerp-tiles point-x home-x c: 7)
+    (up-target-point point-x action-move -1 no-attack)
+    ;	(up-chat-data-to-all "Retreat %d weak vills from enemy attack" g: lt)
+    ;	(up-send-flare point-x)
+)
+
+; AUTHENTICATED DONOR RULE 320 | DONOR_LINE=5043
+(defrule
+    (true)
+=>
+    (up-full-reset-search)
+    (up-set-target-point enemy-attack-x)
+    (up-filter-distance c: -1 c: 3)
+    (up-find-local c: villager-class c: 20)
+    (up-set-target-point home-x)
+    (up-remove-objects search-local 44 < 8)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 321 | DONOR_LINE=5055
+(defrule
+    (up-compare-goal lt >= 1)	;any vills
+    (up-compare-goal gl-enemy-attack-size >= 6)
+=>
+    (up-copy-point point-x enemy-attack-x)
+    (up-lerp-tiles point-x home-x c: 7)
+    (up-target-point point-x action-move -1 no-attack)
+    ;	(up-chat-data-to-all "Retreat %d normal vills from enemy attack" g: lt)
+    ;	(up-send-flare enemy-attack-x)
+)
+
+; AUTHENTICATED DONOR RULE 322 | DONOR_LINE=5068
+(defrule
+    (players-military-population every-enemy >= 17)
+=>
+    (up-jump-rule 6)
+)
+
+; AUTHENTICATED DONOR RULE 323 | DONOR_LINE=5075
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+    (set-goal goal 0)
+    (set-goal rt 0)
+)
+
+; AUTHENTICATED DONOR RULE 324 | DONOR_LINE=5084
+(defrule	;first check if any enemy skirms are around
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 35)
+    (up-find-remote c: skirmisher c: 1)
+    (up-get-search-state lt)
+    ;	(up-modify-goal goal g:= rt)
+)
+
+; AUTHENTICATED DONOR RULE 325 | DONOR_LINE=5096
+(defrule	;once one is found, don't need to keep searching
+    (up-compare-goal rt < 1)
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 326 | DONOR_LINE=5104
+(defrule	;find vills close to the unit
+    (up-compare-goal rt >= 1)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 4)
+    (up-find-local c: villager-class c: 10)
+    (up-remove-objects search-local object-data-hitpoints < 25)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 327 | DONOR_LINE=5116
+(defrule
+    (goal gl-fifth-turn 1)
+    (up-compare-goal lt >= 1)
+    (up-point-distance point-x home-x < 25)
+=>
+    (up-clean-search search-local object-data-precise-distance search-order-asc)
+    (up-remove-objects search-local -1 > 2)
+    (up-find-remote c: skirmisher c: 10)
+    (up-set-target-point home-x)
+    (up-clean-search search-remote object-data-precise-distance search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    (up-target-objects 1 action-default -1 -1)
+    ;	(chat-to-all "Attack Enemy Skirms")
+    (set-goal gl-skirm-vills 3)
+)
+
+; AUTHENTICATED DONOR RULE 328 | DONOR_LINE=5134
+(defrule
+    (goal gl-skirm-vills 3)
+    (or	(goal gl-ninety-turn 1)
+    (or	(up-compare-goal lt < 1)
+    (up-point-distance point-x home-x >= 30)))
+=>
+    ;	(chat-to-all "Stop Attacking Skirms")
+    (up-full-reset-search)
+    (up-filter-include -1 actionid-attack -1 -1)
+    (up-find-local c: villager-class c: 10)
+    (up-target-point home-x action-stop -1 -1)
+    (set-goal gl-skirm-vills -1)
+)
+
+; AUTHENTICATED DONOR RULE 329 | DONOR_LINE=5149
+(defrule
+    (false)
+    (goal gl-town-safe YES)
+=>
+    (up-jump-rule 8)
+)
+
+; AUTHENTICATED DONOR RULE 330 | DONOR_LINE=5158
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+    (set-goal enemy-attack-x -1)
+    (set-goal enemy-attack-y -1)
+    (set-goal point-x 0)
+    (set-goal point-y 0)
+    (set-goal goal 35)
+    (set-goal goal1 0)
+    (set-goal rt 0)
+)
+
+; AUTHENTICATED DONOR RULE 331 | DONOR_LINE=5171
+(defrule
+    (current-age == feudal-age)
+=>
+    (set-goal goal 47)
+)
+
+; AUTHENTICATED DONOR RULE 332 | DONOR_LINE=5177
+(defrule
+    (current-age >= castle-age)
+=>
+    (set-goal goal 56)
+)
+
+; AUTHENTICATED DONOR RULE 333 | DONOR_LINE=5183
+(defrule
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 g: goal)
+    (up-filter-include cmdid-military -1 -1 -1)
+    (up-find-remote c: all-units-class c: 40)
+)
+
+; AUTHENTICATED DONOR RULE 334 | DONOR_LINE=5193
+(defrule
+    (stance-toward focus-player enemy)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-get-object-data object-data-point-x point2-x)
+    (up-get-object-data object-data-point-y point2-y)
+    (up-modify-goal point-x g:+ point2-x)
+    (up-modify-goal point-y g:+ point2-y)
+    (up-get-search-state lt)
+    (up-modify-goal goal1 c:+ 1) ;number of points checked
+)
+
+; AUTHENTICATED DONOR RULE 335 | DONOR_LINE=5205
+(defrule
+    (up-compare-goal rt > 0)
+    (stance-toward focus-player enemy)
+=>
+    (up-remove-objects search-remote -1 == 0)
+    (up-get-search-state lt)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 336 | DONOR_LINE=5214
+(defrule
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -4)
+)
+
+; AUTHENTICATED DONOR RULE 337 | DONOR_LINE=5221
+(defrule
+    (up-compare-goal goal1 > 0)
+=>
+    (up-modify-goal point-x g:/ goal1)
+    (up-modify-goal point-y g:/ goal1)
+    (up-copy-point enemy-attack-x point-x)	;remote group point
+)
+
+; AUTHENTICATED DONOR RULE 338 | DONOR_LINE=5231
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+    (set-goal goal 0)
+    (set-goal goal1 0)
+    (set-goal goal2 0)
+)
+
+; AUTHENTICATED DONOR RULE 339 | DONOR_LINE=5241
+(defrule
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 35)
+    (up-find-remote c: scout-cavalry-line c: 1)
+    (up-find-remote c: eagle-warrior-line c: 1)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 340 | DONOR_LINE=5253
+(defrule
+    (up-compare-goal rt < 1)
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 341 | DONOR_LINE=5261
+(defrule
+    (up-compare-goal rt >= 1)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 5)
+    (up-find-local c: villager-class c: 10)
+    (up-remove-objects search-local object-data-hitpoints < 30)
+    (up-get-search-state lt)
+    (up-modify-goal goal g:= lt)
+    (up-remove-objects search-local object-data-hitpoints >= 25)
+    (up-get-search-state lt)
+    (up-modify-goal goal1 g:= lt)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 342 | DONOR_LINE=5278
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-full-reset-search)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 5)
+    (up-find-local c: villager-class c: 20)
+    (up-remove-objects search-local object-data-hitpoints >= 10)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 343 | DONOR_LINE=5289
+(defrule
+    (goal SPLIT 1)
+    (up-compare-goal goal1 > 0)	;weak vill
+    (or	(up-compare-goal lt >= 1)	;superweak vill
+    (up-compare-goal goal < 3))	;not enough strong vills
+=>
+    (up-clean-search search-local object-data-hitpoints search-order-asc)
+    (up-remove-objects search-local -1 > 0)
+    (up-target-point home-x action-garrison -1 no-attack)
+    (chat-to-all "Garrisoning weak vill near enemy scout")
+    )
+
+; AUTHENTICATED DONOR RULE 344 | DONOR_LINE=5301
+(defrule
+    (taunt-detected me 30)
+    (goal gl-fifth-turn 1)
+=>
+    (up-chat-data-to-player me "Weak vills: %d" g: goal1)
+    (up-chat-data-to-player me "Very weak vills: %d" g: lt)
+    (up-chat-data-to-player me "Total vills: %d" g: goal)
+    (up-chat-data-to-player me "SPLIT: %d" g: SPLIT)
+)
+
+; AUTHENTICATED DONOR RULE 345 | DONOR_LINE=5311
+(defrule
+    (taunt-detected me 31)
+=>
+    (acknowledge-taunt me 30)
+    (acknowledge-taunt me 31)
+)
+
+; AUTHENTICATED DONOR RULE 346 | DONOR_LINE=5318
+(defrule
+    (true)
+=>
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 347 | DONOR_LINE=5325
+(defrule
+    (players-current-age-time every-enemy >= 60)
+    (players-current-age every-enemy >= castle-age)
+=>
+    (up-jump-rule 8)
+)
+
+; AUTHENTICATED DONOR RULE 348 | DONOR_LINE=5333
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+)
+
+; AUTHENTICATED DONOR RULE 349 | DONOR_LINE=5340
+(defrule	;first check if any enemy infantry are around
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 35)
+    (up-find-remote c: militiaman-line c: 5)
+    (up-find-remote c: spearman-line c: 5)
+    (up-remove-objects search-remote object-data-action != actionid-attack)
+    (up-remove-objects search-remote object-data-target != villager-class)
+    (up-clean-search search-remote 44 search-order-asc)
+    (up-get-search-state lt)
+    (up-modify-goal goal g:= rt)
+)
+
+; AUTHENTICATED DONOR RULE 350 | DONOR_LINE=5356
+(defrule
+    (up-compare-goal rt < 1)
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 351 | DONOR_LINE=5364
+(defrule	;find vills close to the infantry
+    (up-compare-goal rt >= 1)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-get-point position-object point-x)
+    (up-set-target-point point-x)
+    (up-filter-distance c: -1 c: 6)
+    (up-find-local c: villager-class c: 10)
+    (up-remove-objects search-local object-data-hitpoints < 28)
+    ;	(up-filter-distance c: -1 c: 2)
+    ;	(up-find-local c: villager-class c: 10)
+    ;	(up-remove-objects search-local object-data-action != actionid-build)
+    (up-set-target-point home-x)
+    (up-remove-objects search-local 44 < 7)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 352 | DONOR_LINE=5381
+(defrule
+    (up-compare-goal lt == 1)
+    (up-set-target-object search-local c: 0)
+=>
+    ;	(chat-to-all "Retreat From Enemy Infantry")
+    (up-get-point position-object object-x)	;vill-x
+    (up-copy-point point2-x point-x)	;point is the enemy unit
+    (up-lerp-tiles point2-x home-x c: 3)	;lerp toward home
+    (up-lerp-tiles point2-x point-x c: -2)	;lerp away from the attacker
+    (up-target-point point2-x action-default -1 -1)
+    ;	(up-send-flare point2-x)
+)
+
+; AUTHENTICATED DONOR RULE 353 | DONOR_LINE=5394
+(defrule
+    (goal gl-fifth-turn 1)
+    (up-compare-goal lt >= 1)
+    (up-point-distance point-x home-x < 25)
+=>
+    (up-set-target-point point-x)
+    (up-clean-search search-local object-data-precise-distance search-order-asc)
+    (up-remove-objects search-local -1 > 2)
+    (up-find-remote c: militiaman-line c: 5)
+    (up-find-remote c: spearman-line c: 5)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 354 | DONOR_LINE=5407
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-remove-objects search-remote object-data-action != actionid-attack)
+    (up-remove-objects search-remote object-data-target != villager-class)
+    (up-set-target-point home-x)
+    (up-clean-search search-remote object-data-precise-distance search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+    (up-target-objects 1 action-default -1 -1)
+    ;	(chat-to-all "Attack Enemy Infantry")
+    (enable-timer t-infantry-attack 2)
+    (set-goal gl-aggressive-vills 3)
+    ;	(up-send-flare point-x)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 355 | DONOR_LINE=5423
+(defrule
+    (goal gl-aggressive-vills 3)
+    (or	(goal gl-ninety-turn 1)
+    (or	(up-point-distance point-x home-x >= 30)
+    (and(up-compare-goal lt < 1)
+    (up-timer-status t-infantry-attack != timer-running))))
+=>
+    ;	(chat-to-all "Stop Attacking Infantry")
+    (up-full-reset-search)
+    (up-filter-include -1 actionid-attack -1 -1)
+    (up-find-local c: villager-class c: 10)
+    (up-target-point home-x action-stop -1 -1)
+    (set-goal gl-aggressive-vills -1)
+)
+
+; AUTHENTICATED DONOR RULE 356 | DONOR_LINE=5440
+(defrule
+    (or	(goal gl-aggressive-vills 1)	;already attacking scout with two vills
+    (players-current-age every-enemy >= castle-age))
+=>
+    (up-jump-rule 5)
+)
+
+; AUTHENTICATED DONOR RULE 357 | DONOR_LINE=5448
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+    (set-goal goal2 1)
+)
+
+; AUTHENTICATED DONOR RULE 358 | DONOR_LINE=5456
+(defrule	;first check if the enemy scout is around
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 40)
+    (up-find-remote c: eagle-warrior c: 1)
+    (up-find-remote c: scout-cavalry c: 1)
+    (up-get-search-state lt)
+    (up-modify-goal goal g:= rt)
+)
+
+; AUTHENTICATED DONOR RULE 359 | DONOR_LINE=5469
+(defrule
+    (up-compare-goal rt < 1)
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 360 | DONOR_LINE=5477
+(defrule	;find vills close to the scout
+    (up-compare-goal rt >= 1)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-get-point position-object object-x)
+    (up-set-target-point object-x)
+    (up-filter-distance c: -1 g: goal2)
+    (up-find-local c: villager-class c: 10)
+    (up-remove-objects search-local object-data-id g:== lurer-id)
+    (up-remove-objects search-local object-data-id g:== shooter-id)
+    (up-remove-objects search-local object-data-hitpoints < 17)
+    (up-get-search-state lt)
+    (up-modify-goal goal1 g:= lt)
+)
+
+; AUTHENTICATED DONOR RULE 361 | DONOR_LINE=5492
+(defrule
+    (up-compare-goal lt >= 1)
+    (goal gl-aggressive-vills -1)
+=>
+    (up-clean-search search-local object-data-precise-distance search-order-asc)
+    (up-remove-objects search-local -1 > 0)
+    (up-target-objects 1 action-default -1 -1)
+    ;	(chat-to-player me "Attack Enemy Scout 1")
+    (set-goal gl-aggressive-vills 0)
+)
+
+; AUTHENTICATED DONOR RULE 362 | DONOR_LINE=5503
+(defrule
+    (up-compare-goal goal1 < 1)
+    (goal gl-aggressive-vills 0)
+=>
+    ;	(chat-to-player me "Stop Attacking 1")
+    (up-full-reset-search)
+    (up-filter-include -1 actionid-attack -1 -1)
+    (up-find-local c: villager-class c: 10)
+    (up-target-point home-x action-stop -1 -1)
+    (set-goal gl-aggressive-vills -1)
+)
+
+; AUTHENTICATED DONOR RULE 363 | DONOR_LINE=5516
+(defrule
+    (players-current-age every-enemy >= castle-age)
+=>
+    (up-jump-rule 5)
+)
+
+; AUTHENTICATED DONOR RULE 364 | DONOR_LINE=5523
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-focus-player-number 1)
+    (set-goal goal1 0)
+    (set-goal goal2 2)
+)
+
+; AUTHENTICATED DONOR RULE 365 | DONOR_LINE=5532
+(defrule	;first check if the enemy scout is around
+    (stance-toward focus-player enemy)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 40)
+    (up-find-remote c: scout-cavalry c: 1)
+    (up-get-search-state lt)
+    (up-modify-goal goal g:= rt)
+)
+
+; AUTHENTICATED DONOR RULE 366 | DONOR_LINE=5544
+(defrule
+    (up-compare-goal rt < 1)
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 367 | DONOR_LINE=5552
+(defrule	;find vills close to the scout
+    (up-compare-goal rt >= 1)
+    (up-set-target-object search-remote c: 0)
+=>
+    (up-get-point position-object object-x)
+    (up-set-target-point object-x)
+    (up-filter-distance c: -1 g: goal2)
+    (up-find-local c: villager-class c: 5)
+    (up-remove-objects search-local object-data-id g:== lurer-id)
+    (up-remove-objects search-local object-data-id g:== shooter-id)
+    (up-remove-objects search-local object-data-hitpoints < 17)
+    (up-get-search-state lt)
+    (up-modify-goal goal1 g:= lt)
+)
+
+; AUTHENTICATED DONOR RULE 368 | DONOR_LINE=5567
+(defrule
+    (up-compare-goal lt >= 2)
+    (goal gl-aggressive-vills -1)
+=>
+    (up-clean-search search-local 44 1)
+    (up-remove-objects search-local -1 > 1)
+    (up-target-objects 1 action-default -1 -1)
+    ;	(chat-to-player me "Attack Enemy Scout 2")
+    (set-goal gl-aggressive-vills 1)
+)
+
+; AUTHENTICATED DONOR RULE 369 | DONOR_LINE=5578
+(defrule
+    (up-compare-goal goal1 < 1)
+    (goal gl-aggressive-vills 1)
+=>
+    ;	(chat-to-player me "Stop Attacking 2")
+    (up-full-reset-search)
+    (up-filter-include -1 actionid-attack -1 -1)
+    (up-find-local c: villager-class c: 30)
+    (up-target-point home-x action-stop -1 -1)
+    (set-goal gl-aggressive-vills -1)
+)
+
+; AUTHENTICATED DONOR RULE 370 | DONOR_LINE=5590
+(defrule
+    (taunt-detected me 95)
+    (goal gl-second-turn 1)
+=>
+    (up-chat-data-to-player me "EnemyScouts: %d" g: goal)
+    (up-chat-data-to-player me "VillsNearby: %d" g: goal1)
+    (up-chat-data-to-player me "AggressiveVills: %d" g: gl-aggressive-vills)
+)
+
+; AUTHENTICATED DONOR RULE 371 | DONOR_LINE=5599
+(defrule
+    (taunt-detected me 96)
+=>
+    (acknowledge-taunt me 95)
+    (acknowledge-taunt me 96)
+)
+
+; AUTHENTICATED DONOR RULE 372 | DONOR_LINE=5607
+(defrule
+    (false)
+    (game-time > 5)
+    (up-compare-goal gl-threat-time < 1000)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: 30 c: -1)
+    (up-find-local c: villager-class c: 40)
+    (up-remove-objects search-local object-data-action != actionid-attack)
+    (up-clean-search search-local 44 search-order-desc)
+)
+
+; AUTHENTICATED DONOR RULE 373 | DONOR_LINE=5620
+(defrule
+    (false)
+    (game-time > 5)
+    (goal gl-tenth-turn 1)
+    (up-compare-goal gl-threat-time < 1000)
+    (up-set-target-object search-local c: 0)
+=>
+    (chat-to-all "Garrisoning wandering vill")
+    (up-get-point position-object point-x)
+    (up-send-flare point-x)
+    (up-set-target-by-id g: home-id)
+    (up-target-objects 1 action-garrison -1 -1)
+)
+
+; AUTHENTICATED DONOR RULE 374 | DONOR_LINE=5636
+(defrule
+    (true)
+=>
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (set-strategic-number sn-focus-player-number 1)
+    (set-goal rt 0)
+)
+
+; AUTHENTICATED DONOR RULE 375 | DONOR_LINE=5645
+(defrule
+    (stance-toward focus-player enemy)
+    (players-unit-type-count focus-player battering-ram-line > 0)
+=>
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 10)
+    (up-find-remote c: battering-ram-line c: 10)
+    (up-get-search-state lt)
+    (up-clean-search search-remote 44 search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+)
+
+; AUTHENTICATED DONOR RULE 376 | DONOR_LINE=5658
+(defrule
+    (up-compare-goal rt < 1)
+    (player-valid focus-player)
+=>
+    (up-modify-sn sn-focus-player-number c:+ 1)
+    (up-jump-rule -2)
+)
+
+; AUTHENTICATED DONOR RULE 377 | DONOR_LINE=5666
+(defrule
+    (up-compare-goal rt > 0)
+    (up-set-target-object search-remote c: 0)
+    (players-unit-type-count focus-player battering-ram-line > 0)
+=>
+    (up-get-point position-object point-x)
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 15)
+    (up-find-local c: villager-class c: 30)
+    (up-clean-search search-local 44 search-order-desc)
+    (up-remove-objects search-local object-data-id g:== lurer-id)
+    (up-remove-objects search-local object-data-hitpoints < 15)
+    (up-remove-objects search-local -1 > 6)
+    (up-get-search-state lt)
+    (up-target-objects 1 action-default -1 -1)
+    ;	(up-chat-data-to-player me "Attacking ram with %d villagers" g: lt)
+)
+
+; AUTHENTICATED DONOR RULE 378 | DONOR_LINE=5687
+(defrule
+    (game-time < 300)	;5min
+    (goal gl-thirty-turn 1)
+    (unit-type-count livestock-class >= 1)
+=>
+    (up-full-reset-search)
+    (up-set-target-point home-x)
+    (up-filter-distance c: 5 c: -1)
+    (up-find-local c: livestock-class c: 5)
+    (up-remove-objects search-local object-data-idling == 0)
+    (up-remove-objects search-local object-data-id g:== sheep1-id)
+    (up-get-search-state lt)
+    (up-target-point home-x action-move -1 -1)
+)
+
+; AUTHENTICATED DONOR RULE 379 | DONOR_LINE=5703
+(defrule
+    (or	(up-compare-goal gl-current-sheep-count < 3)
+    (goal gl-sheep-scouting FINISHED))
+=>
+    (up-jump-rule 11)
+)
+
+; AUTHENTICATED DONOR RULE 380 | DONOR_LINE=5710
+(defrule
+    (up-compare-goal gl-current-sheep-count >= 3)
+=>
+    (up-full-reset-search)
+    (up-find-local c: sheep c: 6)
+    (up-clean-search search-local 44 search-order-desc)
+    (up-set-target-object search-local c: 0)
+    (up-get-object-data object-data-id sheep1-id)
+    ;	(up-chat-data-to-player me "First sheep scout found(%d)" g: sheep1-id)
+    (set-goal gl-sheep-scouting 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 381 | DONOR_LINE=5723
+(defrule
+    (up-set-target-by-id g: sheep1-id)
+=>
+    (up-get-point position-object point2-x)
+    ;	(up-send-flare point2-x)
+)
+
+; AUTHENTICATED DONOR RULE 382 | DONOR_LINE=5730
+(defrule
+    (goal gl-fifth-turn 1)
+    (up-compare-goal gl-sheep-scouting >= 0)
+=>
+    (up-copy-point point-x point2-x)
+    ;	(up-send-flare point-x)
+)
+
+; AUTHENTICATED DONOR RULE 383 | DONOR_LINE=5738
+(defrule
+    (goal gl-sheep-scouting 0)
+    (up-point-distance point2-x home-x < 50)
+    (up-point-distance point2-x home-x >= 18)
+=>
+    ;	(chat-to-player me "Move around now")
+    (set-goal gl-sheep-scouting 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 384 | DONOR_LINE=5748
+(defrule
+    (goal gl-fifth-turn 1)
+    (goal gl-sheep-scouting 0)
+=>
+    ;	(chat-to-player me "Move out")
+    (up-lerp-tiles point-x home-x c: -10)
+    (up-cross-tiles point-x home-x c: 0)
+    (up-bound-point point-x point-x)
+)
+
+; AUTHENTICATED DONOR RULE 385 | DONOR_LINE=5758
+(defrule
+    (goal gl-fifth-turn 1)
+    (goal gl-sheep-scouting 1)
+=>
+    (up-lerp-tiles point-x home-x c: -5)
+    (up-cross-tiles point-x home-x c: -20)
+    (up-bound-point point-x point-x)
+    ;	(up-send-flare point-x)
+)
+
+; AUTHENTICATED DONOR RULE 386 | DONOR_LINE=5768
+(defrule
+    (goal gl-fifth-turn 1)
+    (goal gl-sheep-scouting 1)
+    ;	(up-point-explored
+    (up-point-distance point2-x home-x >= 24)
+=>
+    ;	(chat-to-player me "Bring closer")
+    (up-lerp-tiles point-x home-x c: 8)
+    (up-bound-point point-x point-x)
+)
+
+; AUTHENTICATED DONOR RULE 387 | DONOR_LINE=5779
+(defrule
+    (goal gl-fifth-turn 1)
+    (goal gl-sheep-scouting 1)
+    (up-point-distance point-x point2-x < 3)
+=>
+    (up-get-point-distance point-x point2-x goal2)
+    (up-chat-data-to-player me "Distance too close(%d)" g: goal2)
+    (up-lerp-tiles point-x home-x c: -8)
+    (up-lerp-tiles point-x point2-x c: -8)
+    (up-bound-point point-x point-x)
+)
+
+; AUTHENTICATED DONOR RULE 388 | DONOR_LINE=5791
+(defrule
+    (goal gl-fifth-turn 1)
+    (up-set-target-by-id g: sheep1-id)
+    (up-compare-goal gl-sheep-scouting < 2)
+    (up-compare-goal gl-sheep-scouting >= 0)
+=>
+    (up-get-point-distance point-x point2-x goal2)
+    ;	(up-chat-data-to-player me "Move(%d)" g: goal2)
+    (up-full-reset-search)
+    (up-add-object-by-id search-local g: sheep1-id)
+    (up-target-point point-x action-move -1 -1)
+    ;	(up-send-flare point-x)
+)
+
+; AUTHENTICATED DONOR RULE 389 | DONOR_LINE=5805
+(defrule
+    (game-time >= 60)
+    (up-set-target-by-id g: sheep1-id)
+    (or	(game-time >= 200)
+    (and(game-time >= 122)
+    (up-compare-goal gl-current-sheep-count == 4)))
+=>
+    ;	(chat-to-player me "Send Sheep Home")
+    (up-full-reset-search)
+    (up-add-object-by-id search-local g: sheep1-id)
+    (up-target-point home-x action-move -1 -1)
+    (set-goal gl-sheep-scouting FINISHED)
+    ;	(set-goal gl-sheep-scouting 2)
+)
+
+; AUTHENTICATED DONOR RULE 390 | DONOR_LINE=5820
+(defrule
+    (false)
+    (goal gl-sheep-scouting 2)
+    (up-set-target-by-id g: sheep1-id)
+=>
+    (do-nothing)
+)
+
+; AUTHENTICATED DONOR RULE 391 | DONOR_LINE=5829
+(defrule
+    (true)
+    (or	(game-time < 2)
+    (or	(current-age > dark-age)
+    (or	(up-compare-goal NEWSCOUTING >= 50)
+    (up-timer-status 28 == timer-running))))
+=>
+    (up-jump-rule 33)
+)
+
+; AUTHENTICATED DONOR RULE 392 | DONOR_LINE=5839
+(defrule
+    (true)
+=>
+    (set-goal CROSS 9)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 393 | DONOR_LINE=5846
+(defrule
+    (true)
+=>
+    (up-set-target-by-id g: scout-id)
+    (up-get-path-distance explo-x 0 goal)
+    (set-goal goal1 -9)
+    (set-goal goal2 24)
+    (set-goal goal3 8)
+    (set-goal goal4 0)	;debug for distance
+)
+
+; AUTHENTICATED DONOR RULE 394 | DONOR_LINE=5857
+(defrule
+    (up-point-distance scout-x home-x >= 32)
+=>
+    (set-goal goal2 15)
+    (set-goal goal3 12)
+)
+
+; AUTHENTICATED DONOR RULE 395 | DONOR_LINE=5865
+(defrule
+    (game-time < 60)
+    (unit-type-count sheep < 4)
+=>
+    (set-goal goal1 -7)
+)
+
+; AUTHENTICATED DONOR RULE 396 | DONOR_LINE=5872
+(defrule
+    (game-time >= 200)
+    (up-gaia-type-count c: deer-class < 1)
+    (or	(game-time > 410)
+    (and(goal gl-sighted-boar-count 2)
+    (or (and(game-time > 320)
+    (up-compare-goal gl-current-sheep-count >= 6))
+    (up-compare-goal gl-current-sheep-count >= 7))))
+=>
+    ;	(chat-to-player me "Wider scouting for deer")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 397 | DONOR_LINE=5885
+(defrule	;lerp out a tiny bit more
+    (game-time >= 200)
+    (or	(game-time > 410)
+    (and(goal gl-sighted-boar-count 2)
+    (or (and(game-time > 320)
+    (up-compare-goal gl-current-sheep-count >= 6))
+    (up-compare-goal gl-current-sheep-count >= 7))))
+=>
+    (set-goal goal1 -11)
+)
+
+; AUTHENTICATED DONOR RULE 398 | DONOR_LINE=5896
+(defrule
+    (game-time >= 200)
+    (goal gl-sighted-boar-count 2)
+    (up-compare-goal gl-current-sheep-count < 7)
+=>
+    ;	(chat-to-player me "Wider scouting for sheep")
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 399 | DONOR_LINE=5905
+(defrule	;lerp out a tiny bit more
+    (game-time >= 200)
+    (goal gl-sighted-boar-count 2)
+    (up-compare-goal gl-current-sheep-count < 7)
+=>
+    (set-goal goal1 -14)
+)
+
+; AUTHENTICATED DONOR RULE 400 | DONOR_LINE=5914
+(defrule	;jump for direction switch
+    (or	(game-time < 90)
+    (or	(game-time > 450)	;7.5m
+    (and(up-compare-goal scout-x >= 5)
+    (and(up-compare-goal scout-y >= 5)
+    (and(up-compare-goal scout-x < 115)
+    (up-compare-goal scout-y < 115))))))
+=>
+    (up-jump-rule 8)
+)
+
+; AUTHENTICATED DONOR RULE 401 | DONOR_LINE=5925
+(defrule
+    (goal gl-scouting-switch -1)
+    ;	(up-point-distance scout-x explo-x >= 6)
+    (or	(up-point-contains explo-x c: tree-class)
+    (or	(up-point-distance scout-x explo-x >= 50)
+    (up-point-explored explo-x != explored-no)))
+    (or	(up-compare-goal explo-x < 2)
+    (or	(up-compare-goal explo-y < 2)
+    (or	(up-compare-goal explo-x g:>= gl-max-coordinate-value)
+    (up-compare-goal explo-y g:>= gl-max-coordinate-value))))
+    (up-timer-status t-direction-switch != timer-running)
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 402 | DONOR_LINE=5940
+(defrule
+    (false)
+    (goal SPLIT 1)
+    (up-point-contains explo-x c: tree-class)
+=>
+    (chat-to-player me "Tree")
+)
+
+; AUTHENTICATED DONOR RULE 403 | DONOR_LINE=5948
+(defrule
+    (false)
+    (goal SPLIT 1)
+    (up-point-distance scout-x explo-x >= 50)
+=>
+    (chat-to-player me ">50")
+)
+
+; AUTHENTICATED DONOR RULE 404 | DONOR_LINE=5956
+(defrule
+    (false)
+    (goal SPLIT 1)
+    (up-point-explored explo-x != explored-no)
+=>
+    (chat-to-player me "!=ExploredNo")
+)
+
+; AUTHENTICATED DONOR RULE 405 | DONOR_LINE=5964
+(defrule
+    (goal SPLIT 1)
+=>
+    ;	(chat-to-player me "Switch direction maybe")
+    (enable-timer t-direction-switch 5)
+    (set-goal gl-scouting-switch 0)
+    ;	(up-send-flare explo-x)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 406 | DONOR_LINE=5974
+(defrule
+    (goal gl-scouting-switch 0)
+    ;	(up-point-distance scout-x explo-x >= 6)
+    (or	(up-point-contains explo-x c: tree-class)
+    (or	(up-point-distance scout-x explo-x >= 50)
+    (up-point-explored explo-x != explored-no)))
+    (or	(up-compare-goal explo-x < 2)
+    (or	(up-compare-goal explo-y < 2)
+    (or	(up-compare-goal explo-x g:>= gl-max-coordinate-value)
+    (up-compare-goal explo-y g:>= gl-max-coordinate-value))))
+    (up-timer-status t-direction-switch != timer-running)
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 407 | DONOR_LINE=5989
+(defrule
+    (goal gl-scouting-switch 0)
+    (up-timer-status t-direction-switch != timer-running)
+=>
+    (set-goal gl-scouting-switch -1)
+)
+
+; AUTHENTICATED DONOR RULE 408 | DONOR_LINE=5996
+(defrule
+    (goal SPLIT 1)
+=>
+    ;	(chat-to-player me "Switch direction")
+    (enable-timer t-direction-switch 50)
+    (set-goal gl-scouting-switch -1)
+    (up-modify-goal CROSS c:* -1)
+    (set-goal NEWSCOUTING -1)
+    ;	(up-send-flare explo-x)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 409 | DONOR_LINE=6009
+(defrule
+    (goal NEWSCOUTING -1)
+=>
+    ;	(chat-to-player me "Cross")
+    (up-copy-point explo-x scout-x)
+    (up-cross-tiles explo-x home-x g: CROSS)
+    (up-lerp-tiles explo-x home-x g: goal3)
+    (up-bound-point explo-x explo-x)
+    ;	(up-send-flare explo-x)
+    (set-goal NEWSCOUTING 0)
+)
+
+; AUTHENTICATED DONOR RULE 410 | DONOR_LINE=6022
+(defrule
+    (true)
+    (false)
+=>
+    ;	(chat-to-player me "Go Inside 1")
+    (set-goal gl-inside-forest 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 411 | DONOR_LINE=6031
+(defrule
+    (false)
+    (goal gl-inside-forest 1)
+=>
+    (chat-to-player me "Don't Go Inside 1")
+    (set-goal gl-inside-forest -1)
+)
+
+; AUTHENTICATED DONOR RULE 412 | DONOR_LINE=6039
+(defrule
+    (false)
+    (goal gl-inside-forest -1)
+    (up-point-distance scout-x home-x >= MaxDistance)
+=>
+    (chat-to-player me "Go Inside 2")
+    (set-goal gl-inside-forest 2)
+)
+
+; AUTHENTICATED DONOR RULE 413 | DONOR_LINE=6048
+(defrule
+    (false)
+    (goal gl-inside-forest 2)
+=>
+    (chat-to-player me "Don't Go Inside 2")
+    (set-goal gl-inside-forest -1)
+)
+
+; AUTHENTICATED DONOR RULE 414 | DONOR_LINE=6056
+(defrule
+    (game-time < 100)
+    (up-point-contains explo-x c: tree-class)
+=>
+    (enable-timer t-misc 2)
+)
+
+; AUTHENTICATED DONOR RULE 415 | DONOR_LINE=6063
+(defrule
+    (up-point-distance scout-x home-x >= 33)
+    (up-point-contains explo-x c: tree-class)
+=>
+    (enable-timer t-misc 15)
+)
+
+; AUTHENTICATED DONOR RULE 416 | DONOR_LINE=6070
+(defrule
+    (up-point-contains explo-x c: tree-class)
+    (up-timer-status t-misc == timer-running)
+=>
+    ;	(chat-to-player me "Lerp in")
+    (set-goal goal1 2)
+)
+
+; AUTHENTICATED DONOR RULE 417 | DONOR_LINE=6079
+(defrule	;move the point out of obstacles
+    (goal NEWSCOUTING 0)
+    (up-point-distance explo-x home-x < MaxDistance)
+    (or	(game-time < 100)
+    (up-point-distance explo-x scout-x < 12))
+    (or	(goal goal 65535)
+    (or	(up-point-contains explo-x c: tree-class)
+    (up-point-explored explo-x != explored-no)))
+=>
+    ;	(chat-to-player me "Lerp")
+    (up-lerp-tiles explo-x home-x g: goal1)
+    (up-bound-point explo-x explo-x)
+    ;	(up-send-flare explo-x)
+)
+
+; AUTHENTICATED DONOR RULE 418 | DONOR_LINE=6094
+(defrule	;move the point out of obstacles
+    (goal NEWSCOUTING 0)
+    (up-point-explored explo-x == explored-no)
+    (up-point-distance explo-x home-x >= MaxDistance)
+=>
+    ;	(chat-to-player me "Lerp 2")
+    (up-lerp-tiles explo-x home-x c: 5)
+    (up-bound-point explo-x explo-x)
+    ;	(up-send-flare explo-x)
+)
+
+; AUTHENTICATED DONOR RULE 419 | DONOR_LINE=6105
+(defrule	;cross the point out of obstacles if too far out
+    (goal NEWSCOUTING 0)
+    (up-point-distance explo-x home-x >= MaxDistance)
+    (or	(goal goal 65535)
+    (or	(up-point-contains explo-x c: tree-class)
+    (up-point-explored explo-x != explored-no)))
+=>
+    (up-cross-tiles explo-x home-x g: CROSS)
+    (up-lerp-tiles explo-x home-x c: 2)
+    (up-bound-point explo-x explo-x)
+    ;	(chat-to-player me "Cross 2")
+    ;	(up-send-flare explo-x)
+)
+
+; AUTHENTICATED DONOR RULE 420 | DONOR_LINE=6119
+(defrule
+    (goal NEWSCOUTING 0)
+    (up-compare-goal goal >= 6)
+=>
+    (up-full-reset-search)
+    (up-add-object-by-id search-local g: scout-id)
+    (up-target-point explo-x action-move -1 no-attack)
+)
+
+; AUTHENTICATED DONOR RULE 421 | DONOR_LINE=6128
+(defrule
+    (goal NEWSCOUTING 0)
+    (up-compare-goal goal < 6)
+=>
+    ;	(chat-to-player me "Reset")
+    (set-goal NEWSCOUTING -1)
+)
+
+; AUTHENTICATED DONOR RULE 422 | DONOR_LINE=6136
+(defrule
+    (or	(up-compare-goal explo-x >= 116)
+    (or	(up-compare-goal explo-y >= 116)
+    (or	(up-compare-goal explo-x < 4)
+    (up-compare-goal explo-y < 4))))
+=>
+    (up-jump-rule 1)
+)
+
+; AUTHENTICATED DONOR RULE 423 | DONOR_LINE=6145
+(defrule	;if the point is out of obstacles and too far, reset
+    (false)
+    (goal NEWSCOUTING 0)
+    (up-compare-goal goal g:>= goal2)	;17 closer/11 further
+    (up-point-explored explo-x == explored-no)
+    (not(up-point-contains explo-x c: tree-class))
+    (up-compare-goal goal != 65535)
+    ;		(or	(up-compare-goal explo-x g:>= gl-max-coordinate-value)
+    ;			(or	(up-compare-goal explo-y g:>= gl-max-coordinate-value)
+    ;				(or	(up-compare-goal explo-x < 2)
+    ;					(up-compare-goal explo-y < 2)))))
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 424 | DONOR_LINE=6160
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-send-flare explo-x)
+    (chat-to-player me "Reset 2")
+    (set-goal NEWSCOUTING -1)
+    (up-send-flare explo-x)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 425 | DONOR_LINE=6171
+(defrule
+    (goal gl-fifth-turn 1)
+    (taunt-detected me 33)
+=>
+    (up-send-flare explo-x)
+)
+
+; AUTHENTICATED DONOR RULE 426 | DONOR_LINE=6178
+(defrule
+    (taunt-detected me 34)
+=>
+    (acknowledge-taunt me 33)
+    (acknowledge-taunt me 34)
+)
+
+; AUTHENTICATED DONOR RULE 427 | DONOR_LINE=6185
+(defrule
+    (false)
+    (game-time > 10)
+    (up-compare-goal NEWSCOUTING < 50)
+    (up-point-distance scout-x home-x >= MaxDistance)
+=>
+    (chat-to-player me "ExploX too far?")
+    (up-send-flare explo-x)
+)
+
+; AUTHENTICATED DONOR RULE 428 | DONOR_LINE=6195
+(defrule
+    (false)
+    (game-time > 10)
+    (up-compare-goal NEWSCOUTING < 50)
+    (up-point-distance explo-x home-x >= MaxDistance)
+=>
+    (up-get-point-distance explo-x home-x goal4)
+    (up-chat-data-to-player me "ExploX too far! (%d)" g: goal4)
+    (up-send-flare explo-x)
+)
+
+; AUTHENTICATED DONOR RULE 429 | DONOR_LINE=6206
+(defrule
+    (taunt-detected me 81)
+    (goal gl-second-turn 1)
+=>
+    (up-chat-data-to-player me "NEWSCOUTING: %d" g: NEWSCOUTING)
+    (up-chat-data-to-player me "PathDistance: %d" g: goal)
+    (up-chat-data-to-player me "ResetDistance: %d" g: goal2)
+    (up-chat-data-to-player me "ExploX: %d" g: explo-x)
+    (up-chat-data-to-player me "ExploY: %d" g: explo-y)
+    (up-chat-data-to-player me "ScoutX: %d" g: scout-x)
+    (up-chat-data-to-player me "ScoutY: %d" g: scout-y)
+    (up-chat-data-to-player me "SwitchDirection: %d" g: gl-scouting-switch)
+    (up-chat-data-to-player me "Inside forest: %d" g: gl-inside-forest)
+    (up-chat-data-to-player me "SheepClaim: %d" g: gl-getting-sheep)
+    (up-chat-data-to-player me "LerpOut: %d" g: goal1)
+    (up-chat-data-to-player me "LerpingIn: %d" g: goal3)
+)
+
+; AUTHENTICATED DONOR RULE 430 | DONOR_LINE=6224
+(defrule
+    (taunt-detected me 81)
+    (goal gl-second-turn 1)
+    (up-point-explored explo-x != explored-no)
+=>
+    (chat-to-player me "Point Explored")
+)
+
+; AUTHENTICATED DONOR RULE 431 | DONOR_LINE=6232
+(defrule
+    (taunt-detected me 81)
+    (goal gl-second-turn 1)
+    (up-point-contains explo-x c: tree-class)
+=>
+    (chat-to-player me "Contains tree")
+)
+
+; AUTHENTICATED DONOR RULE 432 | DONOR_LINE=6240
+(defrule
+    (taunt-detected me 81)
+    (goal gl-fifth-turn 1)
+=>
+    (up-send-flare explo-x)
+)
+
+; AUTHENTICATED DONOR RULE 433 | DONOR_LINE=6247
+(defrule
+    (taunt-detected me 82)
+=>
+    (acknowledge-taunt me 81)
+    (acknowledge-taunt me 82)
+)
+
+; AUTHENTICATED DONOR RULE 434 | DONOR_LINE=6254
+(defrule
+    (game-time >= 300)
+    (up-compare-goal NEWSCOUTING < FINISHED)
+    (up-compare-goal gl-current-sheep-count < 5)
+=>
+    ;	(chat-to-player me "Pause Manual Scouting 3")
+    (set-goal NEWSCOUTING 47)
+    (up-reset-scouts)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 435 | DONOR_LINE=6265
+(defrule
+    (goal NEWSCOUTING 47)
+    (up-compare-goal gl-current-sheep-count >= 5)
+=>
+    ;	(chat-to-player me "Resume Manual Scouting 3")
+    (set-goal NEWSCOUTING -1)
+    (up-reset-scouts)
+)
+
+; AUTHENTICATED DONOR RULE 436 | DONOR_LINE=6274
+(defrule
+    (game-time >= 80)
+    (up-gaia-type-count c: forage-bush < 5)
+    (up-gaia-type-count c: forage-bush >= 1)
+    (up-compare-goal NEWSCOUTING < FINISHED)
+=>
+    ;	(chat-to-all "Pause Manual Scouting 2")
+    (set-goal NEWSCOUTING 48)
+    (up-reset-scouts)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 437 | DONOR_LINE=6286
+(defrule
+    (goal NEWSCOUTING 48)
+    (goal gl-fifth-turn 1)
+=>
+    (up-full-reset-search)
+    (up-find-local c: scout-cavalry-line c: 1)
+
+    (up-set-target-point home-x)
+    (up-filter-distance c: -1 c: 30)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-remote c: forage-bush c: 1)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object point-x)
+    (up-target-point point-x action-move -1 -1)
+    ;	(chat-to-all "Bush Move")
+)
+
+; AUTHENTICATED DONOR RULE 438 | DONOR_LINE=6303
+(defrule
+    (goal NEWSCOUTING 48)
+    (up-gaia-type-count c: forage-bush >= 5)
+=>
+    ;	(chat-to-all "Resume Manual Scouting 2")
+    (set-goal NEWSCOUTING -1)
+    (up-reset-scouts)
+)
+
+; AUTHENTICATED DONOR RULE 439 | DONOR_LINE=6312
+(defrule
+    (game-time >= 290)
+    (up-compare-goal NEWSCOUTING < FINISHED)
+    (up-compare-goal gl-sighted-boar-count < 2)
+=>
+    ;	(chat-to-player me "Pause Manual Scouting 1")
+    (set-goal NEWSCOUTING 49)
+    (up-reset-scouts)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 440 | DONOR_LINE=6323
+(defrule
+    (goal NEWSCOUTING 49)
+    (up-compare-goal gl-sighted-boar-count >= 2)
+=>
+    ;	(chat-to-player me "Resume Manual Scouting 1")
+    (set-goal NEWSCOUTING -1)
+    (up-reset-scouts)
+)
+
+; AUTHENTICATED DONOR RULE 441 | DONOR_LINE=6332
+(defrule
+    (up-compare-goal NEWSCOUTING < FINISHED)
+    (up-compare-goal gl-current-sheep-count >= 7)
+=>
+    ;	(chat-to-player me "Enough Sheep Found")
+    (enable-timer t-misc 5)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 442 | DONOR_LINE=6341
+(defrule
+    (or	(game-time < 200)
+    (or	(military-population > 5)
+    (up-timer-status 28 == timer-running)))
+=>
+    (up-jump-rule 1)
+)
+
+; AUTHENTICATED DONOR RULE 443 | DONOR_LINE=6349
+(defrule
+    (up-compare-goal NEWSCOUTING < 50)
+    (up-gaia-type-count c: deer-class > 0)
+    (or	(game-time > 410)
+    (and(goal gl-sighted-boar-count 2)
+    (or (and(game-time > 305)	;~5 min
+    (up-compare-goal gl-current-sheep-count >= 6))
+    (and(up-timer-status t-misc != timer-running)
+    (up-compare-goal gl-current-sheep-count >= 7)))))
+=>
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 444 | DONOR_LINE=6362
+(defrule
+    ;	(true)
+    (goal SPLIT 1)
+=>
+    ;	(chat-to-player me "Manual Scouting Done--Lure Deer")
+    (set-goal NEWSCOUTING 50)
+    (set-goal SPLIT 0)
+    (up-reset-scouts)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 445 | DONOR_LINE=6373
+(defrule
+    (true)
+    (up-timer-status 28 != timer-running)
+    (up-compare-goal NEWSCOUTING != FINISHED)
+    (or	(up-compare-goal NEWSCOUTING == 50)
+    (game-time s:> sn-home-exploration-time))
+    (or	(game-time > 360)
+    (and(goal gl-sighted-boar-count 2)
+    (up-compare-goal gl-current-sheep-count >= 6)))
+=>
+    ;	(chat-to-player me "EARLY SCOUTING DONE")
+    (set-goal NEWSCOUTING FINISHED)
+    (up-reset-scouts)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 446 | DONOR_LINE=6389
+(defrule
+    (up-group-size c: RangedGroup > 0)
+    (up-compare-goal NEWSCOUTING != FINISHED)
+=>
+    ;	(chat-to-player me "EARLY SCOUTING DONE 2")
+    (set-goal NEWSCOUTING FINISHED)
+    (up-reset-scouts)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 447 | DONOR_LINE=6399
+(defrule
+    (goal SPLIT 1)
+=>
+    (chat-to-player me "Leak 1")
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 448 | DONOR_LINE=6407
+(defrule
+    (players-building-type-count target-player town-center > 0)
+=>
+    (up-jump-rule 15)
+)
+
+; AUTHENTICATED DONOR RULE 449 | DONOR_LINE=6414
+(defrule
+    (up-compare-goal gl-strategy != FLUSH)
+=>
+    (up-jump-rule 4)
+)
+
+; AUTHENTICATED DONOR RULE 450 | DONOR_LINE=6420
+(defrule
+    (goal gl-tenth-turn 1)
+    (players-building-type-count target-player farm < 1)
+    (players-building-type-count target-player house < 1)
+    (or	(players-building-type-count target-player mill > 0)
+    (or	(players-building-type-count target-player barracks > 0)
+    (players-building-type-count target-player archery-range > 0)))
+=>
+    ;	(chat-to-all "GeneralMoving")
+    (up-full-reset-search)
+    (up-set-target-point scout-x)
+    (up-filter-distance c: -1 c: 30)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-find-remote c: mill c: 2)
+    (up-find-remote c: archery-range c: 2)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 451 | DONOR_LINE=6438
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-find-remote c: barracks c: 2)
+    (up-clean-search search-remote 44 search-order-desc)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object point-x)
+    (up-lerp-tiles point-x scout-x c: -5)
+    (up-bound-point point-x point-x)
+    (up-find-local c: scout-cavalry-line c: 1)
+    (up-target-point point-x action-move -1 no-attack)
+    ;	(up-send-flare point-x)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 452 | DONOR_LINE=6453
+(defrule
+    (goal gl-tenth-turn 1)
+    (players-building-type-count target-player farm < 1)
+    (players-building-type-count target-player house > 0)
+=>
+    ;	(chat-to-all "HouseMoving")
+    (up-full-reset-search)
+    (up-set-target-point scout-x)
+    (up-filter-distance c: -1 c: 30)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-find-remote c: house c: 20)
+    (up-clean-search search-remote 44 search-order-desc)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object point-x)
+    (up-lerp-tiles point-x scout-x c: -5)
+    (up-bound-point point-x point-x)
+    (up-find-local c: scout-cavalry-line c: 1)
+    (up-target-point point-x action-move -1 no-attack)
+    ;	(up-send-flare point-x)
+    ;	(set-goal goal 8)
+)
+
+; AUTHENTICATED DONOR RULE 453 | DONOR_LINE=6475
+(defrule
+    (goal gl-tenth-turn 1)
+    (military-population < 20)
+    (players-building-type-count target-player farm > 0)
+=>
+    ;	(chat-to-all "FarmMoving")
+    (up-full-reset-search)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-set-target-point scout-x)
+    (up-filter-distance c: -1 c: 40)
+    (up-find-remote c: farm c: 10)
+    (up-clean-search search-remote 44 search-order-desc)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object point-x)
+    (up-lerp-tiles point-x scout-x c: -5)
+    (up-bound-point point-x point-x)
+    ;	(up-send-flare point-x)
+    (up-find-local c: scout-cavalry-line c: 1)
+    (up-target-point point-x action-move -1 no-attack)
+)
+
+; AUTHENTICATED DONOR RULE 454 | DONOR_LINE=6497
+(defrule
+    (true)
+    (false)
+=>
+    (up-modify-goal goal s:= sn-focus-player-number)
+    (up-full-reset-search)
+    (up-find-player ally find-closest goal1)
+    (up-chat-data-to-all "Ally: %d" g: goal1)
+    (up-modify-sn sn-focus-player-number g:= goal1)
+    (up-find-remote c: town-center c: 1)
+    (up-modify-sn sn-focus-player-number g:= goal)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object point-x)
+    (up-send-flare point-x)
+    (set-goal SPLIT 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 455 | DONOR_LINE=6516
+(defrule
+    (or	(not(player-in-game any-ally))
+    (up-compare-goal gl-circle-direcion != -1))
+=>
+    (up-jump-rule 4)
+)
+
+; AUTHENTICATED DONOR RULE 456 | DONOR_LINE=6523
+(defrule
+    (game-time > 5)
+=>
+    (up-modify-goal goal s:= sn-focus-player-number)
+    (up-full-reset-search)
+    (up-find-player ally find-closest goal1)
+    (up-modify-sn sn-focus-player-number g:= goal1)
+    (up-find-remote c: town-center c: 1)
+    (up-modify-sn sn-focus-player-number g:= goal)
+    (up-set-target-object search-remote c: 0)
+    (up-get-point position-object point-x)
+    (set-goal SPLIT 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 457 | DONOR_LINE=6538
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-copy-point point2-x scout-x)
+    (up-cross-tiles point2-x center-x c: 10)	;cross counterclockwise
+    ;	(up-send-flare point-x)
+    ;	(up-send-flare point2-x)
+    ;	(up-send-flare scout-x)
+    (up-get-point-distance point-x scout-x goal)	;distance to nearest ally from scout
+    (up-get-point-distance point2-x point-x goal1)	;distance to nearest ally after crossing
+    ;	(up-chat-data-to-all "scout to ally: %d" g: goal)
+    ;	(up-chat-data-to-all "cross to ally: %d" g: goal1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 458 | DONOR_LINE=6553
+(defrule	;clockwise
+    (goal SPLIT 1)
+    (up-compare-goal goal1 g:< goal)
+=>
+    ;	(chat-to-all "I will explore by the CLOCKWISE")
+    (set-goal gl-circle-direcion CLOCKWISE)
+    (set-goal SPLIT 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 459 | DONOR_LINE=6563
+(defrule
+    (goal SPLIT 1)
+    (up-compare-goal goal1 g:> goal)
+=>
+    ;	(chat-to-all "i will explore by the COUNTERCLOCKWISE")
+    (set-goal gl-circle-direcion COUNTERCLOCKWISE)
+    (set-goal SPLIT 0)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 460 | DONOR_LINE=6574
+(defrule
+    (or	(player-in-game any-ally)
+    (up-compare-goal gl-circle-direcion != -1))
+=>
+    (up-jump-rule 3)
+)
+
+; AUTHENTICATED DONOR RULE 461 | DONOR_LINE=6581
+(defrule
+    (goal gl-twenty-turn 1)
+    (goal gl-dlure FINISHED)
+    (unit-type-count scout-cavalry > 0)
+    (up-timer-status 28 != timer-running)
+    ;	(game-time s:> sn-home-exploration-time)
+    (players-building-type-count target-player farm < 1)
+    (players-building-type-count target-player house < 1)
+=>
+    (up-copy-point point-x scout-x)
+    (up-cross-tiles point-x center-x c: 10)	;cross counterclockwise
+    (up-get-point-distance home-x scout-x goal)
+    (up-get-point-distance home-x point-x goal1)
+    ;	(up-chat-data-to-player me "scout to tc: %d" g: goal)
+    ;	(up-chat-data-to-player me "point to tc: %d" g: goal1)
+    ;	(up-send-flare point-x)
+    (set-goal SPLIT 1)
+    (disable-self)
+)
+
+; AUTHENTICATED DONOR RULE 462 | DONOR_LINE=6601
+(defrule	;clockwise
+    (goal SPLIT 1)
+    (up-compare-goal goal1 g:< goal)
+=>
+    ;	(chat-to-player me "I will explore by the CLOCKWISE")
+    (set-goal gl-circle-direcion CLOCKWISE)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 463 | DONOR_LINE=6610
+(defrule
+    (goal SPLIT 1)
+    (up-compare-goal goal1 g:> goal)
+=>
+    ;	(chat-to-player me "i will explore by the COUNTERCLOCKWISE")
+    (set-goal gl-circle-direcion COUNTERCLOCKWISE)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 464 | DONOR_LINE=6620
+(defrule
+    (true)
+=>
+    (set-goal goal 0)
+)
+
+; AUTHENTICATED DONOR RULE 465 | DONOR_LINE=6626
+(defrule
+    (goal gl-circle-direcion COUNTERCLOCKWISE)
+=>
+    (set-goal goal1 18)
+)
+
+; AUTHENTICATED DONOR RULE 466 | DONOR_LINE=6632
+(defrule
+    (goal gl-circle-direcion CLOCKWISE)
+=>
+    (set-goal goal1 -18)
+)
+
+; AUTHENTICATED DONOR RULE 467 | DONOR_LINE=6638
+(defrule
+    (goal gl-twenty-turn 1)
+    (goal gl-dlure FINISHED)
+    (goal gl-strategy KRUSH)
+    (unit-type-count scout-cavalry > 0)
+    (up-timer-status 28 != timer-running)
+    (up-compare-goal gl-scout-added != FINISHED)
+=>
+    (up-copy-point point-x scout-x)
+    (up-cross-tiles point-x center-x g: goal1)	; +-18
+    (up-lerp-tiles point-x center-x c: -12)
+    (up-lerp-tiles point-x point-x g: goal)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 468 | DONOR_LINE=6653
+(defrule
+    (player-valid 3)
+    (game-time < 900)	;15min
+    (goal gl-twenty-turn 1)
+    (goal gl-dlure FINISHED)
+    (goal gl-strategy FLUSH)
+    (unit-type-count scout-cavalry > 0)
+    (up-timer-status 28 != timer-running)
+    (up-point-distance enemy-x home-x > 95)
+=>
+    (up-copy-point point-x scout-x)
+    (up-cross-tiles point-x center-x g: goal1)	; +-18
+    (up-lerp-tiles point-x center-x c: -12)
+    (up-lerp-tiles point-x point-x g: goal)
+    (up-get-point-distance enemy-x home-x goal)
+    ;	(up-chat-data-to-all "NewSplit(%d)" g: goal)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 469 | DONOR_LINE=6672
+(defrule
+    ;	(not(player-valid 3))
+    (goal gl-twenty-turn 1)
+    (goal gl-dlure FINISHED)
+    (goal gl-strategy FLUSH)
+    (unit-type-count scout-cavalry > 0)
+    (up-timer-status 28 != timer-running)
+    (players-building-type-count every-enemy mill < 1)
+    (players-building-type-count every-enemy farm < 1)
+    (players-building-type-count every-enemy house < 1)
+    (players-building-type-count every-enemy barracks < 1)
+    (players-building-type-count every-enemy archery-range < 1)
+=>
+    (up-copy-point point-x scout-x)
+    (up-cross-tiles point-x center-x g: goal1)	; +-18
+    (up-lerp-tiles point-x center-x c: -12)
+    (up-lerp-tiles point-x point-x g: goal)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 470 | DONOR_LINE=6692
+(defrule
+    (goal SPLIT 1)
+    (up-point-distance scout-x center-x >= max-circle-scout-distance)
+=>
+    ;	(chat-to-player me "Lerp in")
+    (up-lerp-tiles point-x center-x c: 27)
+    (up-lerp-tiles point-x point-x g: goal)
+)
+
+; AUTHENTICATED DONOR RULE 471 | DONOR_LINE=6701
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-get-point-distance scout-x center-x goal)
+    ;	(up-chat-data-to-all "Move(%d)" g: gl-circle-direcion)
+    (up-full-reset-search)
+    (up-add-object-by-id search-local g: scout-id)
+    (up-lerp-tiles point-x scout-x c: -10)
+    (up-bound-point point-x point-x)
+    ;	(up-send-flare point-x)
+    (up-target-point point-x action-move -1 no-attack)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 472 | DONOR_LINE=6716
+(defrule
+    (building-type-count mill >= 1)
+=>
+    (up-full-reset-search)
+    (up-find-local c: mill c: 1)
+    (up-set-target-object search-local c: 0)
+    (up-get-point position-object object-x)
+)
+
+; AUTHENTICATED DONOR RULE 473 | DONOR_LINE=6725
+(defrule
+    (goal gl-tenth-turn 1)
+    (up-compare-goal BH < 1)
+    (building-type-count mill >= 1)
+    (unit-type-count villager-forager < 1)
+    (or	(and(unit-type-count sheep < 1)
+    (up-compare-goal gl-killed-boar-count < 2))
+    (unit-type-count villager-shepherd >= 7))
+=>
+    (up-full-reset-search)
+    (set-goal SPLIT 1)
+)
+
+; AUTHENTICATED DONOR RULE 474 | DONOR_LINE=6738
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-set-target-point object-x)
+    (up-find-local c: villager-class c: 240)
+    (up-clean-search search-local object-data-distance search-order-asc)
+    (up-remove-objects search-local object-data-tasks-count > 0)
+    (up-remove-objects search-local object-data-action == actionid-build)
+    (up-remove-objects search-local object-data-target == forage-food)
+    (up-remove-objects search-local object-data-target == deer-food)
+    (up-remove-objects search-local object-data-id g:== lurer-id)
+    (up-remove-objects search-local object-data-target == tree-class)
+    (up-get-search-state lt)
+)
+
+; AUTHENTICATED DONOR RULE 475 | DONOR_LINE=6753
+(defrule
+    (goal SPLIT 1)
+=>
+    (up-remove-objects search-local -1 > 0)
+    (set-strategic-number sn-focus-player-number 0)
+    (up-find-remote c: forage-bush c: 10)
+    (up-modify-sn sn-focus-player-number s:= sn-target-player-number)
+    (up-clean-search search-local object-data-distance search-order-asc)
+    (up-remove-objects search-remote -1 > 0)
+    (up-target-objects 0 action-default -1 -1)
+    ;	(up-chat-data-to-player me "Send vill to forage(%d)" g: lt)
+    (set-goal SPLIT 0)
+)
+
+; AUTHENTICATED DONOR RULE 476 | DONOR_LINE=6768
+(defrule
+    (true)
+    =>	(set-goal gl-current-sheep-count 0)
+    (set-goal gl-sheep-count-last 0)
+    (set-goal gl-new-sheep-count 0)
+    (disable-self))
+
+; AUTHENTICATED DONOR RULE 477 | DONOR_LINE=6775
+(defrule
+    (true)
+    =>	(up-get-player-fact me unit-type-count livestock-class gl-sheep-count))
+
+; AUTHENTICATED DONOR RULE 478 | DONOR_LINE=6779
+(defrule
+    (up-compare-goal gl-sheep-count g:> gl-sheep-count-last)
+    (dropsite-min-distance livestock-class < 8)
+    (building-type-count town-center > 0)
+    =>	(up-modify-goal gl-new-sheep-count g:= gl-sheep-count)
+    (up-modify-goal gl-new-sheep-count g:- gl-sheep-count-last)
+    (up-modify-goal gl-sheep-count-last g:= gl-sheep-count)
+    (up-modify-goal gl-current-sheep-count g:+ gl-new-sheep-count)
+    (set-goal gl-new-sheep-count 0)
+    ;(up-chat-data-to-player me "-> %d sheep found" g: gl-current-sheep-count)
+)
+
+; AUTHENTICATED DONOR RULE 479 | DONOR_LINE=6791
+(defrule
+    (up-compare-goal gl-sheep-count g:< gl-sheep-count-last)
+    =>	(up-modify-goal gl-sheep-count-last g:= gl-sheep-count))
+
+; AUTHENTICATED DONOR RULE 480 | DONOR_LINE=6796
+(defrule
+    (true)
+    (or	(up-compare-goal gl-dlure == -1)
+    (up-compare-goal gl-deer-distance >= 20))
+    (or	(up-group-size c: RangedGroup >= 1)
+    (game-time s:> sn-home-exploration-time))
+=>
+    (set-strategic-number sn-maximum-hunt-drop-distance 17)
+    (set-strategic-number sn-total-number-explorers 1)
+    (set-strategic-number sn-number-explore-groups 1)
+    ;	(chat-to-player me "No more dluring")
+    (up-reset-unit c: scout-unit)
+    (set-goal gl-dlure FINISHED)
+    (up-reset-scouts)
+    (disable-self)
+)

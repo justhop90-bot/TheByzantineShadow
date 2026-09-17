@@ -159,6 +159,96 @@
 (defconst KrushForgingNumber 20) ; donor :1645
 (defconst KrushIronCastingNumber 21) ; donor :1646
 (defconst KrushScaleBardingNumber 15) ; donor :1640
+; ============================================================
+; AUTHENTICATED DONOR SCOUTING IDENTIFIERS (02b, rules 237-480)
+; Values verbatim with donor defconst lines cited. goal 165 moves
+; here from 04's local block (sole definition; 04 block trimmed to
+; match -- single-definition rule). Map-size conditional for
+; max-circle-scout-distance preserved verbatim with its #load-if
+; wrappers (donor :336-358).
+; ============================================================
+(defconst CROSS 200) ; donor :259
+(defconst enemy-attack-x 161) ; donor :170
+(defconst enemy-attack-y 162) ; donor :171
+(defconst gl-aggressive-vills 263) ; donor :210
+(defconst gl-circle-direcion 308) ; donor :161
+(defconst gl-enemy-attack-size 34) ; donor :156
+(defconst gl-garrison-tc 210) ; donor :1481
+(defconst gl-lclerp 266) ; donor :209
+(defconst gl-saved-focus-player 84) ; donor :1749
+(defconst gl-skirm-vills 41) ; donor :166
+(defconst gl-trees-around 124) ; donor :205
+(defconst gl-trushed 216) ; donor :1483
+(defconst goal3 78) ; donor :1362
+(defconst goal4 79) ; donor :1363
+(defconst point-y 178) ; donor :1422
+(defconst goal 165) ; donor :1359 (moved from 04 local block)
+(defconst deer-class 909) ; donor :548
+(defconst t-direction-switch 38) ; donor :284
+(defconst t-scout-enemy 21) ; donor :300
+(defconst NEWSCOUTING 128) ; donor :258
+(defconst FINISHED 100) ; donor :456
+(defconst SOD 250) ; donor :1479
+(defconst gl-dlure 221) ; donor :1576
+(defconst gl-killed-boar-count 179) ; donor :1693
+(defconst gl-sighted-boar-count 209) ; donor :1568
+(defconst gl-dark-build 108) ; donor :211
+(defconst gl-boar-unit 283) ; donor :1786
+(defconst RangedGroup 1) ; donor :318
+(defconst BH 75) ; donor :1692 (boar hunting)
+(defconst MaxDistance 36) ; donor :260
+(defconst gl-scout-stuck 309) ; donor :186
+(defconst scout-id 125) ; donor :1350
+(defconst sheep1-id 175) ; donor :1355
+(defconst gl-sheep-scouting 302) ; donor :196
+(defconst gl-current-sheep-count 203) ; donor :1574
+(defconst gl-sheep-count-last 202) ; donor :1573
+(defconst gl-new-sheep-count 201) ; donor :1572
+(defconst gl-getting-sheep 102) ; donor :1762
+(defconst gl-scouting-switch 30) ; donor :198
+(defconst gl-inside-forest 172) ; donor :266
+(defconst explo-x 247) ; donor :261
+(defconst point2-x 154) ; donor :1443
+(defconst saved-scout-x 310) ; donor :184
+(defconst center-x 187) ; donor :1445
+(defconst scout-x 173) ; donor :1417
+(defconst goal2 77) ; donor :1361
+(defconst goal1 76) ; donor :1360
+(defconst lt 254) ; donor :1369
+(defconst rt 256) ; donor :1371
+(defconst gl-deer-distance 220) ; donor :1578
+(defconst gl-max-coordinate-value 152) ; donor :1373
+(defconst gl-scout-added 180) ; donor :1557
+(defconst gl-sheep-count 204) ; donor :1575
+(defconst gl-threat-time 70) ; donor :1741
+(defconst circle-scouting-radius 20) ; donor :331
+(defconst skirm-group-radius 10) ; donor :332
+(defconst max-skirm-group-radius 12) ; donor :333
+;WWWWWWWWWWWWWWWWWW DOMESTIC
+#load-if-defined GIANT-MAP
+	(defconst max-circle-scout-distance 110)
+#end-if
+
+#load-if-defined LARGE-MAP
+	(defconst max-circle-scout-distance 94)
+#end-if
+
+#load-if-defined NORMAL-MAP
+	(defconst max-circle-scout-distance 80)
+#end-if
+
+#load-if-defined MEDIUM-MAP
+	(defconst max-circle-scout-distance 72)
+#end-if
+
+#load-if-defined SMALL-MAP
+	(defconst max-circle-scout-distance 60)
+#end-if
+
+#load-if-defined TINY-MAP
+	(defconst max-circle-scout-distance 50)
+#end-if
+
 (defconst KrushSmithNumber 9) ; donor :1633 (currently referenced only inside
 ; a commented line of authenticated donor rule 1794 / 04 line 77; rule
 ; bodies are frozen by qualification, so the line itself is untouched --
