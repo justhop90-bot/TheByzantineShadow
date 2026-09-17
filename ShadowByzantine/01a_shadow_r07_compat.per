@@ -163,6 +163,21 @@
 ; a commented line of authenticated donor rule 1794 / 04 line 77; rule
 ; bodies are frozen by qualification, so the line itself is untouched --
 ; this registers the identifier for any future live use)
+
+; ============================================================
+; OBJECT IDENTIFIERS (engine-absent, donor-defined)
+; DE provides no builtin for these object IDs (absent from the
+; engine registry; Naga and stock both defconst them: stock
+; gold-mine 66, stone-mine 102, sheep 958). Without bindings the
+; engine aborts with ERR2005 at first use (proven by game dialog
+; on 04 rule 1820's sheep references). Values donor-exact.
+; point-x is the donor search-point scratch goal used with
+; up-get-point position-object.
+; ============================================================
+(defconst sheep 958) ; donor :488 (== livestock-class 958)
+(defconst gold-mine 66) ; donor :529
+(defconst stone-mine 102) ; donor :530
+(defconst point-x 177) ; donor :1421
 (defconst LAA 22) ; donor :1602
 (defconst LOOM 3) ; donor :1740
 (defconst LeatherArcherArmorNumber 25) ; donor :1679

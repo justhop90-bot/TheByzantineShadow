@@ -17,8 +17,9 @@ R07_LAST = 1896
 # Excluded from body/predicate/action equivalence only; order, jumps,
 # state-touch parity, and counts still enforced. Each entry must cite
 # the closure amendment that justifies it with runtime evidence.
+# Currently empty: deviation 1820 was reverted 2026-09-17 once the true
+# defect (missing sheep defconst) was found; 163/163 equivalence restored.
 ALLOWED_DEVIATIONS = {
-    1820: "ERR2005 gaia-unit operand removed; closure 2026-09-17",
 }
 KNOWN_JUMPS = {1795: 1, 1850: 4, 1891: 5}
 COMPAT_CONSTANTS = (

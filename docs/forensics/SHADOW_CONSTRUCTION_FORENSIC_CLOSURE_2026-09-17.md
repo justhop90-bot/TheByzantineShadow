@@ -264,6 +264,28 @@ equivalence skip rule 1820 only; order, jumps, counts, and state-touch
 parity still enforced. Sweep confirmed this is the sole gaia-with-unit
 call in the loaded set.
 
+## Amendment record 2026-09-17 — deviation 1820 REVERTED (true defect
+found downstream)
+
+The deviation above was mistargeted and is hereby superseded; donor
+rule 1820 is restored verbatim and both qualifiers are back to 163/163
+equivalence with zero deviations. Continued engine dialogs (ERR2005 at
+the surviving `sheep` disjunct) proved the operand was never the
+defect: `sheep` itself was undefined. DE provides no `sheep`,
+`gold-mine`, or `stone-mine` builtins (registry-absent; Naga and stock
+both defconst them: 958/66/102); the donor defines all three but the
+transplant never carried them. Registered donor-exact in `01a` with
+`point-x` (177), which had the same gap. With `sheep` = 958 =
+livestock-class, the gaia disjunct is valid (Naga-proven gaia+class
+pattern), so the original rule stands as Shadow wrote it.
+
+Lessons, both recorded against prior reasoning: (1) check the
+operand's definition before the command's contract — two rounds of
+analysis examined everything except whether `sheep` existed; (2) a
+full identifier sweep must cover object IDs, not just goals and
+state — facts/commands are engine-provided, object IDs frequently
+are not. The sweep method is updated accordingly.
+
 Note: line 377 (`civilian-population`) flagged in the same session is
 NOT reproduced by engine evidence — registry documents it, Naga uses it
 in live conditions, donor-verbatim. Verdict: harness false positive
