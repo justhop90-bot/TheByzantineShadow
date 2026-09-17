@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Static qualification of the authenticated R07 1794-1814 transplant.
+"""Static qualification of the authenticated R07 1794-1827 transplant.
 
 The qualification compares parsed defrule bodies from the canonical donor
 against the corresponding ordered rule bodies in 04_construction.per.
@@ -17,7 +17,7 @@ IMPLEMENTATION = ROOT / "ShadowByzantine" / "04_construction.per"
 EXPECTED_BLOB = "70a18a3b69e8ea46bd5132673fe9fcf8a36595ee"
 EXPECTED_RULES = 1956
 FIRST = 1794
-LAST = 1814
+LAST = 1827
 
 
 def git_blob_sha1(data: bytes) -> str:
@@ -80,8 +80,6 @@ def extract_rules(text: str):
 
 
 def normalize(rule: str) -> str:
-    # Preserve executable token order; remove comments, whitespace, and
-    # formatting-only tabs/newlines. Strings are retained verbatim.
     return re.sub(r"\s+", " ", mask_comments_and_strings(rule)).strip()
 
 
@@ -100,9 +98,10 @@ def main() -> int:
 
     if len(source_rules) != EXPECTED_RULES:
         raise SystemExit(f"DONOR RULE COUNT MISMATCH: expected {EXPECTED_RULES}, got {len(source_rules)}")
-    if len(impl_rules) != LAST - FIRST + 1:
+    expected_count = LAST - FIRST + 1
+    if len(impl_rules) != expected_count:
         raise SystemExit(
-            f"IMPLEMENTATION RULE COUNT MISMATCH: expected {LAST-FIRST+1}, got {len(impl_rules)}"
+            f"IMPLEMENTATION RULE COUNT MISMATCH: expected {expected_count}, got {len(impl_rules)}"
         )
 
     donor_slice = source_rules[FIRST - 1 : LAST]
@@ -126,7 +125,7 @@ def main() -> int:
     print("RULE_BODY_EQUIVALENCE=PASS")
     print(f"UP_JUMP_EQUIVALENCE=PASS ({len(impl_jumps)} jumps)")
     print("SOURCE_ORDER=PASS")
-    print("STATIC_R07_1794_1814_QUALIFICATION=PASS")
+    print("STATIC_R07_1794_1827_QUALIFICATION=PASS")
     return 0
 
 
