@@ -126,8 +126,8 @@
 ; STRATEGIC RESERVE POLICY ABI
 ; ============================================================
 ;
-; The following numeric values are storage identifiers or enum
-; discriminants only. They do NOT encode resource reserve amounts.
+; These four policy IDs are Byzantine adaptation identifiers only.
+; They are NOT recovered Shadow reserve amounts.
 
 (defconst AEGIS-RESERVE-EARLY 1)
 (defconst AEGIS-RESERVE-DEVELOPMENT 2)
@@ -154,3 +154,55 @@
 (defconst AEGIS-RESERVE-CAPITAL-UNQUALIFIED 0)
 (defconst AEGIS-RESERVE-CAPITAL-SUFFICIENT 1)
 (defconst AEGIS-RESERVE-CAPITAL-INSUFFICIENT 2)
+
+; ============================================================
+; AUTHENTICATED SHADOW ECONOMIC THRESHOLD ABI
+; ============================================================
+;
+; DIRECT donor values from ShadowSource.per. These are not a
+; four-resource strategic reserve vector. Escrow thresholds are
+; actively consumed by Shadow progression/production rules.
+;
+; Castle/Imperial CA-/IA- thresholds are preserved as donor
+; constants but are currently UNCONSUMED in ShadowSource.per.
+; Do not promote them into active Byzantine policy without a new
+; source-backed consumer.
+
+(defconst AEGIS-SHADOW-LOW-ESCROW 586)
+(defconst AEGIS-SHADOW-MID-ESCROW 587)
+(defconst AEGIS-SHADOW-MID-HIGH-ESCROW 588)
+(defconst AEGIS-SHADOW-HIGH-ESCROW 589)
+
+(defconst AEGIS-SHADOW-CA-WOOD-TRADING 590)
+(defconst AEGIS-SHADOW-CA-WOOD-EXCESS 591)
+(defconst AEGIS-SHADOW-CA-WOOD-NEED 592)
+(defconst AEGIS-SHADOW-CA-STONE-NEED 593)
+(defconst AEGIS-SHADOW-CA-GOLD-TRADING 594)
+(defconst AEGIS-SHADOW-CA-GOLD-EXCESS 595)
+(defconst AEGIS-SHADOW-CA-GOLD-NEED 596)
+(defconst AEGIS-SHADOW-CA-FOOD-EXCESS 597)
+(defconst AEGIS-SHADOW-CA-FOOD-TRADING 598)
+(defconst AEGIS-SHADOW-CA-FOOD-NEED 599)
+
+(defconst AEGIS-SHADOW-IA-WOOD-EXCESS 600)
+(defconst AEGIS-SHADOW-IA-WOOD-NEED 601)
+(defconst AEGIS-SHADOW-IA-WOOD-TRADING 602)
+(defconst AEGIS-SHADOW-IA-FOOD-EXCESS 603)
+(defconst AEGIS-SHADOW-IA-FOOD-TRADING 604)
+(defconst AEGIS-SHADOW-IA-FOOD-NEED 605)
+(defconst AEGIS-SHADOW-IA-GOLD-TRADING 606)
+(defconst AEGIS-SHADOW-IA-GOLD-EXCESS 607)
+(defconst AEGIS-SHADOW-IA-GOLD-NEED 608)
+(defconst AEGIS-SHADOW-IA-STONE-NEED 609)
+
+; ============================================================
+; SHADOW DYNAMIC LIQUIDITY ABI
+; ============================================================
+;
+; Shadow derives NET-* from engine resource facts minus current
+; escrow. These are dynamic state values, not constants/reserves.
+
+(defconst AEGIS-SHADOW-NET-FOOD 610)
+(defconst AEGIS-SHADOW-NET-WOOD 611)
+(defconst AEGIS-SHADOW-NET-GOLD 612)
+(defconst AEGIS-SHADOW-NET-STONE 613)
