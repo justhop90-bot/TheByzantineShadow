@@ -5,11 +5,13 @@
 Behavioral authority: `ShadowSource.per`.
 Authenticated donor blob SHA-1: `70a18a3b69e8ea46bd5132673fe9fcf8a36595ee`.
 
-This artifact deliberately does not promote the current Byzantine modules into donor evidence.
+Git object verification now resolves blob `70a18a3b69e8ea46bd5132673fe9fcf8a36595ee` directly to the authenticated `ShadowSource.per` content. `SourceShaRef` also reports the same SHA. This establishes repository-level blob identity; an independent local byte re-hash remains blocked because the available transport does not expose the full blob to the local runtime.
 
-## Qualification note
+## Qualification / evidence gap
 
-The authenticated source is available through the repository connector, but the connector's full-blob response is transport-truncated. Therefore exact donor byte offsets and a complete numeric rule-ordinal table are **not qualified in this pass**. Where source-order/rule-local bodies were recoverable from authenticated source windows, they are recorded below. No fabricated ordinals or offsets are supplied.
+The authenticated source is available through the GitHub blob API, but the connector transport truncates the full content returned to the model. Therefore exact donor byte offsets and a complete numeric rule-ordinal table are **not qualified in this pass**. No fabricated ordinals or offsets are supplied.
+
+A new mechanical count check is significant: searching the authenticated blob resource for the literal token `(defrule` reports **1,692 matches**, not the previously assumed 1,956. The earlier 1,956-rule figure is therefore **unreconciled and must not be treated as authenticated** until the full byte stream is independently parsed. This discrepancy is now an explicit forensic blocker.
 
 ## Donor control topology
 
@@ -195,6 +197,9 @@ Those are control-state concepts, not reserve amounts.
 ## Drift check
 
 - Donor remains sole behavioral authority: PASS.
+- Git blob identity matches authenticated donor SHA: PASS.
+- Independent local byte re-hash: BLOCKED by transport.
+- Prior 1,956-rule count: **UNRECONCILED**; authenticated resource search currently reports 1,692 literal `(defrule` matches.
 - No fabricated exact ordinal/byte offsets: PASS.
 - Source-order topology preserved where authenticated windows were available: PASS.
 - Command/completion distinction preserved: PASS.
@@ -205,6 +210,8 @@ Those are control-state concepts, not reserve amounts.
 ## Evidence classes
 
 - Donor escrow/progression rule bodies: DIRECT.
+- Git blob identity: DIRECT.
 - Byzantine comparison: DIRECT from current repository files.
 - Full numeric donor ordinal/byte map: UNKNOWN / transport-unqualified.
+- 1,692 `(defrule` resource-search count: DIRECT observation from authenticated blob resource, pending independent full-stream parse.
 - Proposed progression ABI boundary: COMPOSED.
