@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/justhop90-bot/TheByzantineShadow/schema/shadow-byte-range-crosswalk-v0.2.schema.json",
+  "title": "SHADOW_BYTE_RANGE_CROSSWALK_v0.2",
+  "description": "Machine-readable forensic byte-range crosswalk for TheByzantineShadow. Each JSONL record independently authenticates a repository object or interval and explicitly represents mapping, transformation, UNMAPPED, or UNRESOLVED state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "schema_version", "record_type", "record_id", "repository", "commit", "ref", "source", "range", "rule", "classification", "mapping", "provenance"],
+  "properties": {
+    "schema": {"const": "shadow-byte-range-crosswalk"},
+    "schema_version": {"const": "0.2"},
+    "record_type": {"type": "string", "enum": ["provenance", "blob", "donor_rule", "donor_interval", "target_file", "target_rule", "target_interval", "mapping", "transformation", "unmapped", "unresolved", "summary"]},
+    "record_id": {"type": "string", "minLength": 1},
+    "repository": {"const": "justhop90-bot/TheByzantineShadow"},
+    "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "ref": {"type": "string", "minLength": 1},
+    "source": {"$ref": "#/$defs/source"},
+    "range": {"$ref": "#/$defs/range"},
+    "rule": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/rule"}]},
+    "classification": {"$ref": "#/$defs/classification"},
+    "mapping": {"$ref": "#/$defs/mapping"},
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "invariants": {"$ref": "#/$defs/invariantReport"}
+  },
+  "allOf": [
+    {"if": {"properties": {"record_type": {"enum": ["donor_rule", "target_rule"]}}}, "then": {"properties": {"rule": {"$ref": "#/$defs/ruleRequired"}}}},
+    {"if": {"properties": {"record_type": {"enum": ["donor_interval", "target_interval", "mapping", "unmapped", "unresolved"]}}}, "then": {"required": ["range"]}},
+    {"if": {"properties": {"mapping": {"properties": {"status": {"const": "TRANSFORMED"}}}}}, "then": {"properties": {"mapping": {"required": ["transformation"], "properties": {"transformation": {"$ref": "#/$defs/transformationRequired"}}}}}},
+    {"if": {"properties": {"mapping": {"properties": {"status": {"const": "COMPOSED"}}}}}, "then": {"properties": {"mapping": {"required": ["sources"], "properties": {"sources": {"type": "array", "minItems": 2, "items": {"$ref": "#/$defs/sourceInterval"}}}}}},
+    {"if": {"properties": {"mapping": {"properties": {"status": {"const": "BYTE_IDENTICAL"}}}}}, "then": {"properties": {"mapping": {"required": ["target_path", "target_blob_sha1", "target_byte_start", "target_byte_end"]}}}},
+    {"if": {"properties": {"mapping": {"properties": {"status": {"const": "UNMAPPED"}}}}}, "then": {"properties": {"mapping": {"required": ["transformation"], "properties": {"target_path": {"type": "null"}, "target_blob_sha1": {"type": "null"}, "target_byte_start": {"type": "null"}, "target_byte_end": {"type": "null"}, "target_rule_ordinal": {"type": "null"}, "transformation": {"type": "object", "required": ["type"], "properties": {"type": {"const": "NOT_ESTABLISHED"}}}}}}}},
+    {"if": {"properties": {"mapping": {"properties": {"status": {"const": "UNRESOLVED"}}}}}, "then": {"properties": {"mapping": {"required": ["transformation"], "properties": {"transformation": {"type": "object", "required": ["type"], "properties": {"type": {"const": "INSUFFICIENT_EVIDENCE"}}}}}}}}
+  ],
+  "$defs": {
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "object_type", "git_blob_sha1", "raw_sha256", "byte_length", "encoding", "line_ending"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "object_type": {"type": "string", "enum": ["blob", "zip_member"]},
+        "git_blob_sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "raw_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "byte_length": {"type": ["integer", "null"], "minimum": 0},
+        "encoding": {"type": "string", "enum": ["UTF-8", "ASCII", "binary", "unknown"]},
+        "line_ending": {"type": "string", "enum": ["LF", "CRLF", "CR", "mixed", "none", "binary", "unknown"]}
+      }
+    },
+    "range": {
+      "type": "object", "additionalProperties": false,
+      "required": ["byte_start", "byte_end", "byte_length", "line_start", "line_end"],
+      "properties": {
+        "byte_start": {"type": ["integer", "null"], "minimum": 0},
+        "byte_end": {"type": ["integer", "null"], "minimum": -1},
+        "byte_length": {"type": ["integer", "null"], "minimum": 0},
+        "line_start": {"type": ["integer", "null"], "minimum": 1},
+        "line_end": {"type": ["integer", "null"], "minimum": 1},
+        "column_start": {"type": ["integer", "null"], "minimum": 1},
+        "column_end": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "rule": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ordinal", "ordinal_scope", "form", "rule_hash_sha256"],
+      "properties": {
+        "ordinal": {"type": "integer", "minimum": 1},
+        "ordinal_scope": {"type": "string", "minLength": 1},
+        "form": {"const": "defrule"},
+        "rule_hash_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "ruleRequired": {"$ref": "#/$defs/rule"},
+    "classification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["syntax_class", "subclass", "region", "semantic_domain", "engine_layer"],
+      "properties": {
+        "syntax_class": {"type": "string", "enum": ["FILE", "COMMENT", "WHITESPACE", "PREPROCESSOR", "DEFCONST", "DEFRULE", "RULE_CONDITION", "RULE_ACTION", "PREDICATE", "ACTION", "STRING_LITERAL", "INTEGER_LITERAL", "IDENTIFIER", "GOAL_REFERENCE", "SN_REFERENCE", "CONSTANT_REFERENCE", "LOAD", "TIMER", "JUMP", "SEARCH", "TARGETING", "ESCROW", "PRODUCTION", "CONSTRUCTION", "RESEARCH", "MILITARY", "ECONOMY", "DOCUMENTATION", "BINARY", "TEXT", "UNKNOWN"]},
+        "subclass": {"type": "string", "minLength": 1},
+        "region": {"type": "string", "minLength": 1},
+        "semantic_domain": {"type": "string", "minLength": 1},
+        "engine_layer": {"type": "string", "enum": ["native_per", "documentation", "tooling", "binary_corpus", "unknown"]}
+      }
+    },
+    "mapping": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "confidence"],
+      "properties": {
+        "status": {"type": "string", "enum": ["EXACT_SELF", "BYTE_IDENTICAL", "EXACT_TRANSPLANT", "MOVED", "TRANSFORMED", "COMPOSED", "DOCUMENTED_ONLY", "UNMAPPED", "UNRESOLVED", "OUT_OF_SCOPE"]},
+        "confidence": {"type": "string", "enum": ["DIRECT", "COMPOSED", "INFERRED", "DOCUMENTED", "UNCERTAIN"]},
+        "target_path": {"type": ["string", "null"]},
+        "target_blob_sha1": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40}$"},
+        "target_byte_start": {"type": ["integer", "null"], "minimum": 0},
+        "target_byte_end": {"type": ["integer", "null"], "minimum": -1},
+        "target_rule_ordinal": {"type": ["integer", "null"], "minimum": 1},
+        "transformation": {"oneOf": [{"$ref": "#/$defs/transformation"}, {"type": "null"}]},
+        "sources": {"type": "array", "items": {"$ref": "#/$defs/sourceInterval"}}
+      }
+    },
+    "transformation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string", "enum": ["NONE", "TOKEN_SUBSTITUTION", "RULE_REWRITE", "CONTEXTUAL_REWRITE", "NORMALIZATION_ONLY", "COMPOSITION", "NOT_ESTABLISHED", "INSUFFICIENT_EVIDENCE"]},
+        "description": {"type": ["string", "null"]},
+        "source_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "target_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+        "changed_byte_count": {"type": ["integer", "null"], "minimum": 0},
+        "changed_ranges": {"type": "array", "items": {"$ref": "#/$defs/changedRange"}}
+      }
+    },
+    "transformationRequired": {
+      "type": "object", "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {"type": "string", "enum": ["TOKEN_SUBSTITUTION", "RULE_REWRITE", "CONTEXTUAL_REWRITE", "COMPOSITION"]},
+        "description": {"type": "string"},
+        "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "target_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "changed_byte_count": {"type": "integer", "minimum": 1},
+        "changed_ranges": {"type": "array", "items": {"$ref": "#/$defs/changedRange"}}
+      }
+    },
+    "sourceInterval": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "blob_sha1", "byte_start", "byte_end"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "blob_sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "byte_start": {"type": "integer", "minimum": 0},
+        "byte_end": {"type": "integer", "minimum": -1},
+        "rule_ordinal": {"type": ["integer", "null"], "minimum": 1}
+      }
+    },
+    "changedRange": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source_start", "source_end", "target_start", "target_end"],
+      "properties": {
+        "source_start": {"type": "integer", "minimum": 0},
+        "source_end": {"type": "integer", "minimum": -1},
+        "target_start": {"type": "integer", "minimum": 0},
+        "target_end": {"type": "integer", "minimum": -1}
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_class"],
+      "properties": {
+        "github_url": {"type": ["string", "null"], "format": "uri"},
+        "git_object_url": {"type": ["string", "null"], "format": "uri"},
+        "evidence_class": {"type": "string", "enum": ["DIRECT", "DIRECT_GIT_BLOB", "DIRECT_DOCUMENTATION", "DIRECT_BINARY_CONTAINER", "COMPOSED", "INFERRED", "DOCUMENTED", "UNCERTAIN"]},
+        "derived_by": {"type": ["string", "null"]},
+        "generated_at": {"type": ["string", "null"], "format": "date-time"},
+        "supports": {"type": ["string", "null"]}
+      }
+    },
+    "invariantReport": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "byte_length_valid": {"type": "boolean"},
+        "hash_valid": {"type": "boolean"},
+        "line_range_valid": {"type": "boolean"},
+        "rule_ordinal_valid": {"type": "boolean"},
+        "mapping_valid": {"type": "boolean"},
+        "provenance_valid": {"type": "boolean"},
+        "errors": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
